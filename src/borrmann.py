@@ -1,7 +1,7 @@
 # Compute Borrmann effect parameters for Crystallographic Scattering
 
 from constants import *
-from photoelectric_xs import PECrossSection
+from photon_xs import AbsCrossSection
 import crystal
 
 """
@@ -12,13 +12,13 @@ abs_coeff: absorption coefficient in cm^-1
 class Borrmann:
     def __init__(self, material, cell_density, abs_coeff):
         self.n = cell_density
-        self.pe_xs = PECrossSection(material)
+        self.abs_xs = AbsCrossSection(material)
         self.mu = abs_coeff
         self.crystal = crystal.get_crystal(material)
 
     def imff(self, h, k, l):
         energy = self.crystal.energy(h, k, l)
-        sigma = self.pe_xs.sigma(energy)
+        sigma = self.abs_xs.sigma(energy)
         return energy * sigma / (2 * kHBARC * kRE)
 
     def debye_waller(self):
