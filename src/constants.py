@@ -10,14 +10,11 @@ sec = 1.0
 # Dimensionless constants
 kALPHA = 1/137
 
-# Speed of light
-kC  = 3e10 * (cm / sec)
-
-# Reduced Planck's Constant (hbar)
-kHBAR = 6.58212e-22 * MeV * sec
-
-# hbar * c
-kHBARC = 1.97236e-11 * MeV * cm
+# Fundamental constants
+kC  = 3e10 * (cm / sec)  # Speed of light
+kHBAR = 6.58212e-22 * MeV * sec  # Reduced Planck's Constant (hbar)
+kHBARC = 1.97236e-11 * MeV * cm  # hbar * c
+kHC = 1.239e-10 * MeV * cm  # h c
 
 # Scientific Constants
 kAVOGADRO = 6.022e23

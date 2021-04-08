@@ -19,7 +19,11 @@ class Borrmann:
     def imff(self, h, k, l):
         energy = self.crystal.energy(h, k, l)
         sigma = self.abs_xs.sigma(energy)
-        return energy * sigma / (2 * kHBARC * kRE)
+        return energy * sigma / (2 * kHC * kRE)
+    
+    def imffe(self, energy):
+        sigma = self.abs_xs.sigma(energy)
+        return energy * sigma / (2 * kHC * kRE)
 
     def debye_waller(self):
         return 1.0
