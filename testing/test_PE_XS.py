@@ -4,17 +4,17 @@ sys.path.append("../src/")
 from numpy import logspace
 import matplotlib.pyplot as plt
 
-from photoelectric_xs import PECrossSection
+from photon_xs import AbsCrossSection
 
-H_xs = PECrossSection("H")
-Be_xs = PECrossSection("Be")
-Ge_hxs = PECrossSection("Ge")
-Si_hxs = PECrossSection("Si")
-CsI_hxs = PECrossSection("CsI")
-NaI_hxs = PECrossSection("NaI")
-C_hxs = PECrossSection("C")
-Xe_hxs = PECrossSection("Xe")
-Ar_hxs = PECrossSection("Ar")
+H_xs = AbsCrossSection("H")
+Be_xs = AbsCrossSection("Be")
+Ge_hxs = AbsCrossSection("Ge")
+Si_hxs = AbsCrossSection("Si")
+CsI_hxs = AbsCrossSection("CsI")
+NaI_hxs = AbsCrossSection("NaI")
+C_hxs = AbsCrossSection("C")
+Xe_hxs = AbsCrossSection("Xe")
+Ar_hxs = AbsCrossSection("Ar")
 
 #print(Ge_hxs.sigma(1.09*8.75071e-3))
 
@@ -37,3 +37,14 @@ plt.legend()
 plt.show()
 plt.close()
 
+
+
+plt.scatter(Ge_hxs.pe_data[:,0], Ge_hxs.xs_dim * Ge_hxs.pe_data[:,1], label="Ge", marker='.', color='k')
+plt.plot(energies, Ge_hxs.sigma(energies), label="Ge")
+plt.yscale('log')
+plt.xscale('log')
+plt.xlabel(r"$E$ [MeV]")
+plt.ylabel(r"$\sigma$ [cm$^2$]")
+plt.legend()
+plt.show()
+plt.close()
