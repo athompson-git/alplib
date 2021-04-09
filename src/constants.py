@@ -9,6 +9,7 @@ sec = 1.0
 
 # Dimensionless constants
 kALPHA = 1/137
+kPI = 3.14159
 
 # Fundamental constants
 kC  = 3e10 * (cm / sec)  # Speed of light
