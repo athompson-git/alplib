@@ -20,7 +20,11 @@ class Borrmann:
     def imff(self, h, k, l):
         energy = self.crystal.energy(h, k, l)
         sigma = self.abs_xs.sigma(energy)
-        return energy * sigma / (2 * kHC * kRE)
+        imff = energy * sigma / (2 * kHC * kRE)
+        
+        if self.verbose == True:
+            print("    imff = ", imff)
+        return imff
 
     def debye_waller(self):
         return 1.0
@@ -45,6 +49,6 @@ class Borrmann:
         mu = self.n * self.abs_xs.sigma(energy)
         return mu / (1 - self.epsilon(energy, h, k, l))
 
-    def anomalous_depth(self, h, k, l):
-        return 1/self.anomalous_abs(h, k, l)
+    def anomalous_depth(self, energy, h, k, l):
+        return 1/self.anomalous_abs(energy, h, k, l)
 
