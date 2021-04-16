@@ -3,7 +3,7 @@
 import numpy as np
 from numpy import pi, cross, dot, exp, sum, sqrt
 
-from constants import *
+from .constants import *
 
 
 """
