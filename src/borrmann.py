@@ -1,8 +1,8 @@
 # Compute Borrmann effect parameters for Crystallographic Scattering
 
-from constants import *
-from photon_xs import AbsCrossSection
-import crystal
+from .constants import *
+from .photon_xs import AbsCrossSection
+from .crystal import *
 
 """
 material: string specifying the material/type of crystal, e.g. "Ge", "CsI", etc.
@@ -14,7 +14,7 @@ class Borrmann:
         self.n = density
         self.abs_xs = AbsCrossSection(material)
         self.mu = abs_coeff
-        self.crystal = crystal.get_crystal(material)
+        self.crystal = get_crystal(material)
         self.verbose = verbose
 
     def imff(self, h, k, l):
