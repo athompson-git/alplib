@@ -1,8 +1,8 @@
 # Compute Borrmann effect parameters for Crystallographic Scattering
 
-from .constants import *
-from .photon_xs import AbsCrossSection
-from .crystal import *
+from constants import *
+from photon_xs import AbsCrossSection
+from crystal import *
 
 """
 material: string specifying the material/type of crystal, e.g. "Ge", "CsI", etc.
@@ -20,6 +20,7 @@ class Borrmann:
     def imff(self, h, k, l):
         energy = self.crystal.energy(h, k, l)
         sigma = self.abs_xs.sigma(energy)
+        print("   energy=", energy)
         imff = energy * sigma / (2 * kHC * kRE)
         
         if self.verbose == True:
@@ -51,4 +52,16 @@ class Borrmann:
 
     def anomalous_depth(self, energy, h, k, l):
         return 1/self.anomalous_abs(energy, h, k, l)
+
+
+# Class for calculating the atomic form factors, shell-by-shell
+class HydrogenicWaveFunction:
+    def __init__(self, n=0, l=0, m=0):
+        pass
+
+    def radial_wf(self, r, n=0, l=0):
+        pass
+
+    def spherical_harmonic(self, theta, phi, l=0, m=0):
+        pass
 
