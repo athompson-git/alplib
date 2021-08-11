@@ -8,52 +8,46 @@ cm = 1.0
 sec = 1.0
 
 # Dimensionless constants
-kALPHA = 1/137
+ALPHA = 1/137
 kPI = 3.14159
 
 # Fundamental constants
-kC  = 3e10 * (cm / sec)  # Speed of light
-kHBAR = 6.58212e-22 * MeV * sec  # Reduced Planck's Constant (hbar)
-kHBARC = 1.97236e-11 * MeV * cm  # hbar * c
-kHC = 1.239e-10 * MeV * cm  # h c
+C_LIGHT  = 3e10 * (cm / sec)  # Speed of light
+HBAR = 6.58212e-22 * MeV * sec  # Reduced Planck's Constant (hbar)
+HBARC = 1.97236e-11 * MeV * cm  # hbar * c
+HC = 1.239e-10 * MeV * cm  # h c
 
 # Scientific Constants
-kAVOGADRO = 6.022e23
+AVOGADRO = 6.022e23
 
 # Particle Masses
-kME = 0.511 * MeV
-kMP = 938.0 * MeV
-mmu = 105.658369 * MeV
-mtau = 1.77699e3 * MeV
-mcharm = 1.280e3 * MeV
-massofpi = 139.57 * MeV
-massofpi0 = 134.98 * MeV
-massofeta = 547.862 * MeV
-massofp = 938.27 * MeV
-massofn = 939.56 * MeV
-axial_mass = 1014 * MeV
-
+M_E = 0.511 * MeV  # electron
+M_P = 938.0 * MeV  # proton
+M_MU = 105.658369 * MeV  # muon
+M_TAU = 1.77699e3 * MeV  # tau
+M_U = 2.2 * MeV  # up quark
+M_D = 4.7 * MeV  # down quark
+M_C = 1.280e3 * MeV  # charm quark
+M_PI = 139.57 * MeV  # pi+ / pi-
+M_PI0 = 134.98 * MeV  # pi0
+M_ETA = 547.862 * MeV  # eta
+M_N = 939.56 * MeV  # neutron
+M_A = 1014 * MeV  # axial mass
 
 # conversion between units
-meter_by_mev = 6.58212e-22 * 2.998e8  # MeV*m
-mev_per_kg = 5.6095887e29  # MeV/kg
-mev_per_hz = 6.58e-22  # 1 s^-1 = 6.58e-22 MeV
-cm_per_ang = 1e-8
+METER_BY_MEV = 6.58212e-22 * 2.998e8  # MeV*m
+MEV_PER_KG = 5.6095887e29  # MeV/kg
+MEV_PER_HZ = 6.58e-22  # 1 s^-1 = 6.58e-22 MeV
+CM_PER_ANG = 1e-8  # cm to angstroms
 
 # SM parameters
-kSSW = 0.2312  # Sine-squared of the Weinberg angle
-kGF = 1.16638e-11  # MeV^-2
-kCABIBBO = 0.9743  # Cosine of the Cabibbo angle
-kRE = 2.81794e-13  # classical electron radius in cm
+SSW = 0.2312  # Sine-squared of the Weinberg angle
+G_F = 1.16638e-11  # MeV^-2
+CABIBBO = 0.9743  # Cosine of the Cabibbo angle
+R_E = 2.81794e-13  # classical electron radius in cm
 
-# masses in gram
-massofh = 1.67372e-24 * MeV
-massof4he = 6.646479e-24 * MeV
-massof3he = 5.008234e-24 * MeV
-massof12c = 1.993e-23 * MeV
-massof14n = 2.3252651e-23 * MeV
-massof16o = 2.656018e-23 * MeV
-
-## quark mass in MeV
-massofu = 2.2 * MeV
-massofd = 4.7 * MeV
+# Crystal constants
+Z_GE = 32
+R0_GE = 0.53
+VCELL_GE = 181
+LATTICE_CONST_GE = 5.66

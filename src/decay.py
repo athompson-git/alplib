@@ -4,15 +4,16 @@
 
 from constants import *
 import numpy as np
+from numpy import pi, sqrt
 
 # a -> gamma gamma
 # g_agamma in MeV^-1
 def W_gg(g_agamma, ma):
-    return g_agamma**2 * ma**3 / (64*kPI)
+    return g_agamma**2 * ma**3 / (64*pi)
 
 # a -> e+ e-
 def W_ee(g_ae, ma):
-    return g_ae**2 * ma * np.sqrt(1 - (2 * kME / ma)**2) / (8 * kPI)
+    return g_ae**2 * ma * sqrt(1 - (2 * M_E / ma)**2) / (8 * pi)
 
 # Get the lifetime in the rest frame in s
 def Tau(width):

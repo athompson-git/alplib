@@ -9,20 +9,19 @@ import multiprocessing as multi
 
 from matplotlib.pyplot import hist2d
 
+import numpy as np
 from numpy import log, log10, pi, exp, sin, cos, sin, sqrt, arccos, heaviside
 from scipy.special import exp1
-from scipy.integrate import quad, dblquad, cumtrapz
-from scipy.optimize import fsolve
+from scipy.integrate import quad
 
 import mpmath as mp
-from mpmath import mpmathify, fsub, fadd
 mp.dps = 15
 
 
 
 # Define ALP production cross-sections
 def dSigmadt_primakoff_free(t, s, ma, M, g):
-    num = kALPHA * g**2 * (t*(M**2 + s)*ma**2 - (M * ma**2)**2 - t*((s-M**2)**2 + s*t) - t*(t-ma**2)/2)
+    num = ALPHA * g**2 * (t*(M**2 + s)*ma**2 - (M * ma**2)**2 - t*((s-M**2)**2 + s*t) - t*(t-ma**2)/2)
     denom = 4*t**2 * ((M + ma)**2 - s)*((M - ma)**2 - s)
     return heaviside(num/denom, 0.0) * (num / denom)
 
@@ -52,9 +51,9 @@ def primakoff_scattering_xs(ea, g, ma, z, r0):
 
 
 def axioelectric_xs(pe_xs, energy, z, a, ma, ge):
-    pe = np.interp(energy, pe_xs[:,0], pe_xs[:,1])*1e-24 / (100*meter_by_mev)**2
+    pe = np.interp(energy, pe_xs[:,0], pe_xs[:,1])*1e-24 / (100*METER_BY_MEV)**2
     beta = sqrt(energy**2 - ma**2)
-    return 137 * 3 * ge**2 * pe * energy**2 * (1 - np.power(beta, 2/3)/3) / (16*pi*me**2 * beta)
+    return 137 * 3 * ge**2 * pe * energy**2 * (1 - np.power(beta, 2/3)/3) / (16*pi*M_E**2 * beta)
 
 
 
@@ -72,7 +71,7 @@ def _atomic_elastic_ff(t, m, z):
     # t: MeV
     # m: nucleus mass
     # z: atomic number
-    b = 184*np.power(2.718, -1/2)*np.power(z, -1/3) / me
+    b = 184*np.power(2.718, -1/2)*np.power(z, -1/3) / M_E
     return (z*t*b**2)**2 / (1 + t*b**2)**2
 
 
@@ -81,7 +80,7 @@ def _atomic_elastic_ff(t, m, z):
     # t: MeV
     # m: nucleus mass
     # z: atomic number
-    b = 1194*np.power(2.718, -1/2)*np.power(z, -2/3) / me
+    b = 1194*np.power(2.718, -1/2)*np.power(z, -2/3) / M_E
     return (z*t*b**2)**2 / (1 + t*b**2)**2
 
 

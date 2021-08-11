@@ -3,7 +3,7 @@
 import numpy as np
 from numpy import pi, cross, dot, exp, sum, sqrt
 
-from .constants import *
+from constants import *
 
 
 """
@@ -14,7 +14,7 @@ a1, a2, a3: Bravais lattice vectors as 3-lists [#,#,#]
 """
 class Crystal:
     def __init__(self, lattice_const, primitives, a1, a2, a3):
-        self.a = lattice_const * cm_per_ang
+        self.a = lattice_const * CM_PER_ANG
         self.alpha = self.a * np.array(primitives)
         self.a0 = self.a * np.array([0,0,0])
         self.a1 = self.a * np.array(a1)
@@ -36,7 +36,7 @@ class Crystal:
         return 2*pi/sqrt(dot(self.G(h, k, l), self.G(h, k, l)))
     
     def energy(self, h, k, l):
-        return kHBARC * sqrt(dot(self.G(h, k, l), self.G(h, k, l)))
+        return HBARC * sqrt(dot(self.G(h, k, l), self.G(h, k, l)))
     
     def miller(self, h, k, l):
         return np.array([h, k, l])

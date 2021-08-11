@@ -4,14 +4,12 @@ from scipy.special import erf
 from scipy.integrate import quad
 
 import matplotlib.pyplot as plt
-
 from itertools import product
 
 from constants import *
 
 # Global Constants in keV angstroms
-kALPHA = 1/137
-kME = 511
+M_E_KeV = 1e3 * M_E
 kHBarC = 1.97
 
 # Crystal constants
@@ -23,15 +21,18 @@ a = 5.66
 
 
 class BraggPrimakoff:
-    def __init__(self):
+    def __init__(self, lattice_constant=LATTICE_CONST_GE):
+        # Lattice params
+        self.a = lattice_constant
+
         # Primitive basis vectors
         self.a0 = np.array([0,0,0])
-        self.a1 = (a/4) * np.array([1,1,1])
+        self.a1 = (self.a/4) * np.array([1,1,1])
 
         # Bravais lattice
-        self.b1 = (2*pi/a) * np.array([-1, 1, 1])
-        self.b2 = (2*pi/a) * np.array([1, -1, 1])
-        self.b3 = (2*pi/a) * np.array([-1, 1, -1])
+        self.b1 = (2*pi/self.a) * np.array([-1, 1, 1])
+        self.b2 = (2*pi/self.a) * np.array([1, -1, 1])
+        self.b3 = (2*pi/self.a) * np.array([-1, 1, -1])
 
     # Reciprocal Lattice
     def vecG(self, mList):
@@ -39,7 +40,7 @@ class BraggPrimakoff:
 
     # Atomic form factor squared
     def FA(self, q2, k):
-        return (zGe * sqrt(4*pi*kALPHA) * k**2 / ( 1 / (r0Ge**2) + q2))**2
+        return (zGe * sqrt(4*pi*ALPHA) * k**2 / ( 1 / (r0Ge**2) + q2))**2
 
     # Structure function squared
     def S2(self, mList):
@@ -90,12 +91,14 @@ class BraggPrimakoff:
     def BraggPrimakoff(self, theta_z, phi, E1=2.0, E2=2.5, gagamma=1e-10):
         rate = 0.0
         prefactor = (gagamma / 1e6)**2 * kHBarC**2 * (vCrys / va**2) / 4  # 1e6 to convert to keV^-1
-        for mList in GetReciprocalLattice():
-            sineThetaBy2 = np.dot(vecU(theta_z, phi), vecG(mList)) / np.dot(vecG(mList),vecG(mList))
+        for mList in self.GetReciprocalLattice():
+            sineThetaBy2 = np.dot(self.vecU(theta_z, phi), self.vecG(mList)) / np.dot(self.vecG(mList),self.vecG(mList))
             sineSquaredTheta = 4 * sineThetaBy2**2 * (1 - sineThetaBy2**2)
-            formFactorSquared = FA(sqrt(np.dot(vecG(mList), vecG(mList))), Ea(theta_z, phi, mList))
-            rate += heaviside(Ea(theta_z, phi, mList), 0.0) * SolarFlux(Ea(theta_z, phi, mList), gagamma) * sineSquaredTheta * formFactorSquared * S2(mList) \
-                * FW(Ea(theta_z, phi, mList), E1, E2) * (1 / np.dot(vecG(mList), vecG(mList)))
+            formFactorSquared = self.FA(sqrt(np.dot(self.vecG(mList), self.vecG(mList))), self.Ea(theta_z, phi, mList))
+            rate += heaviside(self.Ea(theta_z, phi, mList), 0.0) \
+                * self.SolarFlux(self.Ea(theta_z, phi, mList), gagamma) * sineSquaredTheta \
+                * formFactorSquared * self.S2(mList) * self.FW(self.Ea(theta_z, phi, mList), E1, E2) \
+                * (1 / np.dot(self.vecG(mList), self.vecG(mList)))
         
         return prefactor * rate
 
@@ -104,15 +107,17 @@ class BraggPrimakoff:
 
     def BraggPrimakoffAvgPhi(self, theta_z, E1=2.0, E2=2.5, gagamma=1e-10):
         prefactor = (gagamma / 1e6)**2 * kHBarC**2 * (vCrys / va**2) / 4  # 1e6 to convert to keV^-1
-        mList = GetReciprocalLattice()
+        mList = self.GetReciprocalLattice()
         def Rate(phi):
             rate = 0.0
             for m in mList:
-                sineThetaBy2 = np.dot(vecU(theta_z, phi), vecG(m)) / np.dot(vecG(m),vecG(m))
+                sineThetaBy2 = np.dot(self.vecU(theta_z, phi), self.vecG(m)) / np.dot(self.vecG(m),self.vecG(m))
                 sineSquaredTheta = 4 * sineThetaBy2**2 * (1 - sineThetaBy2**2)
-                formFactorSquared = FA(sqrt(np.dot(vecG(m), vecG(m))), Ea(theta_z, phi, m))
-                rate += np.sum(heaviside(Ea(theta_z, phi, m), 0.0) * SolarFlux(Ea(theta_z, phi, m), gagamma) * sineSquaredTheta * formFactorSquared * S2Expanded(m) \
-                        * FW(Ea(theta_z, phi, m), E1, E2) * (1 / np.dot(vecG(m), vecG(m))))
+                formFactorSquared = self.FA(sqrt(np.dot(self.vecG(m), self.vecG(m))), self.Ea(theta_z, phi, m))
+                rate += np.sum(heaviside(self.Ea(theta_z, phi, m), 0.0) \
+                    * self.SolarFlux(self.Ea(theta_z, phi, m), gagamma) * sineSquaredTheta \
+                    * formFactorSquared * self.S2Expanded(m) \
+                    * self.FW(self.Ea(theta_z, phi, m), E1, E2) * (1 / np.dot(self.vecG(m), self.vecG(m))))
             return rate
         
         return prefactor * quad(Rate, 0.0, 2*pi)[0]
@@ -123,40 +128,27 @@ class BraggPrimakoff:
     def BraggPrimakoffScatteringPlane(self, theta, E1=2.0, E2=2.5, gagamma=1e-10):
         rate = 0.0
         prefactor = (gagamma / 1e6)**2 * kHBarC**2 * (vCrys / va**2) / 4  # 1e6 to convert to keV^-1
-        for mList in GetReciprocalLattice():
+        for mList in self.GetReciprocalLattice():
             if (np.all(np.array(mList) % 2 == 1) or (np.all(np.array(mList) % 2 == 0) and np.sum(np.array(mList)) % 4 == 0)):
                 sineSquaredTheta = sin(theta)**3
-                formFactorSquared = FA(sqrt(np.dot(vecG(mList), vecG(mList))), Ea2(theta, mList))
-                rate += heaviside(Ea2(theta, mList), 0.0) * SolarFlux(Ea2(theta, mList), gagamma) * sineSquaredTheta * formFactorSquared * S2(mList) \
-                    * FW(Ea2(theta, mList), E1, E2) * (1 / np.dot(vecG(mList), vecG(mList)))
+                formFactorSquared = self.FA(sqrt(np.dot(self.vecG(mList), self.vecG(mList))), self.Ea2(theta, mList))
+                rate += heaviside(self.Ea2(theta, mList), 0.0) * self.SolarFlux(self.Ea2(theta, mList), gagamma) \
+                    * sineSquaredTheta * formFactorSquared * self.S2(mList) \
+                    * self.FW(self.Ea2(theta, mList), E1, E2) * (1 / np.dot(self.vecG(mList), self.vecG(mList)))
         
         return prefactor * rate
 
 
     def AtomicPrimakoffDifferentialRate(self, Ea, theta, gagamma=1e-10):
-        return SolarFlux(Ea, gagamma) * zGe**2 * kALPHA * (gagamma / 1e6)**2 * Ea**4 * sin(theta)**3 / (2 * Ea**2 * (cos(theta)-1)**2) / 4
+        return self.SolarFlux(Ea, gagamma) * zGe**2 * ALPHA * (gagamma / 1e6)**2 * Ea**4 \
+            * sin(theta)**3 / (2 * Ea**2 * (cos(theta)-1)**2) / 4
 
     def AtomicPrimakoffRate(self, theta, gagamma=1e-10):
-        return quad(AtomicPrimakoffDifferentialRate, 0.001, 20.0, args=(theta,gagamma,))[0]
+        return quad(self.AtomicPrimakoffDifferentialRate, 0.001, 20.0, args=(theta,gagamma,))[0]
 
 
 
 
-"""
-# Plot the event rate as a function of theta_z for a given phi.
-thetaList = np.linspace(0.0, 2*pi, 100)
 
-# Compare with the atomic primakoff rate
-atomic_primakoff_rates = np.array([AtomicPrimakoffRate(theta) for theta in thetaList])
-bragg_primakoff_rates_avg_phi = np.array([BraggPrimakoffAvgPhi(theta) for theta in thetaList])
-
-
-# Plot the phi-averaged rates in the 2.0 to 2.5 keV window
-plt.plot(thetaList, bragg_primakoff_rates_avg_phi)
-plt.xlabel(r"$\theta_z$")
-plt.ylabel("Rate (a.u.)")
-plt.show()
-plt.close()
-"""
 
 
