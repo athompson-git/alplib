@@ -21,7 +21,7 @@ class Borrmann:
         energy = self.crystal.energy(h, k, l)
         sigma = self.abs_xs.sigma(energy)
         print("   energy=", energy)
-        imff = energy * sigma / (2 * kHC * kRE)
+        imff = energy * sigma / (2 * HC * R_E)
         
         if self.verbose == True:
             print("    imff = ", imff)
@@ -34,9 +34,9 @@ class Borrmann:
         return self.crystal.sfunc(h, k, l)/self.crystal.sfunc(0, 0, 0)
 
     def zj_etaj_sum(self, energy):
-        lam = kHC / energy
+        lam = HC / energy
         mu = self.n * self.abs_xs.sigma(energy)
-        ZjEtaj = (kME * mu) / (2 * kHBARC * kALPHA * lam * (self.n/4))
+        ZjEtaj = (M_E * mu) / (2 * HBARC * ALPHA * lam * (self.n/4))
 
         if self.verbose == True:
             print("    mu = ", mu)
@@ -63,5 +63,8 @@ class HydrogenicWaveFunction:
         pass
 
     def spherical_harmonic(self, theta, phi, l=0, m=0):
+        pass
+
+    def integral(self):
         pass
 

@@ -29,10 +29,10 @@ class AbsCrossSection:
         elif material == "Xe":
             self.pe_data = np.genfromtxt("../data/photon_absorption/photon_abs_Xe.txt", skip_header=3)
         elif material == "NaI":
-            self.xs_dim = 149.89 / kAVOGADRO  # (cm2 / g  * g / mol  * mol / N)
+            self.xs_dim = 149.89 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
             self.pe_data = np.genfromtxt("../data/photon_absorption/photon_abs_NaI.txt", skip_header=3)
         elif material == "CsI":
-            self.xs_dim = 259.81 / kAVOGADRO  # (cm2 / g  * g / mol  * mol / N)
+            self.xs_dim = 259.81 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
             self.pe_data = np.genfromtxt("../data/photon_absorption/photon_abs_CsI.txt", skip_header=3)
         else:
             print("Material unknown or not in library.")
