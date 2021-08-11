@@ -5,6 +5,8 @@ import numpy as np
 from numpy import exp, log, log10, sqrt, pi, heaviside
 from scipy.special import erf
 
+from constants import *
+
 
 ##### DARK MATTER FLUXES #####
 rho_chi = 0.4e6 #(* keV / cm^3 *)
@@ -17,7 +19,7 @@ def fv(v):  # Velocity profile ( v ~ [0,1] )
     return (1.0 / (nesc * np.power(pi,3/2) * v0**3)) * exp(-((v + ve)**2 / v0**2))
 
 def DMFlux(v, m):  # DM differential flux as a function of v~[0,1] and the DM mass
-    return heaviside(v + v0 - vesc) * 4*pi*C_CMS*(rho_chi / m) * (C_CMS*v)**3 * fv(C_CMS*v)
+    return heaviside(v + v0 - vesc) * 4*pi*C_LIGHT*(rho_chi / m) * (C_LIGHT*v)**3 * fv(C_LIGHT*v)
 
 
 ##### NUCLEAR COUPLING FLUXES #####
