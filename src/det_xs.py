@@ -12,7 +12,7 @@ from matplotlib.pyplot import hist2d
 
 #### Photon Coupling ####
 
-def iprimakoff_scattering_diffxs(theta, ea, g, ma, z, r0):
+def iprimakoff_dsigma_dtheta(theta, ea, g, ma, z, r0):
     # inverse-Primakoff scattering differential xs by theta
     # r0: screening parameter
     if ea < ma:
@@ -28,7 +28,7 @@ def iprimakoff_scattering_diffxs(theta, ea, g, ma, z, r0):
 def iprimakoff_nsigma(ea, g, ma, z, r0):
     # inverse-Primakoff scattering total xs (numerically integrated)
     # r0: screening parameter
-    return quad(iprimakoff_scattering_diffxs, 0, pi, args=(ea,g,ma,z,r0))[0]
+    return quad(iprimakoff_dsigma_dtheta, 0, pi, args=(ea,g,ma,z,r0))[0]
 
 
 

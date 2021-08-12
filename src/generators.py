@@ -858,13 +858,13 @@ class BremAxionFromLepton:
         for i in range(len(self.scatter_axion_weight)):
             if self.axion_energy[i] >= threshold:
                 if efficiency is not None:
-                    self.scatter_axion_weight[i] *= primakoff_scattering_xs(self.axion_energy[i], self.axion_coupling, 
-                                                                            self.axion_mass, detector_z, r0) \
+                    self.scatter_axion_weight[i] *= iprimakoff_sigma(self.axion_energy[i], self.axion_coupling, 
+                                                                     self.axion_mass, detector_z, r0) \
                         * efficiency(self.axion_energy[i]) * detection_time * detector_number * METER_BY_MEV ** 2
                     res += self.scatter_axion_weight[i]
                 else:
-                    self.scatter_axion_weight[i] *= primakoff_scattering_xs(self.axion_energy[i], self.axion_coupling, 
-                                                                            self.axion_mass, detector_z, r0) \
+                    self.scatter_axion_weight[i] *= iprimakoff_sigma(self.axion_energy[i], self.axion_coupling, 
+                                                                     self.axion_mass, detector_z, r0) \
                                                    * detection_time * detector_number * METER_BY_MEV ** 2
                     res += self.scatter_axion_weight[i]
             else:
