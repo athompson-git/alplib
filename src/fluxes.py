@@ -24,7 +24,8 @@ def DMFlux(v, m):  # DM differential flux as a function of v~[0,1] and the DM ma
 
 ##### NUCLEAR COUPLING FLUXES #####
 
-def Fe57Flux(gp):  # Monoenergetic flux at 14.4 keV from the Sun
+def Fe57SolarFlux(gp): 
+    # Monoenergetic flux at 14.4 keV from the Sun
     return (4.56e23) * gp**2
 
 
@@ -32,3 +33,8 @@ def Fe57Flux(gp):  # Monoenergetic flux at 14.4 keV from the Sun
 
 
 ##### PHOTON COUPLING #####
+
+def PrimakoffSolarFlux(Ea, gagamma):
+    # Solar ALP flux
+    # input Ea in keV, gagamma in GeV-1
+    return (gagamma * 1e8)**2 * (5.95e14 / 1.103) * (Ea / 1.103)**3 / (exp(Ea / 1.103) - 1)
