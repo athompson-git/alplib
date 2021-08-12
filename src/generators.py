@@ -44,8 +44,8 @@ class PrimakoffAxionFromBeam:
         return np.arctan(sqrt(self.det_area / pi) / self.det_dist)
 
     def branching_ratio(self, energy):
-        cross_prim = primakoff_production_xs(energy, self.target_z, 2*self.target_z,
-                                             self.axion_mass, self.axion_coupling)
+        cross_prim = primakoff_sigma(energy, self.target_z, 2*self.target_z,
+                                     self.axion_mass, self.axion_coupling)
         return cross_prim / (cross_prim + (self.target_photon_cross / (100 * METER_BY_MEV) ** 2))
     
     def get_beaming_angle(self, v):
@@ -79,7 +79,7 @@ class PrimakoffAxionFromBeam:
         weight = rate * br * decay_weight * self.axion_coupling**2
         
         def integrand(theta, phi):
-            return primakoff_production_diffxs(theta, e_gamma, self.target_z, self.axion_mass)
+            return primakoff_dsigma_dtheta(theta, e_gamma, self.target_z, self.axion_mass)
         
         thetas_z = arccos(cos(self.thetas)*cos(theta_gamma) + cos(self.phis)*sin(self.thetas)*sin(theta_gamma))
         
@@ -105,7 +105,7 @@ class PrimakoffAxionFromBeam:
 
         def integrand(theta, phi):
             return heaviside(theta, phi) * \
-                   primakoff_production_diffxs(theta, e_gamma, self.target_z, self.axion_mass)
+                   primakoff_dsigma_dtheta(theta, e_gamma, self.target_z, self.axion_mass)
         
         convolution = np.vectorize(integrand)
         integral = 2*pi*(log(pi/exp(-12))/self.nsamples) * np.sum(convolution(self.thetas, self.phis) * self.thetas)
@@ -211,12 +211,12 @@ class PrimakoffAxionFromBeam:
         for i in range(len(self.scatter_axion_weight)):
             if self.axion_energy[i] >= threshold:
                 if efficiency is not None:
-                    self.scatter_axion_weight[i] *= primakoff_scattering_xs(self.axion_energy[i], self.axion_coupling, 
+                    self.scatter_axion_weight[i] *= iprimakoff_sigma(self.axion_energy[i], self.axion_coupling, 
                                                                             self.axion_mass, detector_z, r0) \
                         * efficiency(self.axion_energy[i]) * detection_time * detector_number * METER_BY_MEV ** 2
                     res += self.scatter_axion_weight[i]
                 else:
-                    self.scatter_axion_weight[i] *= primakoff_scattering_xs(self.axion_energy[i], self.axion_coupling, 
+                    self.scatter_axion_weight[i] *= iprimakoff_sigma(self.axion_energy[i], self.axion_coupling, 
                                                                             self.axion_mass, detector_z, r0) \
                                                    * detection_time * detector_number * METER_BY_MEV ** 2
                     res += self.scatter_axion_weight[i]
@@ -248,7 +248,7 @@ class IsotropicAxionFromPrimakoff:
 
 
     def branching_ratio(self, energy, coupling=1.0):
-        cross_prim = primakoff_scattering_xs(energy, coupling, self.axion_mass, self.target_z, 2.2e-10 / METER_BY_MEV)/2
+        cross_prim = primakoff_sigma(energy, coupling, self.axion_mass, self.target_z, 2.2e-10 / METER_BY_MEV)/2
         return cross_prim / (cross_prim + (self.target_photon_cross / (100 * METER_BY_MEV) ** 2))
 
     # Convolute axion production and decay rates with a photon flux
@@ -315,7 +315,7 @@ class IsotropicAxionFromPrimakoff:
         for i in range(len(self.axion_energy)):
             if self.axion_energy[i] >= threshold:
                 wgt = self.scatter_axion_weight[i]
-                xs = primakoff_scattering_xs(self.axion_energy[i], self.axion_coupling, self.axion_mass, detector_z, r0)
+                xs = iprimakoff_sigma(self.axion_energy[i], self.axion_coupling, self.axion_mass, detector_z, r0)
                 self.scatter_axion_weight[i] = wgt * xs * detection_time * detector_number * METER_BY_MEV ** 2
                 res += self.scatter_axion_weight[i]
             else:
@@ -336,7 +336,7 @@ class IsotropicAxionFromPrimakoff:
         for i in range(len(self.axion_energy)):
             if self.axion_energy[i] >= threshold:
                 res[i] = self.scatter_axion_weight[i] \
-                        * primakoff_scattering_xs(self.axion_energy[i], self.axion_coupling, self.axion_mass, detector_z, r0) \
+                        * iprimakoff_sigma(self.axion_energy[i], self.axion_coupling, self.axion_mass, detector_z, r0) \
                         * detection_time * detector_number * METER_BY_MEV ** 2
         return res 
 
@@ -378,7 +378,7 @@ class ComptonAxionFromBeam:
         return np.arctan(sqrt(self.det_area / pi) / self.det_dist)
 
     def branching_ratio(self, energy):
-        cross_prim = primakoff_production_xs(energy, self.target_z, 2*self.target_z,
+        cross_prim = primakoff_sigma(energy, self.target_z, 2*self.target_z,
                                              self.axion_mass, self.axion_coupling)
         return cross_prim / (cross_prim + (self.target_photon_cross / (100 * METER_BY_MEV) ** 2))
     
@@ -413,7 +413,7 @@ class ComptonAxionFromBeam:
         axion_energies = np.linspace(self.axion_mass, e_gamma, self.nsamples) # version 2
         de = (axion_energies[-1] - axion_energies[0]) / (self.nsamples - 1)
         axion_energies = (axion_energies[1:] + axion_energies[:-1]) / 2
-        dde = compton_production_dSdEa(axion_energies, e_gamma, 1.0, self.axion_mass) * de
+        dde = compton_dsigma_dea(axion_energies, e_gamma, 1.0, self.axion_mass) * de
         axion_p = sqrt(axion_energies** 2 - self.axion_mass ** 2)
         axion_v = axion_p / e_gamma
 
@@ -492,7 +492,7 @@ class ComptonAxionFromBeam:
     
     def scatter_events(self, detector_number, detector_z, detection_time, threshold):
         res = 0
-        xs = [compton_scattering_xs(this_energy, self.axion_coupling) for this_energy in self.axion_energy]
+        xs = [icompton_sigma(this_energy, self.axion_coupling) for this_energy in self.axion_energy]
         for i in range(len(self.axion_energy)):
             if self.axion_energy[i] >= threshold:
                 self.scatter_weight[i] *= xs[i] * METER_BY_MEV**2 * detection_time * detector_number * detector_z
@@ -540,8 +540,8 @@ class IsotropicAxionFromCompton:
         axion_energies = np.linspace(ma, eg, ne) # version 2
         de = (axion_energies[-1] - axion_energies[0]) / (ne - 1)
         axion_energies = (axion_energies[1:] + axion_energies[:-1]) / 2
-        dde = compton_production_dSdEa(axion_energies, eg, self.axion_coupling, self.axion_mass) * de
-        cross_scatter = compton_scattering_xs(axion_energies, self.axion_coupling)
+        dde = compton_dsigma_dea(axion_energies, eg, self.axion_coupling, self.axion_mass) * de
+        cross_scatter = icompton_sigma(axion_energies, self.axion_coupling)
 
         # Both photons and axions decrease with decay_prob, since we assume e+e- does not make it to the detector.
         for i in range(ne - 1):
@@ -742,7 +742,7 @@ class BremAxionFromLepton:
         weight = rate * br * decay_weight * self.axion_coupling**2
         
         def integrand(theta, phi):
-            return primakoff_production_diffxs(theta, e_gamma, self.target_z, self.axion_mass)
+            return primakoff_dsigma_dtheta(theta, e_gamma, self.target_z, self.axion_mass)
         
         thetas_z = arccos(cos(self.thetas)*cos(theta_gamma) + cos(self.phis)*sin(self.thetas)*sin(theta_gamma))
         

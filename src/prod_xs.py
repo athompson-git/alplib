@@ -7,7 +7,7 @@ from .fmath import *
 
 #### Photon coupling ####
 
-def dSigmadt_primakoff_free(t, s, ma, M, g):
+def free_primakoff_dsigma_dt(t, s, ma, M, g):
     num = ALPHA * g**2 * (t*(M**2 + s)*ma**2 - (M * ma**2)**2 - t*((s-M**2)**2 + s*t) - t*(t-ma**2)/2)
     denom = 4*t**2 * ((M + ma)**2 - s)*((M - ma)**2 - s)
     return heaviside(num/denom, 0.0) * (num / denom)
@@ -15,7 +15,7 @@ def dSigmadt_primakoff_free(t, s, ma, M, g):
 
 
 
-def primakoff_production_diffxs(theta, energy, z, ma, g=1):
+def primakoff_dsigma_dtheta(theta, energy, z, ma, g=1):
     # Primakoff scattering production diffxs by theta (γ + A -> a + A)
     if energy < ma:
         return 0
@@ -27,16 +27,16 @@ def primakoff_production_diffxs(theta, energy, z, ma, g=1):
 
 
 
-def primakoff_production_xs_ntotal(energy, z, ma, g=1):
+def primakoff_nsigma(energy, z, ma, g=1):
     # Primakoff production total xs, numerical eval. (γ + A -> a + A)
-    return quad(primakoff_production_diffxs, 0, pi, args=(energy,z,ma,g), limit=3)[0]
+    return quad(primakoff_dsigma_dtheta, 0, pi, args=(energy,z,ma,g), limit=3)[0]
 
 
 
 
-def primakoff_production_xs(energy, z, a, ma, g):
+def primakoff_sigma(energy, z, a, ma, g):
     # Primakoff production total xs (γ + A -> a + A)
-    #Tsai, '86 (ma << E)
+    # Tsai, '86 (ma << E)
     if energy < ma:
         return 0
     M_E = 0.511
@@ -48,17 +48,9 @@ def primakoff_production_xs(energy, z, a, ma, g):
 
 
 
-def dark_prim_dSdt(t, s, gZN, gaGZ, ma, mZ, M):
-    # Priamkoff with massive vector mediator
-    prefactor = (gZN*gaGZ)**2 / (16*pi) / ((M + ma)**2 - s) / ((M - ma)**2 - s)
-    return (ma**2 * t * (M**2 + s)- (M*ma**2)**2 - t((s-M**2)**2 + s*t) - t*(t-ma**2)/2) / (t-mZ**2)**2
-
-
-
-
 #### Electron coupling ####
 
-def compton_production_dSdEa(ea, eg, g, ma):
+def compton_dsigma_dea(ea, eg, g, ma):
     # Differential cross-section dS/dE_a. (γ + e- > a + e-)
     a = 1 / 137
     aa = g ** 2 / 4 / pi
@@ -77,7 +69,7 @@ def compton_production_dSdEa(ea, eg, g, ma):
 
 
 
-def brem_prod_d2SdEadOmega(Ea, thetaa, Ee, g, ma, z):
+def brem_dsigma_dea_domega(Ea, thetaa, Ee, g, ma, z):
     # Differential cross section dSigma/dE_a for ALP bremsstrahlung (e- Z -> e- Z a)
     theta_max = max(sqrt(ma*M_E)/Ee, power(ma/Ee, 3/2))
     x = Ea / Ee
@@ -95,6 +87,6 @@ def brem_prod_d2SdEadOmega(Ea, thetaa, Ee, g, ma, z):
 
 
 
-def resonant_production(ea, ee, g, ma):
+def resonance_sigma(ea, ee, g, ma):
     # Resonant production cross section (e- e+ -> a)
     pass

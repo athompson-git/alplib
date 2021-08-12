@@ -2,6 +2,8 @@
 
 from .constants import *
 from .fmath import *
+from .prod_xs import *
+from .det_xs import *
 
 # Proton total cross section
 def sigmap(p):
@@ -90,7 +92,7 @@ def meson_production_d2SdpdOmega(p, theta, p_proton, meson_type="pi_plus"):
 
 
 # Compton cross section dSigmadOmega
-def compton_dSigmadOmega(theta, Ea, ma, ge):
+def compton_dsigma_domega(theta, Ea, ma, ge):
     y = 2*M_E*Ea + ma**2
     pa = sqrt(Ea**2 - ma**2)
     e_gamma = 0.5*y/(M_E + Ea - pa*cos(theta))
@@ -100,16 +102,16 @@ def compton_dSigmadOmega(theta, Ea, ma, ge):
 
 
 # Dark Primakoff cross section
-def dark_prim_dSdt(t, s, gZN, gaGZ, ma, mZp, M):
+def dark_prim_dsigma_dt(t, s, gZN, gaGZ, ma, mZp, M):
     # Priamkoff with massive vector mediator
     prefactor = (gZN*gaGZ)**2 / (16*pi) / ((M + ma)**2 - s) / ((M - ma)**2 - s)
     return prefactor * (ma**2 * t * (M**2 + s) - (M*ma**2)**2 - t*((s-M**2)**2 + s*t) - t*(t-ma**2)/2) / (t-mZp**2)**2
 
-def dark_prim_dSdCosTheta(cosTheta, Ea, gZN, gaGZ, ma, mZp, z=6):
+def dark_prim_dsigma_dcostheta(cosTheta, Ea, gZN, gaGZ, ma, mZp, z=6):
     prefactor = sqrt(M_P*(Ea - ma)*(2*Ea*M_P + ma**2))/(4*sqrt(2)*pi**2 * (2*Ea*M_P + M_P**2 + ma**2))
     t = ma**2 - ((ma**2 + 2*Ea*M_P)/(M_P + Ea - sqrt(Ea**2 - ma**2)*cosTheta)) * (Ea - sqrt(Ea**2 - ma**2)*cosTheta)
     s = M_P**2 + ma**2 + 2*Ea*M_P
-    return prefactor * dark_prim_dSdt(t, s, gZN, gaGZ, ma, mZp, 2*z*M_P)
+    return prefactor * dark_prim_dsigma_dt(t, s, gZN, gaGZ, ma, mZp, 2*z*M_P)
 
 
 
@@ -354,7 +356,7 @@ class ChargedMeson3BodyDecay:
         for i in range(self.scatter_weight.shape[0]):
             rcos = np.random.uniform(-1, 1, self.nsamples)
             rthetas = arccos(rcos)
-            wgts = 4*pi*compton_dSigmadOmega(rthetas, self.energies[i], self.ma, ge)/self.nsamples
+            wgts = 4*pi*icompton_dsigma_domega(rthetas, self.energies[i], self.ma, ge)/self.nsamples
             h += np.histogram(rcos, weights=self.scatter_weight[i]*n_e*power(METER_BY_MEV*100, 2)*wgts, bins=cosine_bins)[0]
         return h, centers
     
@@ -364,7 +366,7 @@ class ChargedMeson3BodyDecay:
         centers = (cosine_bins[1:] + cosine_bins[:-1])/2
         for i in range(self.scatter_weight.shape[0]):
             rcos = np.random.uniform(-1, 1, self.nsamples)
-            wgts = 4*pi*dark_prim_dSdCosTheta(rcos, self.energies[i], gZN, gaGZ, self.ma, mZp)/self.nsamples
+            wgts = 4*pi*dark_iprim_dsigma_dcostheta(rcos, self.energies[i], gZN, gaGZ, self.ma, mZp)/self.nsamples
             wgts = wgts * 4.75  # ad hoc coherency factor
             h += np.histogram(rcos, weights=self.scatter_weight[i]*n_e*power(METER_BY_MEV*100, 2)*wgts, bins=cosine_bins)[0] 
         return h, centers
