@@ -56,9 +56,9 @@ class Detector:
                 self.n = np.array(det_info['n'])
                 self.m = np.array(det_info['m'])
                 self.frac = np.array(det_info['frac'])
-                self.lattice_const = np.array([det_info['lattice_const']])
-                self.cell_volume = np.array([det_info['cell_volume']])
-                self.r0 = np.array([det_info['atomic_radius']])
+                self.lattice_const = np.array([det_info['lattice_const']])  # in angstroms
+                self.cell_volume = np.array([det_info['cell_volume']])  # in angstroms cubed
+                self.r0 = np.array([det_info['atomic_radius']])  # in angstroms
                 self.er_min = det_info['er_min']
                 self.er_max = det_info['er_max']
                 self.bg = det_info['bg']

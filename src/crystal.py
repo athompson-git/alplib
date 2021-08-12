@@ -46,7 +46,7 @@ class Crystal:
 
 
 # Namelist
-cryslist = ["Ge"]
+cryslist = ["Ge", "Si", "NaI", "CsI"]
 
 
 def get_crystal(name):
@@ -65,6 +65,15 @@ def get_crystal(name):
         GeLatticeConst = 5.6585  # angstroms
         return Crystal(GeLatticeConst, GePrimitives, GeA1, GeA2, GeA3)
     
+    if name == "Si":
+        pass
+    
+    if name == "NaI":
+        pass
+
+    if name == "CsI":
+        pass
+
     return
 
 

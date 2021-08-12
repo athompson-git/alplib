@@ -4,7 +4,9 @@
 
 # Set the base units
 MeV = 1.0
+keV = 1e-3
 cm = 1.0
+ang = 1e-8
 sec = 1.0
 
 # Dimensionless constants
@@ -16,6 +18,7 @@ C_LIGHT  = 3e10 * (cm / sec)  # Speed of light
 HBAR = 6.58212e-22 * MeV * sec  # Reduced Planck's Constant (hbar)
 HBARC = 1.97236e-11 * MeV * cm  # hbar * c
 HC = 1.239e-10 * MeV * cm  # h c
+HBARC_KEV_ANG = HBARC / keV / ang
 
 # Scientific Constants
 AVOGADRO = 6.022e23
@@ -48,8 +51,8 @@ CABIBBO = 0.9743  # Cosine of the Cabibbo angle
 R_E = 2.81794e-13  # classical electron radius in cm
 V_UD = 0.9737  # ckm ud
 V_US = 0.2245  # ckm us
-F_PI = 130.2  # pion decay constant
-F_K = 155.7  # kaon decay constant
+F_PI = 130.2 * MeV  # pion decay constant
+F_K = 155.7 * MeV  # kaon decay constant
 
 
 # Crystal constants
