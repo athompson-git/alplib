@@ -1,9 +1,7 @@
 # Get the total photon absorption cross-section by element
-import numpy as np
-from numpy import genfromtxt, interp, log10
 
-from constants import *
-
+from .constants import *
+from .fmath import *
 
 
 """

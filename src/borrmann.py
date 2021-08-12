@@ -1,8 +1,9 @@
 # Compute Borrmann effect parameters for Crystallographic Scattering
 
-from constants import *
-from photon_xs import AbsCrossSection
-from crystal import *
+from .constants import *
+from .fmath import *
+from .photon_xs import AbsCrossSection
+from .crystal import *
 
 """
 material: string specifying the material/type of crystal, e.g. "Ge", "CsI", etc.

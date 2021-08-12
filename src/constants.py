@@ -33,6 +33,7 @@ M_PI0 = 134.98 * MeV  # pi0
 M_ETA = 547.862 * MeV  # eta
 M_N = 939.56 * MeV  # neutron
 M_A = 1014 * MeV  # axial mass
+M_K = 493.677  # charged Kaon
 
 # conversion between units
 METER_BY_MEV = 6.58212e-22 * 2.998e8  # MeV*m
@@ -45,6 +46,11 @@ SSW = 0.2312  # Sine-squared of the Weinberg angle
 G_F = 1.16638e-11  # MeV^-2
 CABIBBO = 0.9743  # Cosine of the Cabibbo angle
 R_E = 2.81794e-13  # classical electron radius in cm
+V_UD = 0.9737  # ckm ud
+V_US = 0.2245  # ckm us
+F_PI = 130.2  # pion decay constant
+F_K = 155.7  # kaon decay constant
+
 
 # Crystal constants
 Z_GE = 32

@@ -1,11 +1,9 @@
 # ALP Fluxes, DM Fluxes
 # All fluxes in cm^-2 s^-1 or cm^-2 s^-1 MeV^-1
 
-import numpy as np
-from numpy import exp, log, log10, sqrt, pi, heaviside
-from scipy.special import erf
 
-from constants import *
+from .constants import *
+from .fmath import *
 
 
 ##### DARK MATTER FLUXES #####

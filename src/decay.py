@@ -2,9 +2,8 @@
 # All lifetimes in s
 # All decay widths in MeV
 
-from constants import *
-import numpy as np
-from numpy import pi, sqrt
+from .constants import *
+from .fmath import *
 
 # a -> gamma gamma
 # g_agamma in MeV^-1
@@ -24,11 +23,11 @@ def Tau_lab(width, va):
     pass
 
 # Probability that the ALP will survive a distance l from production site
-def prob_surv(width, va, l):
+def p_survive(width, va, l):
     pass
 
 # Probability that the ALP will decay within a region (l, l + dl)
-def prob_decay(width, va, l, dl):
+def p_decay(width, va, l, dl):
     pass
 
 

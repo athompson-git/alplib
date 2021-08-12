@@ -1,12 +1,9 @@
-import numpy as np
-from numpy import sqrt, pi, log10, exp, cos, sin, heaviside
-from scipy.special import erf
-from scipy.integrate import quad
+# Bragg-Primakoff effect classes
 
-import matplotlib.pyplot as plt
 from itertools import product
 
-from constants import *
+from .constants import *
+from .fmath import *
 
 # Global Constants in keV angstroms
 M_E_KeV = 1e3 * M_E
@@ -33,6 +30,10 @@ class BraggPrimakoff:
         self.b1 = (2*pi/self.a) * np.array([-1, 1, 1])
         self.b2 = (2*pi/self.a) * np.array([1, -1, 1])
         self.b3 = (2*pi/self.a) * np.array([-1, 1, -1])
+
+        # Phi list
+        self.nsamples = 100
+        self.phis = np.linspace(0.0, 2*pi, self.nsamples)
 
     # Reciprocal Lattice
     def vecG(self, mList):
@@ -82,10 +83,6 @@ class BraggPrimakoff:
                 g.append(mList)
         return np.array(g)
 
-    print(GetReciprocalLattice())
-    for m in GetReciprocalLattice():
-        print(m)
-
 
     # Bragg-Primakoff event rate
     def BraggPrimakoff(self, theta_z, phi, E1=2.0, E2=2.5, gagamma=1e-10):
@@ -120,7 +117,7 @@ class BraggPrimakoff:
                     * self.FW(self.Ea(theta_z, phi, m), E1, E2) * (1 / np.dot(self.vecG(m), self.vecG(m))))
             return rate
         
-        return prefactor * quad(Rate, 0.0, 2*pi)[0]
+        return prefactor * 2*pi*np.sum(Rate(self.phis))/self.nsamples  # fast MC-based integration
 
 
 
