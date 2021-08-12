@@ -6,7 +6,7 @@ from itertools import product
 from .constants import *
 from .fmath import *
 from .detectors import Detector
-from .det_xs import iprimakoff_sigma, primakoff_scattering_xs
+from .det_xs import iprimakoff_sigma
 
 # Global Constants in keV angstroms
 M_E_KeV = 1e3 * M_E
@@ -20,7 +20,7 @@ vCrys = 1e12  # 1 cubic micron in cubic angstroms
 class BraggPrimakoff:
     def __init__(self, crys: Crystal):
         # Lattice params
-        self.a = crys.lattice_const
+        self.a = crys.a
         self.z = crys.z
         self.r0 = crys.r0
         self.va = crys.cell_volume
@@ -38,7 +38,8 @@ class BraggPrimakoff:
 
         # Phi list
         self.nsamples = 100
-        self.phis = np.linspace(0.0, 2*pi, self.nsamples)
+        self.phi_list = np.linspace(0.0, 2*pi, self.nsamples)
+        self.e_list = np.linspace(1.0, 30.0, self.nsamples)
 
     # Reciprocal Lattice
     def vecG(self, mList):
@@ -122,7 +123,7 @@ class BraggPrimakoff:
                     * self.FW(self.Ea(theta_z, phi, m), E1, E2) * (1 / np.dot(self.vecG(m), self.vecG(m))))
             return rate
         
-        return prefactor * 2*pi*np.sum(Rate(self.phis))/self.nsamples  # fast MC-based integration
+        return prefactor * 2*pi*np.sum(Rate(self.phi_list))/self.nsamples  # fast MC-based integration
 
 
 
@@ -141,8 +142,12 @@ class BraggPrimakoff:
         return prefactor * rate
 
 
-    def AtomicPrimakoffRate(self, Ea, gagamma=1e-10, ma=1e-4):
-        return self.SolarFlux(Ea, gagamma) * (KEV_CM**2) * iprimakoff_sigma(Ea, gagamma, ma, self.z, self.r0)
+    def AtomicPrimakoffDifferentialRate(self, Ea, gagamma=1e-10, ma=1e-4):
+        print(iprimakoff_sigma(Ea/1e3, gagamma*1e-3, ma, self.z, self.r0))
+        return self.SolarFlux(Ea, gagamma) * (KEV_CM**2) * iprimakoff_sigma(Ea/1e3, gagamma*1e-3, ma, self.z, self.r0)
+    
+    def AtomicPrimakoffRate(self, gagamma=1e-10, ma=1e-4):
+        return (self.e_list[-1] - self.e_list[0])*np.sum(self.AtomicPrimakoffDifferentialRate(self.e_list, gagamma, ma))/self.nsamples
 
 
 

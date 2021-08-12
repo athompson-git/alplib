@@ -12,9 +12,10 @@ primitives: an array of the N primitive basis vectors in format [alpha0, alpha1,
 a1, a2, a3: Bravais lattice vectors as 3-lists [#,#,#]
 """
 class Crystal(Detector):
-    def __init__(self, material, lattice_const, primitives, a1, a2, a3, volume=1.0, density=1.0,
+    def __init__(self, material, primitives, a1, a2, a3, volume=1.0, density=1.0,
                 fiducial_mass=1.0):
-        self.a = lattice_const * CM_PER_ANG
+        super().__init__(det_type=material, fiducial_mass=fiducial_mass, volume=volume, density=density)
+        self.a = self.lattice_const[0]
         self.alpha = self.a * np.array(primitives)
         self.a0 = self.a * np.array([0,0,0])
         self.a1 = self.a * np.array(a1)
@@ -25,8 +26,6 @@ class Crystal(Detector):
         self.b1 = 2*pi*cross(self.a2, self.a3) / (dot(self.a1, cross(self.a2, self.a3)))
         self.b2 = 2*pi*cross(self.a3, self.a1) / (dot(self.a1, cross(self.a2, self.a3)))
         self.b3 = 2*pi*cross(self.a1, self.a2) / (dot(self.a1, cross(self.a2, self.a3)))
-
-        super().__init__(det_type=material, fiducial_mass=fiducial_mass, volume=volume, density=density)
     
     def r(self, n1, n2, n3):
         return n1 * self.a1 + n2 * self.a2 + n3 * self.a3
@@ -62,18 +61,24 @@ def get_crystal(name):
         # Diamond cubic, germanium
         GeAlpha0 = [0.0, 0.0, 0.0]
         GeAlpha1 = [0.25, 0.25, 0.25]
-        GePrimitives = [GeAlpha0, GeAlpha1]
-        GeA1 = [0.0, 0.5, 0.5]
-        GeA2 = [0.5, 0.0, 0.5]
-        GeA3 = [0.5, 0.5, 0.0]
-        GeLatticeConst = 5.6585  # angstroms
-        return Crystal(GeLatticeConst, GePrimitives, GeA1, GeA2, GeA3)
+        Primitives = [GeAlpha0, GeAlpha1]
+        A1 = [0.0, 0.5, 0.5]
+        A2 = [0.5, 0.0, 0.5]
+        A3 = [0.5, 0.5, 0.0]
+        return Crystal(name, Primitives, A1, A2, A3)
     
     if name == "Si":
         pass
     
     if name == "NaI":
-        pass
+        # Diamond cubic, sodium iodide
+        Alpha0 = [0.0, 0.0, 0.0]
+        Alpha1 = [0.5, 0.5, 0.5]
+        Primitives = [Alpha0, Alpha1]
+        A1 = [0.0, 0.5, 0.5]
+        A2 = [0.5, 0.0, 0.5]
+        A3 = [0.5, 0.5, 0.0]
+        return Crystal(name, Primitives, A1, A2, A3)
 
     if name == "CsI":
         pass

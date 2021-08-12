@@ -36,11 +36,9 @@ def iprimakoff_nsigma(ea, g, ma, z, r0):
 def iprimakoff_sigma(ea, g, ma, z, r0):
     # inverse-Primakoff scattering total xs (Creswick et al)
     # r0: screening parameter
-    if ea < ma:
-        return 0.0
     prefactor = (g * z)**2 / (2*137)
     eta2 = r0**2 * (ea**2 - ma**2)
-    return prefactor * (((2*eta2 + 1)/(4*eta2))*log(1+4*eta2) - 1)
+    return heaviside(ea-ma, 0.0)*prefactor * (((2*eta2 + 1)/(4*eta2))*log(1+4*eta2) - 1)
 
 
 
