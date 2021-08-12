@@ -1,0 +1,168 @@
+{
+    "ge":
+    {
+      "iso": 5,
+      "z": [32, 32, 32, 32, 32],
+      "n": [38, 40, 41, 42, 44],
+      "frac": [0.2123, 0.2766, 0.0773, 0.3594, 0.0744],
+      "lattice_const": [],
+      "cell_volume": [],
+      "atomic_radius": [],
+      "m": [65.13e3, 66.99e3, 67.92e3, 68.85e3, 70.72e3],
+      "er_min": 100e-6,
+      "er_max": 10e-3,
+      "bg": 1,
+      "bg_un": 0.1
+    },
+    "si":
+    {
+      "iso": 3,
+      "z": [14, 14, 14],
+      "n": [14, 15, 16],
+      "frac": [0.9223, 0.0467, 0.031],
+      "lattice_const": [],
+      "cell_volume": [],
+      "atomic_radius": [],
+      "m": [26.06e3, 26.99e3, 27.92e3],
+      "er_min": 100e-6,
+      "er_max": 20e-6,
+      "bg": 1,
+      "bg_un": 0.1
+    },
+    "ar":
+    {
+      "iso": 1,
+      "z": [18],
+      "n": [22],
+      "m": [37.211e3],
+      "frac": [1],
+      "lattice_const": [],
+      "cell_volume": [],
+      "atomic_radius": [],
+      "er_min": 1e-4,
+      "er_max": 1e-1,
+      "bg": 5e-3,
+      "bg_un": 0.05
+    },
+    "csi":
+    {
+      "iso": 2,
+      "z": [55, 53],
+      "n": [78, 74],
+      "frac": [0.5, 0.5],
+      "lattice_const": [],
+      "cell_volume": [],
+      "atomic_radius": [],
+      "m": [123.8e3, 118.21e3],
+      "er_min": 4.25e-3,
+      "er_max":26e-3,
+      "bg": 5e-3,
+      "bg_un": 0.05
+    },
+    "nai":
+    {
+      "iso": 2,
+      "z": [11, 53],
+      "n": [12, 74],
+      "frac": [0.5, 0.5],
+      "lattice_const": [],
+      "cell_volume": [],
+      "atomic_radius": [],
+      "m": [21.42e3, 118.21e3],
+      "er_min": 2e-3,
+      "er_max": 4e-2,
+      "bg": 5e-3,
+      "bg_un": 0.05
+    },
+    "xe":
+    {
+      "iso": 1,
+      "z": [54],
+      "n": [78],
+      "m": [122.3e3],
+      "frac": [1.0],
+      "lattice_const": [],
+      "cell_volume": [],
+      "atomic_radius": [],
+      "er_min": 1e-3,
+      "er_max": 100e-3,
+      "bg": 0,
+      "bg_un": 0.05
+    },
+    "future-xe":
+    {
+      "iso": 1,
+      "z": [54],
+      "n": [78],
+      "m": [122.3e3],
+      "frac": [1.0],
+      "lattice_const": [],
+      "cell_volume": [],
+      "atomic_radius": [],
+      "er_min": 4.5e-3,
+      "er_max": 16.0,
+      "bg": 0,
+      "bg_un": 0.05
+    },
+    "dune":
+    {
+      "iso": 1,
+      "z": [18],
+      "n": [22],
+      "m": [37.211e3],
+      "frac": [1],
+      "lattice_const": [],
+      "cell_volume": [],
+      "atomic_radius": [],
+      "er_min": 20,
+      "er_max": 10000,
+      "bg": 0,
+      "bg_un": 0.05
+    },
+    "hyper-k":
+    {
+      "iso": 2,
+      "z": [1, 8],
+      "n": [0, 8],
+      "frac": [0.666667, 0.333333],
+      "lattice_const": [],
+      "cell_volume": [],
+      "atomic_radius": [],
+      "m": [0.9389e3, 15.015e3],
+      "er_min": 0.8,
+      "er_max": 1000,
+      "bg": 0,
+      "bg_un": 0.05
+    },
+    "jsns_scintillator":
+    {
+      "iso": 2,
+      "z": [6, 1],
+      "n": [6, 0],
+      "frac": [0.38, 0.62],
+      "lattice_const": [],
+      "cell_volume": [],
+      "atomic_radius": [],
+      "m": [12e3, 0.9389e3],
+      "er_min": 0.3,
+      "er_max": 3000,
+      "bg": 0,
+      "bg_un": 0.0
+    },
+    "MiniBooNE":
+    {
+      "iso": 2,
+      "z": [6, 1],
+      "n": [6, 0],
+      "frac": [0.34, 0.66],
+      "lattice_const": [],
+      "cell_volume": [],
+      "atomic_radius": [],
+      "m": [12e3, 0.9389e3],
+      "er_min": 0.3,
+      "er_max": 1e6,
+      "bg": 0,
+      "bg_un": 0.0
+    }
+  }
+  
