@@ -1,5 +1,6 @@
 # Class for setting and getting crystal parameters, lattice vectors, and structure functions
 
+from alplib.src.detectors import Detector
 from .constants import *
 from .fmath import *
 
@@ -10,8 +11,9 @@ primitives: an array of the N primitive basis vectors in format [alpha0, alpha1,
         for each alpha = [#,#,#] as a 3-list
 a1, a2, a3: Bravais lattice vectors as 3-lists [#,#,#]
 """
-class Crystal:
-    def __init__(self, lattice_const, primitives, a1, a2, a3):
+class Crystal(Detector):
+    def __init__(self, material, lattice_const, primitives, a1, a2, a3, volume=1.0, density=1.0,
+                fiducial_mass=1.0):
         self.a = lattice_const * CM_PER_ANG
         self.alpha = self.a * np.array(primitives)
         self.a0 = self.a * np.array([0,0,0])
@@ -23,6 +25,8 @@ class Crystal:
         self.b1 = 2*pi*cross(self.a2, self.a3) / (dot(self.a1, cross(self.a2, self.a3)))
         self.b2 = 2*pi*cross(self.a3, self.a1) / (dot(self.a1, cross(self.a2, self.a3)))
         self.b3 = 2*pi*cross(self.a1, self.a2) / (dot(self.a1, cross(self.a2, self.a3)))
+
+        super().__init__(det_type=material, fiducial_mass=fiducial_mass, volume=volume, density=density)
     
     def r(self, n1, n2, n3):
         return n1 * self.a1 + n2 * self.a2 + n3 * self.a3

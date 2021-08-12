@@ -1,10 +1,12 @@
 # Bragg-Primakoff effect classes
 
+from alplib.src.crystal import Crystal
 from itertools import product
 
 from .constants import *
 from .fmath import *
 from .detectors import Detector
+from .det_xs import iprimakoff_sigma, primakoff_scattering_xs
 
 # Global Constants in keV angstroms
 M_E_KeV = 1e3 * M_E
@@ -16,12 +18,14 @@ r0Ge = 0.53
 vCrys = 1e12  # 1 cubic micron in cubic angstroms
 
 class BraggPrimakoff:
-    def __init__(self, det: Detector):
+    def __init__(self, crys: Crystal):
         # Lattice params
-        self.a = det.lattice_const
-        self.z = det.z
-        self.r0 = det.r0
-        self.va = det.cell_volume
+        self.a = crys.lattice_const
+        self.z = crys.z
+        self.r0 = crys.r0
+        self.va = crys.cell_volume
+        self.ntargets = 1e10
+        self.volume = 1e12
 
         # Primitive basis vectors
         self.a0 = np.array([0,0,0])
@@ -137,12 +141,8 @@ class BraggPrimakoff:
         return prefactor * rate
 
 
-    def AtomicPrimakoffDifferentialRate(self, Ea, theta, gagamma=1e-10):
-        return self.SolarFlux(Ea, gagamma) * self.z**2 * ALPHA * (gagamma / 1e6)**2 * Ea**4 \
-            * sin(theta)**3 / (2 * Ea**2 * (cos(theta)-1)**2) / 4
-
-    def AtomicPrimakoffRate(self, theta, gagamma=1e-10):
-        return quad(self.AtomicPrimakoffDifferentialRate, 0.001, 20.0, args=(theta,gagamma,))[0]
+    def AtomicPrimakoffRate(self, Ea, gagamma=1e-10, ma=1e-4):
+        return self.SolarFlux(Ea, gagamma) * (KEV_CM**2) * iprimakoff_sigma(Ea, gagamma, ma, self.z, self.r0)
 
 
 

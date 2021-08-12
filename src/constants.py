@@ -18,7 +18,6 @@ C_LIGHT  = 3e10 * (cm / sec)  # Speed of light
 HBAR = 6.58212e-22 * MeV * sec  # Reduced Planck's Constant (hbar)
 HBARC = 1.97236e-11 * MeV * cm  # hbar * c
 HC = 1.239e-10 * MeV * cm  # h c
-HBARC_KEV_ANG = HBARC / keV / ang
 
 # Scientific Constants
 AVOGADRO = 6.022e23
@@ -43,6 +42,7 @@ METER_BY_MEV = 6.58212e-22 * 2.998e8  # MeV*m
 MEV_PER_KG = 5.6095887e29  # MeV/kg
 MEV_PER_HZ = 6.58e-22  # 1 s^-1 = 6.58e-22 MeV
 CM_PER_ANG = 1e-8  # cm to angstroms
+KEV_CM = HBARC / keV / ang
 
 # SM parameters
 SSW = 0.2312  # Sine-squared of the Weinberg angle
