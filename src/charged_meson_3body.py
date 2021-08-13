@@ -101,19 +101,6 @@ def compton_dsigma_domega(theta, Ea, ma, ge):
     return prefactor * (1 + 4*(M_E*e_gamma/y)**2 - 4*M_E*e_gamma/y - 4*M_E*e_gamma*(ma*pa*sin(theta))**2 / y**3)
 
 
-# Dark Primakoff cross section
-def dark_prim_dsigma_dt(t, s, gZN, gaGZ, ma, mZp, M):
-    # Priamkoff with massive vector mediator
-    prefactor = (gZN*gaGZ)**2 / (16*pi) / ((M + ma)**2 - s) / ((M - ma)**2 - s)
-    return prefactor * (ma**2 * t * (M**2 + s) - (M*ma**2)**2 - t*((s-M**2)**2 + s*t) - t*(t-ma**2)/2) / (t-mZp**2)**2
-
-def dark_prim_dsigma_dcostheta(cosTheta, Ea, gZN, gaGZ, ma, mZp, z=6):
-    prefactor = sqrt(M_P*(Ea - ma)*(2*Ea*M_P + ma**2))/(4*sqrt(2)*pi**2 * (2*Ea*M_P + M_P**2 + ma**2))
-    t = ma**2 - ((ma**2 + 2*Ea*M_P)/(M_P + Ea - sqrt(Ea**2 - ma**2)*cosTheta)) * (Ea - sqrt(Ea**2 - ma**2)*cosTheta)
-    s = M_P**2 + ma**2 + 2*Ea*M_P
-    return prefactor * dark_prim_dsigma_dt(t, s, gZN, gaGZ, ma, mZp, 2*z*M_P)
-
-
 
 
 class ChargedPionFluxMiniBooNE:
@@ -186,9 +173,9 @@ def cv(m):
 
 # Convolve flux with axion branching ratio and generate ALP flux
 class ChargedMeson3BodyDecay:
-    def __init__(self, pion_flux, axion_mass=0.1, coupling=1.0, n_samples=50,
+    def __init__(self, meson_flux, axion_mass=0.1, coupling=1.0, n_samples=50,
                  meson_mass=M_PI, ckm=V_UD, fM=F_PI, boson_type="P"):
-        self.pion_flux = pion_flux
+        self.meson_flux = meson_flux
         self.mm = meson_mass
         self.ckm = ckm
         self.fM = fM
@@ -297,7 +284,7 @@ class ChargedMeson3BodyDecay:
         EaMin = self.ma
         return quad(self.dGammadEa, EaMin, EaMax)[0] / self.gamma_sm()
     
-    def simulate_single(self, pion_p, pion_theta, pion_wgt):
+    def simulate_single(self, meson_p, meson_theta, pion_wgt):
         ea_min = self.ma
         ea_max = (self.mm**2 + self.ma**2 - M_MU**2)/(2*self.mm)
 
@@ -310,11 +297,11 @@ class ChargedMeson3BodyDecay:
         weights = np.array([pion_wgt*(ea_max - ea_min)*self.dGammadEa(ea) / self.gamma_sm() / self.nsamples for ea in energies])
 
         # Boost to lab frame
-        beta = pion_p / sqrt(pion_p**2 + self.mm**2)
+        beta = meson_p / sqrt(meson_p**2 + self.mm**2)
         boost = power(1-beta**2, -0.5)
-        e_lab = boost*(energies - beta*pz)
-        pz_lab = boost*(pz - beta*energies)
-        cos_theta_lab = -pz_lab / sqrt(e_lab**2 - self.ma**2)
+        e_lab = boost*(energies + beta*pz)
+        pz_lab = boost*(pz + beta*energies)
+        cos_theta_lab = pz_lab / sqrt(e_lab**2 - self.ma**2)
 
         for i in range(self.nsamples):
             solid_angle_acceptance = heaviside(cos_theta_lab[i] - self.det_sa, 0.0)
@@ -330,7 +317,7 @@ class ChargedMeson3BodyDecay:
         self.weights = []
         self.scatter_weight = []
         self.decay_weight = []
-        for i, p in enumerate(self.pion_flux):
+        for i, p in enumerate(self.meson_flux):
             self.simulate_single(p[0], p[1], p[2])
         
 
