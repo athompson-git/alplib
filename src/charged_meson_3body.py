@@ -252,7 +252,7 @@ class ChargedMeson3BodyDecay:
             q2 = self.mm**2 - 2*self.mm*ev
 
             prefactor = heaviside(e3star-self.ma,0.0)*(self.gmu*G_F*self.fM*self.ckm/(q2 - M_MU**2))**2
-            return Dmu(emu)*prefactor*((2*self.mm*emu*q2 * (q2 - M_MU**2) - (q2**2 - (M_MU*self.mm)**2)*(q2 + M_MU**2 - self.ma**2)) - (2*q2*M_MU**2 * (self.mm**2 - q2)))
+            return prefactor*((2*self.mm*emu*q2 * (q2 - M_MU**2) - (q2**2 - (M_MU*self.mm)**2)*(q2 + M_MU**2 - self.ma**2)) - (2*q2*M_MU**2 * (self.mm**2 - q2)))
         
         def MatrixElement2S(m223):
             ev = (m212 + m223 - M_MU**2 - self.ma**2)/(2*self.mm)
@@ -260,10 +260,25 @@ class ChargedMeson3BodyDecay:
             q2 = self.mm**2 - 2*self.mm*ev
 
             prefactor = heaviside(e3star-self.ma,0.0)*(self.gmu*G_F*self.fM*self.ckm/(q2 - M_MU**2))**2
-            return Dmu(emu)*prefactor*((2*self.mm*emu*q2 * (q2 - M_MU**2) - (q2**2 - (M_MU*self.mm)**2)*(q2 + M_MU**2 - self.ma**2)) + (2*q2*M_MU**2 * (self.mm**2 - q2)))
+            return prefactor*((2*self.mm*emu*q2 * (q2 - M_MU**2) - (q2**2 - (M_MU*self.mm)**2)*(q2 + M_MU**2 - self.ma**2)) + (2*q2*M_MU**2 * (self.mm**2 - q2)))
 
         def MatrixElement2V(m223):
-            pass
+            q2 = self.mm**2 - 2*self.mm*(m212 + m223 - M_MU**2 - self.ma**2)/(2*self.mm)
+
+            prefactor = heaviside(e3star-self.ma,0.0)*32*power(G_F*self.fM*self.ckm/(q2 - M_MU**2)/self.ma, 2)
+
+            lq = (m212 - M_MU**2)/2
+            lp = (self.mm**2 - m212 - m223)/2
+            kq = (m212 + m223 - M_MU**2 - self.ma**2)/2
+            pq = (m223 - self.ma**2)/2
+            kl = (self.mm**2 + M_MU**2 - m223)/2
+            kp = (self.mm**2 + self.ma**2 - m212)/2
+
+            cr = 2*self.gmu
+            cl = 0
+
+            return -prefactor * ((power(cr*self.mm*M_MU,2) - power(cl*q2,2)) * (lq*self.ma**2 + 2*lp*pq) \
+                - 2*cr*M_MU**2 * kq * (cr*self.ma**2 * kl + 2*cr*kp*lp - 3*cl*q2*self.ma**2))
         
         if self.rep == "P":
             return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2P, m223Min, m223Max)[0]
@@ -290,8 +305,8 @@ class ChargedMeson3BodyDecay:
             return 0.0
         Enu_max = (self.mm**2 + M_MU**2 - self.ma**2 - 2*self.mm*Emu)/(2*(self.mm - Emu - sqrt(Emu**2 - M_MU**2)))
         Enu_min = (self.mm**2 + M_MU**2 - self.ma**2 - 2*self.mm*Emu)/(2*(self.mm - Emu + sqrt(Emu**2 - M_MU**2)))
-        return Dmu(Emu)*quad(dGammadEnudEmuV, Enu_min, Enu_max)[0]
-    
+        return quad(dGammadEnudEmuV, Enu_min, Enu_max)[0]
+
     def BrV(self):
         def dGammadEnudEmuV(Enu, Emu):
             cr = 0.0
