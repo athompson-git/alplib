@@ -54,6 +54,13 @@ V_US = 0.2245  # ckm us
 F_PI = 130.2 * MeV  # pion decay constant
 F_K = 155.7 * MeV  # kaon decay constant
 
+# Lifetimes
+KAON_LIFETIME = 1.238e-8 * sec
+KSHORT_LIFETIME = 8.954e-11 * sec
+KLONG_LIFETIME = 5.116e-8 * sec
+PION_LIFETIME = 2.6e-8 * sec
+PI0_LIFETIME = 8.5e-17 * sec
+
 
 # Crystal constants
 Z_GE = 32

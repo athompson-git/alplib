@@ -1,5 +1,6 @@
 # Classes and constants for axion production and detection from 3-body decay of charged mesons
 
+from alplib.src.decay import p_decay_lifetime
 from .constants import *
 from .fmath import *
 from .prod_xs import *
@@ -23,6 +24,42 @@ def pi_decay(p_pi):
     v_pi = p_pi / e_pi
     prob = exp(-50 / (METER_BY_MEV*v_pi*boost*2.6e-8 / HBAR))
     return (1 - prob)
+
+
+
+
+def kaon_decay(p):
+    energy = sqrt(p**2 + M_K**2)
+    boost = energy / M_K
+    v = p / energy
+    prob = exp(-50 / (METER_BY_MEV*v*boost*2.6e-8 / HBAR))
+    return (1 - prob)
+
+
+
+
+def charged_meson_flux_mc(meson_type, p_min, p_max, theta_min, theta_max,
+                            n_samples=1000, e_proton=8.0, n_pot=12.84e20):
+    # Charged meson monte carlo flux simulation
+    # Based on the Sanford-Wang and Feynman scaling parameterized proton prodution cross sections
+
+    if meson_type not in ["pi_plus", "pi_minus", "k_plus", "K0S"]:
+        raise Exception("meson_type not in list of available fluxes")
+    
+    meson_mass=M_PI
+    meson_lifetime = PION_LIFETIME
+    if meson_type == "k_plus" or meson_type == "K0S":
+        meson_mass = M_K
+        meson_lifetime = KAON_LIFETIME
+    
+    p_list = np.random.uniform(p_min, p_max, n_samples)
+    theta_list = np.random.uniform(theta_min, theta_max, n_samples)
+
+    xs_wgt = meson_production_d2SdpdOmega(p_list, theta_list, e_proton, meson_type=meson_type)*sin(theta_list)
+    probability_decay = p_decay_lifetime(p_list, meson_mass, meson_lifetime, 50)
+    pi_plus_wgts = probability_decay * (2*pi*(theta_max-theta_min) * (p_max-p_min)) * n_pot * xs_wgt / sigmap_total / n_samples
+    return np.array([p_list*1000.0, theta_list, pi_plus_wgts]).transpose()
+
 
 
 
