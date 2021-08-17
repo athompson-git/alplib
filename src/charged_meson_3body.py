@@ -39,7 +39,7 @@ def kaon_decay(p):
 
 
 def charged_meson_flux_mc(meson_type, p_min, p_max, theta_min, theta_max,
-                            n_samples=1000, e_proton=8.0, n_pot=12.84e20):
+                            n_samples=1000, e_proton=8.0, n_pot=18.75e20):
     # Charged meson monte carlo flux simulation
     # Based on the Sanford-Wang and Feynman scaling parameterized proton prodution cross sections
 
@@ -211,7 +211,7 @@ def cv(m):
 # Convolve flux with axion branching ratio and generate ALP flux
 class ChargedMeson3BodyDecay:
     def __init__(self, meson_flux, axion_mass=0.1, coupling=1.0, n_samples=50,
-                 meson_mass=M_PI, ckm=V_UD, fM=F_PI, boson_type="P"):
+                 meson_mass=M_PI, ckm=V_UD, fM=F_PI, boson_type="P", energy_cut=140.0):
         self.meson_flux = meson_flux
         self.mm = meson_mass
         self.ckm = ckm
@@ -223,6 +223,7 @@ class ChargedMeson3BodyDecay:
         self.dump_dist = 50
         self.det_length = 12
         self.det_sa = cos(arctan(self.det_length/(self.det_dist-self.dump_dist)/2))
+        self.energy_cut = energy_cut
         self.nsamples = n_samples
         self.energies = []
         self.cosines = []
@@ -277,6 +278,7 @@ class ChargedMeson3BodyDecay:
             cr = 2*self.gmu
             cl = 0
 
+            # Dmu(self.mm/kl)*
             return -prefactor * ((power(cr*self.mm*M_MU,2) - power(cl*q2,2)) * (lq*self.ma**2 + 2*lp*pq) \
                 - 2*cr*M_MU**2 * kq * (cr*self.ma**2 * kl + 2*cr*kp*lp - 3*cl*q2*self.ma**2))
         
@@ -314,7 +316,7 @@ class ChargedMeson3BodyDecay:
             q2 = self.mm**2 - 2*self.mm*Enu
             EV = self.mm - Enu - Emu
             prefactor = heaviside(Emu-M_MU,0.0)*self.mm**2 / power(2*pi*M_MU*(self.mm*2 - M_MU**2)*(q2 - M_MU**2), 2)
-            return Dmu(Emu)*prefactor * (4*power(cr*M_MU*self.mm, 2)*Emu*Enu - 12*cr*cl*M_MU**2 * self.mm*q2*Enu \
+            return prefactor * (4*power(cr*M_MU*self.mm, 2)*Emu*Enu - 12*cr*cl*M_MU**2 * self.mm*q2*Enu \
                 + (power(cl*q2, 2) - power(cr*M_MU*self.mm, 2))*(self.mm**2 + self.ma**2 - M_MU**2 - 2*self.mm*EV) \
                     + power(self.ma, -2)*(self.mm**2 - self.ma**2 - M_MU**2 - 2*self.mm*Enu)*(4*power(cr*M_MU*self.mm, 2)*EV*Enu \
                         + (power(cl*q2, 2) - power(cr*M_MU*self.mm, 2))*(self.mm**2 - self.ma**2 + M_MU**2 - 2*self.mm*Emu)))
@@ -346,7 +348,9 @@ class ChargedMeson3BodyDecay:
         cosines = np.random.uniform(-1, 1, self.nsamples)
         pz = momenta*cosines
 
-        weights = np.array([pion_wgt*(ea_max - ea_min)*self.dGammadEa(ea) / self.gamma_sm() / self.nsamples for ea in energies])
+        # Draw weights from the PDF
+        # isotropic in rest frame, angular MC volume factors cancel
+        weights = np.array([pion_wgt*self.dGammadEa(ea) / self.gamma_sm() / self.nsamples for ea in energies])
 
         # Boost to lab frame
         beta = meson_p / sqrt(meson_p**2 + self.mm**2)
@@ -355,13 +359,21 @@ class ChargedMeson3BodyDecay:
         pz_lab = boost*(pz + beta*energies)
         cos_theta_lab = pz_lab / sqrt(e_lab**2 - self.ma**2)
 
+        # Jacobian for transforming d2Gamma/(dEa * dOmega) to lab frame:
+        jacobian = sqrt(e_lab**2 - self.ma**2) / momenta
+        # Monte Carlo volume, making sure to use the lab frame energy range
+        mc_vol = (max(e_lab) - min(e_lab))
+
+        weights = np.array([pion_wgt*mc_vol*self.dGammadEa(ea)/self.gamma_sm()/self.nsamples \
+            for ea in energies])
+
         for i in range(self.nsamples):
             solid_angle_acceptance = heaviside(cos_theta_lab[i] - self.det_sa, 0.0)
             if solid_angle_acceptance == 0.0:
                 continue
             self.energies.append(e_lab[i])
             self.cosines.append(cos_theta_lab[i])
-            self.weights.append(2*pi*weights[i]*heaviside(e_lab[i]-140.0,1.0))
+            self.weights.append(weights[i]*jacobian[i]*heaviside(e_lab[i]-self.energy_cut,1.0))
     
     def simulate(self):
         self.energies = []
