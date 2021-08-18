@@ -322,6 +322,10 @@ class ChargedMeson3BodyDecay:
         return quad(self.dGammadEa, EaMin, EaMax)[0] / self.gamma_sm()
     
     def simulate_single(self, meson_p, meson_theta, pion_wgt):
+        if self.ma > self.mm - M_MU:
+            # Kinematically forbidden beyond Meson mass - muon mass difference
+            return
+        
         ea_min = self.ma
         ea_max = (self.mm**2 + self.ma**2 - M_MU**2)/(2*self.mm)
 
