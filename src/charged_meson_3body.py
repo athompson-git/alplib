@@ -394,8 +394,8 @@ class ChargedMeson3BodyDecay:
         v_a = p_a / e_a
         axion_boost = e_a / self.ma
 
-        surv_prob = exp(-self.det_dist / METER_BY_MEV / v_a / (axion_boost * self.lifetime(ge)))
-        decay_prob = 1.0 - exp(-self.det_length / METER_BY_MEV / v_a / (axion_boost * self.lifetime(ge)))
+        surv_prob = 1.0 #exp(-self.det_dist / METER_BY_MEV / v_a / (axion_boost * self.lifetime(ge)))
+        decay_prob = 0.0 #1.0 - exp(-self.det_length / METER_BY_MEV / v_a / (axion_boost * self.lifetime(ge)))
         
         self.decay_weight = np.asarray(wgt * surv_prob * decay_prob, dtype=np.float64)
         self.scatter_weight = np.asarray(wgt * surv_prob, dtype=np.float64)
