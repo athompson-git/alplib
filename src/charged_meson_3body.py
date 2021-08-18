@@ -191,23 +191,6 @@ class ChargedPionFluxMiniBooNE:
 
 
 
-# 1206.3587 efficiency for mu detection
-eff_data = np.genfromtxt("data/3body/efficiency_1206-3587.txt", delimiter=",")
-def Dmu(Emu):
-    return np.interp(Emu, eff_data[:,0], eff_data[:,1])
-
-cp_data = np.genfromtxt("data/3body/scalar_coupling_1206-3587.txt", delimiter=",")
-cs_data = np.genfromtxt("data/3body/pseudoscalar_coupling_1206-3587.txt", delimiter=",")
-cv_data = np.genfromtxt("data/3body/vector_coupling_1206-3587.txt", delimiter=",")
-def cp(m):
-    return sqrt(4*pi*np.interp(m, cp_data[:,0], cp_data[:,1]))
-
-def cs(m):
-    return sqrt(4*pi*np.interp(m, cs_data[:,0], cs_data[:,1]))
-
-def cv(m):
-    return sqrt(4*pi*np.interp(m, cv_data[:,0], cv_data[:,1]))
-
 # Convolve flux with axion branching ratio and generate ALP flux
 class ChargedMeson3BodyDecay:
     def __init__(self, meson_flux, axion_mass=0.1, coupling=1.0, n_samples=50,
