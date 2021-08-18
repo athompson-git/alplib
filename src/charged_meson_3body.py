@@ -322,10 +322,6 @@ class ChargedMeson3BodyDecay:
         return quad(self.dGammadEa, EaMin, EaMax)[0] / self.gamma_sm()
     
     def simulate_single(self, meson_p, meson_theta, pion_wgt):
-        if self.ma > self.mm - M_MU:
-            # Kinematically forbidden beyond Meson mass - muon mass difference
-            return
-        
         ea_min = self.ma
         ea_max = (self.mm**2 + self.ma**2 - M_MU**2)/(2*self.mm)
 
@@ -363,11 +359,16 @@ class ChargedMeson3BodyDecay:
             self.weights.append(weights[i]*jacobian[i]*heaviside(e_lab[i]-self.energy_cut,1.0))
     
     def simulate(self):
-        self.energies = []
-        self.cosines = []
-        self.weights = []
-        self.scatter_weight = []
-        self.decay_weight = []
+        self.energies = [0.0]
+        self.cosines = [0.0]
+        self.weights = [0.0]
+        self.scatter_weight = [0.0]
+        self.decay_weight = [0.0]
+
+        if self.ma > self.mm - M_MU:
+            # Kinematically forbidden beyond Meson mass - muon mass difference
+            return
+
         for i, p in enumerate(self.meson_flux):
             self.simulate_single(p[0], p[1], p[2])
         
