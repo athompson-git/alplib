@@ -248,8 +248,9 @@ class IsotropicAxionFromPrimakoff:
 
 
     def branching_ratio(self, energy, coupling=1.0):
-        cross_prim = primakoff_sigma(energy, coupling, self.axion_mass, self.target_z, 2.2e-10 / METER_BY_MEV)/2
-        return cross_prim / (cross_prim + (self.target_photon_cross / (100 * METER_BY_MEV) ** 2))
+        xs = primakoff_sigma(energy, self.target_z, 2*self.target_z, self.axion_mass, coupling)
+        #xs = iprimakoff_sigma(energy, coupling, self.axion_mass, self.target_z, 1e-10/METER_BY_MEV)/2
+        return xs / (xs + (self.target_photon_cross / (100 * METER_BY_MEV) ** 2))
 
     # Convolute axion production and decay rates with a photon flux
     def simulate_single(self, energy, rate):
