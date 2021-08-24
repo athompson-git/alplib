@@ -15,7 +15,7 @@ class Crystal(Detector):
     def __init__(self, material, primitives, a1, a2, a3, volume=1.0, density=1.0,
                 fiducial_mass=1.0):
         super().__init__(det_type=material, fiducial_mass=fiducial_mass, volume=volume, density=density)
-        self.a = self.lattice_const[0]
+        self.a = self.lattice_const
         self.alpha = self.a * np.array(primitives)
         self.a0 = self.a * np.array([0,0,0])
         self.a1 = self.a * np.array(a1)
@@ -52,7 +52,7 @@ class Crystal(Detector):
 cryslist = ["Ge", "Si", "NaI", "CsI"]
 
 
-def get_crystal(name):
+def get_crystal(name, volume):
     if name not in cryslist:
         print("Specified material not in library. Supported crystals:\n", cryslist)
         return
@@ -65,7 +65,7 @@ def get_crystal(name):
         A1 = [0.0, 0.5, 0.5]
         A2 = [0.5, 0.0, 0.5]
         A3 = [0.5, 0.5, 0.0]
-        return Crystal(name, Primitives, A1, A2, A3)
+        return Crystal(name, Primitives, A1, A2, A3, volume=volume)
     
     if name == "Si":
         pass
@@ -81,7 +81,14 @@ def get_crystal(name):
         return Crystal(name, Primitives, A1, A2, A3)
 
     if name == "CsI":
-        pass
+        # Diamond cubic, cesium iodide
+        Alpha0 = [0.0, 0.0, 0.0]
+        Alpha1 = [0.5, 0.5, 0.5]
+        Primitives = [Alpha0, Alpha1]
+        A1 = [0.0, 0.5, 0.5]
+        A2 = [0.5, 0.0, 0.5]
+        A3 = [0.5, 0.5, 0.0]
+        return Crystal(name, Primitives, A1, A2, A3, volume=volume)
 
     return
 

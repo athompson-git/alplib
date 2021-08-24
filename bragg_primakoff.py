@@ -24,8 +24,8 @@ class BraggPrimakoff:
         self.z = crys.z
         self.r0 = crys.r0
         self.va = crys.cell_volume
-        self.ntargets = 1e10
-        self.volume = 1e12
+        self.ntargets = crys.ntargets
+        self.volume = crys.volume*1e24  # convert cm3 to A3
 
         # Primitive basis vectors
         self.a0 = np.array([0,0,0])
@@ -89,11 +89,10 @@ class BraggPrimakoff:
                 g.append(mList)
         return np.array(g)
 
-
     # Bragg-Primakoff event rate
     def BraggPrimakoff(self, theta_z, phi, E1=2.0, E2=2.5, gagamma=1e-10):
         rate = 0.0
-        prefactor = (gagamma / 1e6)**2 * HBARC_KEV_ANG**2 * (vCrys / self.va**2) / 4  # 1e6 to convert to keV^-1
+        prefactor = (gagamma / 1e6)**2 * HBARC_KEV_ANG**2 * (self.volume / self.va**2) / 4  # 1e6 to convert to keV^-1
         for mList in self.GetReciprocalLattice():
             sineThetaBy2 = np.dot(self.vecU(theta_z, phi), self.vecG(mList)) / np.dot(self.vecG(mList),self.vecG(mList))
             sineSquaredTheta = 4 * sineThetaBy2**2 * (1 - sineThetaBy2**2)
@@ -105,11 +104,9 @@ class BraggPrimakoff:
         
         return prefactor * rate
 
-
-
-
     def BraggPrimakoffAvgPhi(self, theta_z, E1=2.0, E2=2.5, gagamma=1e-10):
-        prefactor = (gagamma / 1e6)**2 * HBARC_KEV_ANG**2 * (vCrys / self.va**2) / 4  # 1e6 to convert to keV^-1
+        # Bragg-Primakoff event rate after averaging over polar angle
+        prefactor = (gagamma / 1e6)**2 * HBARC_KEV_ANG**2 * (self.volume / self.va**2) / 4  # 1e6 to convert to keV^-1
         mList = self.GetReciprocalLattice()
         def Rate(phi):
             rate = 0.0
@@ -125,12 +122,10 @@ class BraggPrimakoff:
         
         return prefactor * 2*pi*np.sum(Rate(self.phi_list))/self.nsamples  # fast MC-based integration
 
-
-
-    # Bragg-Primakoff event rate
     def BraggPrimakoffScatteringPlane(self, theta, E1=2.0, E2=2.5, gagamma=1e-10):
+        # Bragg-Primakoff event rate
         rate = 0.0
-        prefactor = (gagamma / 1e6)**2 * HBARC_KEV_ANG**2 * (vCrys / self.va**2) / 4  # 1e6 to convert to keV^-1
+        prefactor = (gagamma / 1e6)**2 * HBARC_KEV_ANG**2 * (self.volume / self.va**2) / 4  # 1e6 to convert to keV^-1
         for mList in self.GetReciprocalLattice():
             if (np.all(np.array(mList) % 2 == 1) or (np.all(np.array(mList) % 2 == 0) and np.sum(np.array(mList)) % 4 == 0)):
                 sineSquaredTheta = sin(theta)**3
@@ -141,13 +136,32 @@ class BraggPrimakoff:
         
         return prefactor * rate
 
+    def LauePrimakoffAvgPhi(self, theta_z, E1=2.0, E2=2.5, gagamma=1e-10):
+        # Laue-Primakoff event rate averaging over polar angle. Absorption effects included
+        prefactor = (gagamma / 1e6)**2 * HBARC_KEV_ANG**2 * (self.volume / self.va**2) / 4  # 1e6 to convert to keV^-1
+        mList = self.GetReciprocalLattice()
+        def Rate(phi):
+            rate = 0.0
+            for m in mList:
+                sineThetaBy2 = np.dot(self.vecU(theta_z, phi), self.vecG(m)) / np.dot(self.vecG(m),self.vecG(m))
+                sineSquaredTheta = 4 * sineThetaBy2**2 * (1 - sineThetaBy2**2)
+                formFactorSquared = self.FA(sqrt(np.dot(self.vecG(m), self.vecG(m))), self.Ea(theta_z, phi, m))
+                rate += np.sum(heaviside(self.Ea(theta_z, phi, m), 0.0) \
+                    * self.SolarFlux(self.Ea(theta_z, phi, m), gagamma) * sineSquaredTheta \
+                    * formFactorSquared * self.S2Expanded(m) \
+                    * self.FW(self.Ea(theta_z, phi, m), E1, E2) * (1 / np.dot(self.vecG(m), self.vecG(m))))
+            return rate
+        
+        return prefactor * 2*pi*np.sum(Rate(self.phi_list))/self.nsamples  # fast MC-based integration
 
-    def AtomicPrimakoffDifferentialRate(self, Ea, gagamma=1e-10, ma=1e-4):
-        print(iprimakoff_sigma(Ea/1e3, gagamma*1e-3, ma, self.z, self.r0))
-        return self.SolarFlux(Ea, gagamma) * (KEV_CM**2) * iprimakoff_sigma(Ea/1e3, gagamma*1e-3, ma, self.z, self.r0)
-    
     def AtomicPrimakoffRate(self, gagamma=1e-10, ma=1e-4):
-        return (self.e_list[-1] - self.e_list[0])*np.sum(self.AtomicPrimakoffDifferentialRate(self.e_list, gagamma, ma))/self.nsamples
+        # Solar ALP scattering rate ignoring crystal structure (isolated atomic scattering)
+        def AtomicPrimakoffDifferentialRate(self, Ea, gagamma=1e-10, ma=1e-4):
+            return self.ntargets * self.SolarFlux(Ea, gagamma) * (KEV_CM**2) \
+                * iprimakoff_sigma(Ea/1e3, gagamma*1e-3, ma, self.z, self.r0)
+        
+        mc_volume = (self.e_list[-1] - self.e_list[0])/self.nsamples
+        return mc_volume*np.sum(AtomicPrimakoffDifferentialRate(self.e_list, gagamma, ma))
 
 
 

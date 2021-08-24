@@ -38,8 +38,9 @@ class Detector:
             self.er_max = det_info['er_max']
             self.bg = det_info['bg']
             self.bg_un = det_info['bg_un']
+            self.density = det_info['density']  # g/cm^3
             self.fid_mass = fiducial_mass  # kg
             self.volume = volume  # cm^3
-            self.density = density  # g/cm^3
+            self.ntargets = density * volume / (np.sum(self.m) / MEV_PER_KG / 1e-3)
         else:
             raise Exception("No such detector in det_params.json.")
