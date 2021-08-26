@@ -4,6 +4,7 @@
 
 from .constants import *
 from .fmath import *
+from .decay import *
 
 #### Photon coupling ####
 
@@ -70,7 +71,8 @@ def compton_dsigma_dea(ea, eg, g, ma):
 
 
 def brem_dsigma_dea_domega(Ea, thetaa, Ee, g, ma, z):
-    # Differential cross section dSigma/dE_a for ALP bremsstrahlung (e- Z -> e- Z a)
+    # Differential cross section d^2 Sigma/(dE_a dOmega) for ALP bremsstrahlung (e- Z -> e- Z a)
+    # Tsai, 1986
     theta_max = max(sqrt(ma*M_E)/Ee, power(ma/Ee, 3/2))
     x = Ea / Ee
     l = (Ee * thetaa / M_E)**2
@@ -87,6 +89,31 @@ def brem_dsigma_dea_domega(Ea, thetaa, Ee, g, ma, z):
 
 
 
-def resonance_sigma(ea, ee, g, ma):
-    # Resonant production cross section (e- e+ -> a)
+def brem_dsigma_dea(Ea, Ee, g, ma, z):
+    # Differential cross section dSigma/dE_a for ALP bremsstrahlung (e- Z -> e- Z a)
+    # Tsai, 1986
+    r0 = ALPHA / M_E
+    x = Ea / Ee
+    f = power(ma / (x * M_E), 2) * (1 - x)
+    ln_el = log(184*power(z, -1/3))
+    ln_inel = log(1194*power(z, -2/3))
+
+    prefactor = 2 * r0**2 * g**2 / 4 / pi / Ee  # divide by Ee to change dsigma/dx into dsigma/dEa
+    return prefactor * ((x * (1 + f/1.5)/power(1+f, 2)) * (z**2 * ln_el + z * ln_inel) \
+                        + x * (z**2 + z) * ((1+f)*log(1+f)/(3*f**2) - (1 + 4*f + 2*f**2)/(3 * f * power(1+f, 2))))
+
+
+
+
+def brem_sigma(Ee, g, ma, z):
+    # Total axion bremsstrahlung production cross section (e- Z -> e- Z a)
+    # Tsai 1986
     pass
+
+
+
+
+def resonance_sigma(ee, g, ma):
+    # Resonant production cross section (e- e+ -> a)
+    s = 2*M_E*ee
+    return (12 * pi / ma**2) * (power(W_ee(g, ma)/2, 2)/((sqrt(s) - ma)**2 + power(W_ee(g, ma)/2, 2)))
