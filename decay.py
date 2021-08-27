@@ -15,7 +15,8 @@ def W_gg(g_agamma, ma):
 
 # a -> e+ e-
 def W_ee(g_ae, ma):
-    return g_ae**2 * ma * sqrt(1 - (2 * M_E / ma)**2) / (8 * pi)
+    return g_ae**2 * ma * sqrt(1 - (2 * M_E / ma)**2) / (8 * pi) \
+        if 1 - 4 * (M_E / ma) ** 2 > 0 else 0.0
 
 
 
