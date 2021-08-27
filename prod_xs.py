@@ -51,7 +51,13 @@ def primakoff_sigma(energy, z, a, ma, g):
 
 #### Electron coupling ####
 
-def compton_dsigma_dea(ea, eg, g, ma):
+def compton_sigma(eg, g, ma):
+    pass
+
+
+
+
+def compton_dsigma_dea(ea, eg, g, ma, z=1):
     # Differential cross-section dS/dE_a. (γ + e- > a + e-)
     a = 1 / 137
     aa = g ** 2 / 4 / pi
@@ -64,7 +70,7 @@ def compton_dsigma_dea(ea, eg, g, ma):
             + (s - M_E**2)*sqrt((s - M_E**2 + ma**2)**2 - 4*s*ma**2))/(2*s*(s-M_E**2))
 
     thresh = heaviside(s > (M_E + ma)**2, 0.0)*heaviside(x-xmin,0.0)*heaviside(xmax-x,0.0)
-    return thresh * (1 / eg) * pi * a * aa / (s - M_E ** 2) * (x / (1 - x) * (-2 * ma ** 2 / (s - M_E ** 2) ** 2
+    return z * thresh * (1 / eg) * pi * a * aa / (s - M_E ** 2) * (x / (1 - x) * (-2 * ma ** 2 / (s - M_E ** 2) ** 2
                                                                 * (s - M_E ** 2 / (1 - x) - ma ** 2 / x) + x))
 
 
@@ -99,8 +105,9 @@ def brem_dsigma_dea(Ea, Ee, g, ma, z):
     ln_inel = log(1194*power(z, -2/3))
 
     prefactor = 2 * r0**2 * g**2 / 4 / pi / Ee  # divide by Ee to change dsigma/dx into dsigma/dEa
-    return prefactor * ((x * (1 + f/1.5)/power(1+f, 2)) * (z**2 * ln_el + z * ln_inel) \
+    phase_space = ((x * (1 + f/1.5)/power(1+f, 2)) * (z**2 * ln_el + z * ln_inel) \
                         + x * (z**2 + z) * ((1+f)*log(1+f)/(3*f**2) - (1 + 4*f + 2*f**2)/(3 * f * power(1+f, 2))))
+    return prefactor * phase_space * heaviside(phase_space, 0.0)
 
 
 
@@ -108,12 +115,26 @@ def brem_dsigma_dea(Ea, Ee, g, ma, z):
 def brem_sigma(Ee, g, ma, z):
     # Total axion bremsstrahlung production cross section (e- Z -> e- Z a)
     # Tsai 1986
-    pass
+    ea_max = Ee * (1 - max(power(M_E/ma, 2), power(ma/Ee, 2)))
+    return heaviside(Ee-ma,0.0)*quad(brem_dsigma_dea, ma, ea_max, args=(Ee, g, ma, z,))[0]
+
+
+def brem_sigma_v2(Ee, g, ma, z):
+    # Total axion bremsstrahlung production cross section (e- Z -> e- Z a)
+    # Tsai 1986
+    return heaviside(Ee-ma,0.0)*quad(brem_dsigma_dea, ma, Ee*0.99, args=(Ee, g, ma, z,))[0]
 
 
 
 
-def resonance_sigma(ee, g, ma):
+def resonance_sigma(ee, ma, g):
     # Resonant production cross section (e- e+ -> a)
     s = 2*M_E*ee
     return (12 * pi / ma**2) * (power(W_ee(g, ma)/2, 2)/((sqrt(s) - ma)**2 + power(W_ee(g, ma)/2, 2)))
+
+
+
+
+def resonance_peak(g):
+    # Returns the peak value of the resonance production cross section (e- e+ -> a)
+    return pi * g**2 / (2 * M_E)

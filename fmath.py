@@ -4,7 +4,7 @@ import numpy as np
 from numpy import log, log10, exp, pi, sqrt, power, \
     sin, cos, tan, arccos, arctan, arcsin, heaviside, dot, cross
 from scipy.integrate import quad, dblquad
-from scipy.special import exp1, erf
+from scipy.special import exp1, erf, gamma
 from scipy.stats import norm
 
 import mpmath as mp

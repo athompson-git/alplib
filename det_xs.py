@@ -72,13 +72,27 @@ def axioelectric_xs(pe_xs, energy, z, a, g, ma):
 
 
 
-def icompton_sigma(ea, g):
+def icompton_sigma_old(ea, g, z=1):
     # Total cross section (a + e- -> \gamma + e-)
     a = 1 / 137
     aa = g ** 2 / 4 / pi
     prefact = a * aa * pi / 2 / M_E / ea**2
     sigma = prefact * 2 * ea * (-(2*ea * (3*ea + M_E)/(2 * ea + M_E)**2) + np.log(2 * ea / M_E + 1))
-    return sigma
+    return z**2 * sigma
+
+
+
+
+def icompton_sigma(ea, ma, g, z=1):
+    # Borexino 2008, eq. 14
+    y = 2 * M_E * ea + ma**2
+    pa = sqrt((ea**2 - ma**2)*heaviside(ea - ma, 0.0))
+    prefactor = (z**2) * ALPHA * power(g/M_E, 2) / (8 * pa)
+
+    return prefactor * ((2 * M_E**2 * (M_E + ea) * y)/power(M_E**2 + y, 2) \
+        + (4*M_E*(ma**4 + 2*power(ma*M_E, 2) - power(2*M_E*ea, 2)))/(y*(M_E**2 + y)) \
+        + log((M_E + ea + pa)/(M_E + ea - pa))*(power(2*M_E*pa, 2) + ma**4)/(ea*y))
+
 
 
 

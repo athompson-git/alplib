@@ -1,11 +1,13 @@
 # Class for setting and getting crystal parameters, lattice vectors, and structure functions
 
-from alplib.src.detectors import Detector
+from .detectors import Detector
 from .constants import *
 from .fmath import *
 
 
 """
+Crystal class and methods
+Inherits attributes from Detector class
 lattice_const: lattice constant in Angstroms
 primitives: an array of the N primitive basis vectors in format [alpha0, alpha1,...]
         for each alpha = [#,#,#] as a 3-list
