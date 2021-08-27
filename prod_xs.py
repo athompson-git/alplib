@@ -51,9 +51,25 @@ def primakoff_sigma(energy, z, a, ma, g):
 
 #### Electron coupling ####
 
-def compton_sigma(eg, g, ma):
-    pass
+def compton_sigma(eg, g, ma, z=1):
+    a = 1 / 137
+    aa = g ** 2 / 4 / pi
+    s = 2 * M_E * eg + M_E ** 2
+    xmin = ((s - M_E**2)*(s - M_E**2 + ma**2) 
+            - (s - M_E**2)*sqrt((s - M_E**2 + ma**2)**2 - 4*s*ma**2))/(2*s*(s-M_E**2))
+    xmax = ((s - M_E**2)*(s - M_E**2 + ma**2) 
+            + (s - M_E**2)*sqrt((s - M_E**2 + ma**2)**2 - 4*s*ma**2))/(2*s*(s-M_E**2))
+    def compton_dsigma_dx(x):
+        thresh = heaviside(s - (M_E + ma)**2, 0.0)*heaviside(x-xmin,0.0)*heaviside(xmax-x,0.0)
+        return z * thresh * pi * a * aa / (s - M_E ** 2) \
+            * (x / (1 - x) * (-2 * ma ** 2 / (s - M_E ** 2) ** 2
+                                * (s - M_E ** 2 / (1 - x) - ma ** 2 / x) + x))
+    
+    return quad(compton_dsigma_dx, xmin, xmax)[0]
 
+
+def compton_nsigma(eg, g, ma, z=1):
+    return quad(compton_dsigma_dea, ma, eg, args=(eg, g, ma, z,))[0]
 
 
 
@@ -69,7 +85,7 @@ def compton_dsigma_dea(ea, eg, g, ma, z=1):
     xmax = ((s - M_E**2)*(s - M_E**2 + ma**2) 
             + (s - M_E**2)*sqrt((s - M_E**2 + ma**2)**2 - 4*s*ma**2))/(2*s*(s-M_E**2))
 
-    thresh = heaviside(s > (M_E + ma)**2, 0.0)*heaviside(x-xmin,0.0)*heaviside(xmax-x,0.0)
+    thresh = heaviside(s - (M_E + ma)**2, 0.0)*heaviside(x-xmin,0.0)*heaviside(xmax-x,0.0)
     return z * thresh * (1 / eg) * pi * a * aa / (s - M_E ** 2) * (x / (1 - x) * (-2 * ma ** 2 / (s - M_E ** 2) ** 2
                                                                 * (s - M_E ** 2 / (1 - x) - ma ** 2 / x) + x))
 
@@ -112,18 +128,25 @@ def brem_dsigma_dea(Ea, Ee, g, ma, z):
 
 
 
-def brem_sigma(Ee, g, ma, z):
+def brem_sigma(Ee, g, ma, z=1):
     # Total axion bremsstrahlung production cross section (e- Z -> e- Z a)
     # Tsai 1986
-    ea_max = Ee * (1 - max(power(M_E/ma, 2), power(ma/Ee, 2)))
+    #ea_max = Ee * (1 - max(power(M_E/ma, 2), power(ma/Ee, 2)))
+    ea_max = Ee * (1 - power(ma/Ee, 2))
     return heaviside(Ee-ma,0.0)*quad(brem_dsigma_dea, ma, ea_max, args=(Ee, g, ma, z,))[0]
 
 
-def brem_sigma_v2(Ee, g, ma, z):
+def brem_sigma_v2(Ee, g, ma, z=1):
     # Total axion bremsstrahlung production cross section (e- Z -> e- Z a)
     # Tsai 1986
-    return heaviside(Ee-ma,0.0)*quad(brem_dsigma_dea, ma, Ee*0.99, args=(Ee, g, ma, z,))[0]
+    return heaviside(Ee-ma,0.0)*quad(brem_dsigma_dea, ma, Ee*0.9999, args=(Ee, g, ma, z,))[0]
 
+
+def brem_sigma_mc(Ee, g, ma, z=1, nsamples=100):
+    ea_max = Ee * (1 - power(ma/Ee, 2))
+    ea_rnd = np.random.uniform(ma, ea_max, nsamples)
+    mc_vol = (Ee - ma)/nsamples
+    return mc_vol * np.sum(brem_dsigma_dea(ea_rnd, Ee, g, ma, z))
 
 
 
