@@ -41,10 +41,10 @@ class AxionFlux:
         # Get decay and survival probabilities
         surv_prob = np.array([mp.exp(-self.det_dist / METER_BY_MEV / v_a[i] / tau[i]) \
                      for i in range(len(v_a))])
-        decay_prob = np.array([fsub(1,mp.exp(-self.det_length / METER_BY_MEV / v_a[i] / tau[i])) \
+        decay_prob = np.array([fsub(1, mp.exp(-self.det_length / METER_BY_MEV / v_a[i] / tau[i])) \
                       for i in range(len(v_a))])
-        self.decay_axion_weight = np.asarray(rescale_factor * wgt * surv_prob * decay_prob, dtype=np.float64)  # removed g^2
-        self.scatter_axion_weight = np.asarray(rescale_factor * wgt * surv_prob, dtype=np.float64)  # removed g^2
+        self.decay_axion_weight = np.asarray(rescale_factor * wgt * surv_prob * decay_prob, dtype=np.float32)  # removed g^2
+        self.scatter_axion_weight = np.asarray(rescale_factor * wgt * surv_prob, dtype=np.float32)  # removed g^2
 
 
 
@@ -289,15 +289,6 @@ class FluxResonanceIsotropic(AxionFlux):
 
 
 
-        
-
-
-"""
-...
-more classes defined here for each flux
-...
-"""
-
 
 class ElectronEventGenerator:
     """
@@ -305,7 +296,7 @@ class ElectronEventGenerator:
     """
     def __init__(self, flux: AxionFlux):
         self.flux = flux
-        self.axion_energy = flux.axion_energy
+        self.axion_energy = np.array(flux.axion_energy)
         self.decay_weights = flux.decay_axion_weight
         self.scatter_weights = flux.scatter_axion_weight
 
@@ -314,16 +305,11 @@ class ElectronEventGenerator:
         pass
 
     def compton(self, ge, ma, ntargets, days_exposure, threshold):
-        res = 0
-        for i, ea in enumerate(self.axion_energy):
-            if ea >= threshold:
-                xs = heaviside(ea - ma, 0.0)*icompton_sigma(ea, ma, ge, self.flux.det_z) * METER_BY_MEV**2
-                det_area_density = ntargets / self.flux.det_area
-
-                self.scatter_weights[i] *= days_exposure * S_PER_DAY * xs * det_area_density
-                res += self.scatter_weights[i] # approx scatter_xs = prod_xs
-            else:
-                self.scatter_weights[i] = 0.0
+        self.scatter_weights = days_exposure * S_PER_DAY * (ntargets / self.flux.det_area) \
+            * icompton_sigma(self.axion_energy, ma, ge, self.flux.det_z) \
+                * METER_BY_MEV**2 * self.scatter_weights * heaviside(self.axion_energy - threshold, 0.0) \
+                    * heaviside(self.axion_energy - ma, 0.0)
+        res = np.sum(self.scatter_weights)
         return res
     
     def decays(self, days_exposure, threshold):
