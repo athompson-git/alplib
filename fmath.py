@@ -5,11 +5,11 @@ from numpy import log, log10, exp, pi, sqrt, power, \
     sin, cos, tan, arccos, arctan, arcsin, heaviside, dot, cross
 from scipy.integrate import quad, dblquad
 from scipy.special import exp1, erf, gamma
-from scipy.stats import norm
+from scipy.stats import norm, chisquare
 
 import mpmath as mp
 from mpmath import mpmathify, fsub
-mp.dps = 15    
+mp.dps = 5
 
 
 # Fast 1D monte carlo, regenerating random variates each time

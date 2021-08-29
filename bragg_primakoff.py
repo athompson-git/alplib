@@ -1,12 +1,10 @@
 # Bragg-Primakoff effect classes
-
-from alplib.src.crystal import Crystal
 from itertools import product
 
 from .constants import *
 from .fmath import *
-from .detectors import Detector
 from .det_xs import iprimakoff_sigma
+from .crystal import Crystal
 
 # Global Constants in keV angstroms
 M_E_KeV = 1e3 * M_E
@@ -156,7 +154,7 @@ class BraggPrimakoff:
 
     def AtomicPrimakoffRate(self, gagamma=1e-10, ma=1e-4):
         # Solar ALP scattering rate ignoring crystal structure (isolated atomic scattering)
-        def AtomicPrimakoffDifferentialRate(self, Ea, gagamma=1e-10, ma=1e-4):
+        def AtomicPrimakoffDifferentialRate(Ea, gagamma=1e-10, ma=1e-4):
             return self.ntargets * self.SolarFlux(Ea, gagamma) * (KEV_CM**2) \
                 * iprimakoff_sigma(Ea/1e3, gagamma*1e-3, ma, self.z, self.r0)
         

@@ -1,22 +1,22 @@
 # Class for setting and getting crystal parameters, lattice vectors, and structure functions
 
-from .detectors import Detector
+from .materials import Material
 from .constants import *
 from .fmath import *
 
 
 """
 Crystal class and methods
-Inherits attributes from Detector class
+Inherits attributes from Material class
 lattice_const: lattice constant in Angstroms
 primitives: an array of the N primitive basis vectors in format [alpha0, alpha1,...]
         for each alpha = [#,#,#] as a 3-list
 a1, a2, a3: Bravais lattice vectors as 3-lists [#,#,#]
 """
-class Crystal(Detector):
+class Crystal(Material):
     def __init__(self, material, primitives, a1, a2, a3, volume=1.0, density=1.0,
                 fiducial_mass=1.0):
-        super().__init__(det_type=material, fiducial_mass=fiducial_mass, volume=volume, density=density)
+        super().__init__(material_name=material, fiducial_mass=fiducial_mass, volume=volume, density=density)
         self.a = self.lattice_const
         self.alpha = self.a * np.array(primitives)
         self.a0 = self.a * np.array([0,0,0])
