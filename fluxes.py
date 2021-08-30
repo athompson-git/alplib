@@ -39,13 +39,14 @@ class AxionFlux:
         p_a = sqrt(e_a**2 - self.ma**2)
         v_a = p_a / e_a
         boost = e_a / self.ma
-        tau = boost if decay_width > 0.0 else np.inf * np.ones_like(boost)
+        tau = boost / decay_width if decay_width > 0.0 else np.inf * np.ones_like(boost)
 
         # Get decay and survival probabilities
         surv_prob = np.array([mp.exp(-self.det_dist / METER_BY_MEV / v_a[i] / tau[i]) \
                      for i in range(len(v_a))])
         decay_prob = np.array([fsub(1, mp.exp(-self.det_length / METER_BY_MEV / v_a[i] / tau[i])) \
                       for i in range(len(v_a))])
+
         self.decay_axion_weight = np.asarray(rescale_factor * wgt * surv_prob * decay_prob, dtype=np.float32)  # removed g^2
         self.scatter_axion_weight = np.asarray(rescale_factor * wgt * surv_prob, dtype=np.float32)  # removed g^2
 
@@ -119,7 +120,7 @@ class FluxComptonIsotropic(AxionFlux):
         self.target_photon_xs = AbsCrossSection(target)
     
     def decay_width(self, ge, ma):
-        return W_ee(self.ge, self.ma)
+        return W_ee(ge, ma)
 
     def simulate_single(self, photon):
         gamma_energy = photon[0]
@@ -170,25 +171,26 @@ class FluxBremIsotropic(AxionFlux):
     Generator for axion-bremsstrahlung flux
     Takes in a flux of el
     """
-    def __init__(self, electron_flux=[1.,0.], target_z=90, target_density=19.3,
+    def __init__(self, electron_flux=[1.,0.], target=Material("W"), detector=Material("Ar"), target_density=19.3,
                  target_radiation_length=6.76, target_length=10.0, det_dist=4., det_length=0.2,
-                 det_area=0.04, det_z=18, axion_mass=0.1, axion_coupling=1e-3, nsamples=100):
-        super().__init__(axion_mass, target_z, det_z, det_dist, det_length, det_area)
+                 det_area=0.04, axion_mass=0.1, axion_coupling=1e-3, nsamples=100):
+        super().__init__(axion_mass, target, detector, det_dist, det_length, det_area)
         # TODO: make flux take in a Detector class and a Target class (possibly Material class?)
         # Replace A = 2*Z with real numbers of nucleons
         self.electron_flux = electron_flux
+        self.positron_flux = electron_flux
         self.ge = axion_coupling
         self.target_density = target_density  # g/cm3
         self.target_radius = target_length  # cm
-        self.ntargets_by_area = target_length * target_density * AVOGADRO / (2*target_z)  # N_T / cm^2
-        self.ntarget_area_density = target_radiation_length * AVOGADRO / (2*target_z)
+        self.ntargets_by_area = target_length * target_density * AVOGADRO / (2*target.z[0])  # N_T / cm^2
+        self.ntarget_area_density = target_radiation_length * AVOGADRO / (2*target.z[0])
         self.nsamples = nsamples
     
     def decay_width(self):
         return W_ee(self.ge, self.ma)
     
     def electron_flux_dN_dE(self, energy):
-        return np.interp(energy, self.electron_flux[:,0], self.electron_flux[:,1], left=0.0, right=0.0)
+        return 2*np.interp(energy, self.electron_flux[:,0], self.electron_flux[:,1], left=0.0, right=0.0)
     
     def electron_flux_attenuated(self, t, E0, E1):
         return self.electron_flux_dN_dE(E0) * track_length_prob(E0, E1, t)
@@ -236,19 +238,19 @@ class FluxResonanceIsotropic(AxionFlux):
     Generator for e+ e- resonant ALP production flux
     Takes in a flux of el
     """
-    def __init__(self, positron_flux=[1.,0.], target_z=74, target_density=19.3, target_length=10.0,
-                 target_radiation_length=6.76, det_dist=4., det_length=0.2, det_area=0.04, det_z=18,
+    def __init__(self, positron_flux=[1.,0.], target=Material("W"), detector=Material("Ar"), target_density=19.3, target_length=10.0,
+                 target_radiation_length=6.76, det_dist=4., det_length=0.2, det_area=0.04,
                  axion_mass=0.1, axion_coupling=1e-3, nsamples=100):
         # TODO: make flux take in a Detector class and a Target class (possibly Material class?)
         # Replace A = 2*Z with real numbers of nucleons
-        super().__init__(axion_mass, target_z, det_z, det_dist, det_length, det_area, nsamples)
+        super().__init__(axion_mass, target, detector, det_dist, det_length, det_area, nsamples)
         self.positron_flux = positron_flux  # differential positron energy flux dR / dE+ / s
         self.positron_flux_bin_widths = positron_flux[1:,0] - positron_flux[:-1,0]
         self.ge = axion_coupling
         self.target_density = target_density  # g/cm3
         self.target_radius = target_length  # cm
-        self.ntargets_by_area = target_length * target_density * AVOGADRO / (2*target_z)  # N_T / cm^2
-        self.ntarget_area_density = target_radiation_length * AVOGADRO / (2*target_z)
+        self.ntargets_by_area = target_length * target_density * AVOGADRO / (2*target.z[0])  # N_T / cm^2
+        self.ntarget_area_density = target_radiation_length * AVOGADRO / (2*target.z[0])
     
     def decay_width(self):
         return W_ee(self.ge, self.ma)
@@ -302,31 +304,40 @@ class ElectronEventGenerator:
         self.flux = flux
         self.det_z = detector.z[0]
         self.axion_energy = np.array(flux.axion_energy)
-        self.decay_weights = flux.decay_axion_weight
-        self.scatter_weights = flux.scatter_axion_weight
+        self.decay_weights = np.zeros_like(flux.decay_axion_weight)
+        self.scatter_weights = np.zeros_like(flux.scatter_axion_weight)
+        self.pair_weights = np.zeros_like(flux.scatter_axion_weight)
         self.efficiency = None  # TODO: add efficiency info
         self.energy_threshold = None  # TODO: add threshold as member var
+        self.pair_xs = PairProdutionCrossSection(detector)
 
-    def pair_production(self):
-        # TODO: add pair production cross section
-        pass
+    def pair_production(self, ge, ma, ntargets, days_exposure, threshold):
+        # TODO: remove this ad hoc XS and replace with real calc
+        self.pair_weights += days_exposure * S_PER_DAY * (ntargets / self.flux.det_area) \
+            * (2 * ge**2 / ALPHA)*self.pair_xs.sigma_mev(sqrt(self.axion_energy**2 - ma**2)) \
+                * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.axion_energy - threshold, 0.0)
+        res = np.sum(self.pair_weights)
+        print(res, " <- pair")
+        return res
 
     def compton(self, ge, ma, ntargets, days_exposure, threshold):
-        self.scatter_weights = days_exposure * S_PER_DAY * (ntargets / self.flux.det_area) \
-            * icompton_sigma(self.axion_energy, ma, ge, self.flux.det_z) \
-                * METER_BY_MEV**2 * self.scatter_weights * heaviside(self.axion_energy - threshold, 0.0) \
-                    * heaviside(self.axion_energy - ma, 0.0)
+        self.scatter_weights += days_exposure * S_PER_DAY * (ntargets / self.flux.det_area) \
+            * icompton_sigma(self.axion_energy, ma, ge, self.det_z) \
+                * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.axion_energy - threshold, 0.0)
         res = np.sum(self.scatter_weights)
+        print(res, "<- compton")
         return res
     
     def decays(self, days_exposure, threshold):
         res = 0
-        for i in range(len(self.axion_energy)):
-            if self.axion_energy[i] >= threshold:
-                self.decay_weights[i] *= days_exposure * S_PER_DAY
-                res += self.decay_weights[i]
-            else:
-                self.decay_weights[i] = 0.0
+        self.decay_weights = days_exposure * S_PER_DAY * self.flux.decay_axion_weight * heaviside(self.axion_energy - threshold, 0.0)
+        res = np.sum(self.decay_weights)
+        #for i in range(len(self.axion_energy)):
+        #    if self.axion_energy[i] >= threshold:
+        #        self.decay_weights[i] += days_exposure * S_PER_DAY
+        #        res += self.flux.decay_axion_weight[i]
+        #    else:
+        #        self.decay_weights[i] = 0.0
         return res
 
 

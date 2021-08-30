@@ -1,8 +1,11 @@
 # Get the total photon absorption cross-section by element
 
-from alplib.materials import Material
+import pkg_resources
+
+from .materials import Material
 from .constants import *
 from .fmath import *
+
 
 
 """
@@ -17,30 +20,17 @@ class AbsCrossSection:
         #self.pe_data = np.empty()
         self.xs_dim = 1e-24  # barns to cm2
         self.mat_name = material.mat_type
-        if self.mat_name == "H":
-            self.pe_data = np.genfromtxt("data/photon_absorption/photon_abs_H.txt", skip_header=3)
-        elif self.mat_name == "Be":
-            self.pe_data = np.genfromtxt("data/photon_absorption/photon_abs_Be.txt", skip_header=3)
-        elif self.mat_name == "C":
-            self.pe_data = np.genfromtxt("data/photon_absorption/photon_abs_C.txt", skip_header=3)
-        elif self.mat_name == "Si":
-            self.pe_data = np.genfromtxt("data/photon_absorption/photon_abs_Si.txt", skip_header=3)
-        elif self.mat_name == "Ge":
-            self.pe_data = np.genfromtxt("data/photon_absorption/photon_abs_Ge.txt", skip_header=3)
-        elif self.mat_name == "Ar":
-            self.pe_data = np.genfromtxt("data/photon_absorption/photon_abs_Ar.txt", skip_header=3)
-        elif self.mat_name == "W":
-            self.pe_data = np.genfromtxt("data/photon_absorption/photon_abs_W.txt", skip_header=3)
-        elif self.mat_name == "Xe":
-            self.pe_data = np.genfromtxt("data/photon_absorption/photon_abs_Xe.txt", skip_header=3)
-        elif self.mat_name == "NaI":
+        self.path_prefix = "data/photon_absorption/photon_abs_"
+        self.file_extension = ".txt"
+        fpath = pkg_resources.resource_filename(__name__, self.path_prefix + self.mat_name + self.file_extension)
+        self.pe_data = np.genfromtxt(fpath, skip_header=3)
+
+        if self.mat_name == "NaI":
             self.xs_dim = 149.89 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
             self.pe_data = np.genfromtxt("data/photon_absorption/photon_abs_NaI.txt", skip_header=3)
         elif self.mat_name == "CsI":
             self.xs_dim = 259.81 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
             self.pe_data = np.genfromtxt("data/photon_absorption/photon_abs_CsI.txt", skip_header=3)
-        else:
-            print("Material unknown or not in library.")
         
         self.cleanPEData()
     
@@ -51,7 +41,58 @@ class AbsCrossSection:
         return 10**np.interp(log10(E), log10(self.pe_data[:,0]), log10(self.xs_dim * self.pe_data[:,1]))
     
     def sigma_mev(self, E):
-        return 10**np.interp(log10(E), log10(self.pe_data[:,0]), log10(MEV2_CM2 * self.xs_dim * self.pe_data[:,1]))
+        return 10**np.interp(log10(E), log10(self.pe_data[:,0]), log10(self.xs_dim * self.pe_data[:,1] / MEV2_CM2))
     
     def mu(self, E, n):  # atomic number density in cm^-3
         return self.sigma(E) * n
+
+
+
+class PairProdutionCrossSection:
+    def __init__(self, material: Material):
+        self.xs_dim = 1e-24  # barns to cm2
+        self.mat_name = material.mat_type
+        self.path_prefix = "data/photon_pair_production/pair_production_xs_"
+        self.file_extension = ".txt"
+        fpath = pkg_resources.resource_filename(__name__, self.path_prefix + self.mat_name + self.file_extension)
+        self.xs_data = np.genfromtxt(fpath, skip_header=3)
+        
+        self.cleanPEData()
+    
+    def cleanPEData(self):
+        self.xs_data = self.xs_data[np.unique(self.xs_data[:, 0], return_index=True)[1]]
+
+    def sigma_cm2(self, E):
+        return heaviside(E-2*M_E,0.0) * 10**np.interp(log10(E), log10(self.xs_data[:,0]), log10(self.xs_dim * self.xs_data[:,1]))
+    
+    def sigma_mev(self, E):
+        return heaviside(E-2*M_E,0.0) * 10**np.interp(log10(E), log10(self.xs_data[:,0]), log10(self.xs_dim * self.xs_data[:,1] / MEV2_CM2))
+    
+    def mu(self, E, n):  # atomic number density in cm^-3
+        return self.sigma_cm2(E) * n
+
+
+
+
+class ComptonCrossSection:
+    def __init__(self, material: Material):
+        self.xs_dim = 1e-24  # barns to cm2
+        self.mat_name = material.mat_type
+        self.path_prefix = "data/photon_compton/compton_xs_"
+        self.file_extension = ".txt"
+        fpath = pkg_resources.resource_filename(__name__, self.path_prefix + self.mat_name + self.file_extension)
+        self.xs_data = np.genfromtxt(fpath, skip_header=3)
+        
+        self.cleanPEData()
+    
+    def cleanPEData(self):
+        self.xs_data = self.xs_data[np.unique(self.xs_data[:, 0], return_index=True)[1]]
+
+    def sigma_cm2(self, E):
+        return 10**np.interp(log10(E), log10(self.xs_data[:,0]), log10(self.xs_dim * self.xs_data[:,1]))
+    
+    def sigma_mev(self, E):
+        return 10**np.interp(log10(E), log10(self.xs_data[:,0]), log10(self.xs_dim * self.xs_data[:,1] / MEV2_CM2))
+    
+    def mu(self, E, n):  # atomic number density in cm^-3
+        return self.sigma_cm2(E) * n
