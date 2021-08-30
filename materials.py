@@ -26,7 +26,7 @@ class Material:
         mat_file = json.load(f)
         f.close()
         if material_name in mat_file:
-            mat_info = mat_file[material_name.lower()]
+            mat_info = mat_file[material_name]
             self.iso = mat_info['iso']
             self.z = np.array(mat_info['z'])
             self.n = np.array(mat_info['n'])
