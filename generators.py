@@ -526,8 +526,6 @@ class IsotropicAxionFromCompton:
         self.axion_scatter_cross = []
         self.epem_angle = []
         self.emgamma_angle = []
-        self.simulate()
-
 
     def simulate_single(self, eg, rate):
         s = 2 * M_E * eg + M_E ** 2
@@ -542,7 +540,7 @@ class IsotropicAxionFromCompton:
         de = (axion_energies[-1] - axion_energies[0]) / (ne - 1)
         axion_energies = (axion_energies[1:] + axion_energies[:-1]) / 2
         dde = compton_dsigma_dea(axion_energies, eg, self.axion_coupling, self.axion_mass) * de
-        cross_scatter = icompton_sigma(axion_energies, self.axion_coupling)
+        cross_scatter = icompton_sigma_old(axion_energies, self.axion_coupling)
 
         # Both photons and axions decrease with decay_prob, since we assume e+e- does not make it to the detector.
         for i in range(ne - 1):
@@ -588,7 +586,7 @@ class IsotropicAxionFromCompton:
                              * np.power(1 - 4 * (M_E / self.axion_mass) ** 2, 1 / 2)) \
               if 1 - 4 * (M_E / self.axion_mass) ** 2 > 0 else np.inf  # lifetime for a -> gamma gamma
         tau *= axion_boost
-        return mp.exp(-self.detector_distance / METER_BY_MEV / axion_v / tau)
+        return np.exp(-self.detector_distance / METER_BY_MEV / axion_v / tau)
 
     def simulate(self, nsamplings=1000):
         self.photon_energy = []
@@ -600,6 +598,7 @@ class IsotropicAxionFromCompton:
         self.scatter_weight = []
         self.epem_angle = []
         self.emgamma_angle = []
+        self.axion_scatter_cross = []
         for f in self.photon_rates:
           self.simulate_single(f[0], f[1])
 
@@ -653,7 +652,7 @@ class IsotropicAxionFromCompton:
                 res += self.scatter_weight[i] # approx scatter_xs = prod_xs
             else:
                 self.scatter_weight[i] = 0.0
-        return res 
+        return res
 
     def scatter_events_binned(self, detector_number, detector_z, detection_time, threshold):
         res = np.zeros(len(self.scatter_weight))
@@ -680,8 +679,8 @@ class BremAxionFromLepton:
                  detector_distance=4., detector_length=0.2, detector_area=0.04, det_z=18,
                  axion_mass=0.1, axion_coupling=1e-3, nsamples=10000):
         self.electron_flux = electron_flux  # per second
-        self.axion_mass = axion_mass  # MeV
-        self.axion_coupling = axion_coupling  # MeV^-1
+        self.ma = axion_mass  # MeV
+        self.ge = axion_coupling  # MeV^-1
         self.target_z = target_z
         self.sm_electron_xs = sm_electron_xs  # cm^2
         self.det_dist = detector_distance  # meter
@@ -694,62 +693,37 @@ class BremAxionFromLepton:
         self.axion_flux = []
         self.decay_axion_weight = []
         self.scatter_axion_weight = []
-        self.gamma_sep_angle = []
         self.nsamples = nsamples
-        self.theta_edges = np.logspace(-8, np.log10(pi), nsamples + 1)
-        self.thetas = exp(np.random.uniform(-12, np.log(pi), nsamples))
-        self.theta_widths = self.theta_edges[1:] - self.theta_edges[:-1]
-        self.phis = np.random.uniform(-pi,pi, nsamples)
-        self.support = np.ones(nsamples)
-        self.hist, self.binx, self.biny = np.histogram2d([0], [0], weights=[0],
-                                                         bins=[np.logspace(-1,5,65),np.logspace(-8,np.log10(pi),65)])
     
     def det_sa(self):
         return np.arctan(sqrt(self.det_area / pi) / self.det_dist)
-
-    def branching_ratio(self, energy):
-        cross_prim = primakoff_production_xs(energy, self.target_z, 2*self.target_z,
-                                             self.axion_mass, self.axion_coupling)
-        return cross_prim / (cross_prim + (self.sm_electron_xs / (100 * METER_BY_MEV) ** 2))
-    
-    def get_beaming_angle(self, v):
-        return np.arcsin(sqrt(1-v**2))
-    
-    def theta_z(self, theta, cosphi, theta_gamma):
-        return abs(arccos(sin(theta_gamma)*cosphi*sin(theta) + cos(theta_gamma)*cos(theta)))
-    
     
     # Simulate the 2D differential angular-energy axion flux.
-    def simulate_kinematics_single(self, photon):
-        if photon[0] < self.axion_mass:
-            return np.histogram2d([0], [0], weights=[0],
-                                  bins=[np.logspace(-1,5,65), np.logspace(-5,np.log10(pi),65)])[0]
-        rate = photon[2]
-        e_gamma = photon[0]
-        theta_gamma = photon[1]
-        
-        # Get axion Lorentz transformations and kinematics
-        p_a = sqrt(e_gamma**2 - self.axion_mass**2)
-        v_a = p_a / e_gamma
-        axion_boost = e_gamma / self.axion_mass
-        tau = 64 * pi / (self.axion_coupling ** 2 * self.axion_mass ** 3) * axion_boost
+    def simulate_single(self, electron):
 
-        # Get decay and survival probabilities
-        surv_prob = np.exp(-self.det_dist / METER_BY_MEV / v_a / tau)
-        decay_prob = 1.0000000000-np.exp(-self.det_length / METER_BY_MEV / v_a / tau)
-        decay_weight = surv_prob * decay_prob
-        br = 1/(self.sm_electron_xs / (100 * METER_BY_MEV) ** 2)
-        
-        weight = rate * br * decay_weight * self.axion_coupling**2
-        
-        def integrand(theta, phi):
-            return primakoff_dsigma_dtheta(theta, e_gamma, self.target_z, self.axion_mass)
-        
-        thetas_z = arccos(cos(self.thetas)*cos(theta_gamma) + cos(self.phis)*sin(self.thetas)*sin(theta_gamma))
-        
-        convolution = np.vectorize(integrand)
-        return np.histogram2d(e_gamma*self.support, thetas_z, weights=weight*2*pi*convolution(self.thetas, self.phis)*self.theta_widths,
-                              bins=[np.logspace(-1,5,65), np.logspace(-8,np.log10(pi),65)])[0]
+        ne = 100
+        alp_e = np.linspace(self.ma, eg, ne)
+        de = (alp_e[-1] - alp_e[0]) / (ne - 1)
+        alp_e = (alp_e[1:] + alp_e[:-1]) / 2
+        dde = brem_dsigma_dea(alp_e, electron[0], self.ge, self.ma, self.target_z) * de
+        cross_scatter = icompton_sigma(alp_e, self.ge)
+
+        # Both photons and axions decrease with decay_prob, since we assume e+e- does not make it to the detector.
+        for i in range(ne - 1):
+            axion_prob = dde[i] * self.target_z / (dde[i] + (self.target_photon_cross / (100 * METER_BY_MEV) ** 2))
+            surv_prob = self.AxionSurvProb(axion_energies[i])
+            decay_prob = self.AxionDecayProb(axion_energies[i])
+            axion_v = sqrt(axion_energies[i] ** 2 - self.axion_mass ** 2) / axion_energies[i]
+
+            if np.isnan(axion_prob):
+                print("dde = ", dde[i])
+                print(axion_energies[i])
+            
+            self.axion_energy.append(axion_energies[i])
+            self.scatter_weight.append(surv_prob * rate * axion_prob / (4 * pi * self.detector_distance ** 2))
+            self.decay_weight.append(decay_prob * rate * axion_prob / (4 * pi * self.detector_distance ** 2))
+            self.axion_scatter_cross.append(cross_scatter[i])
+            self.epem_angle.append(arcsin(sqrt(1-axion_v**2)))
         
 
     # Simulate the angular-integrated energy flux.
@@ -871,4 +845,13 @@ class BremAxionFromLepton:
             else:
                 self.scatter_axion_weight[i] = 0.0
         return res
+
+
+
+
+class ResonantAxionFromPositron:
+    def __init__(self, electron_flux=[1.,1.,0.], target_z=90, sm_electron_xs=15e-24,
+                 detector_distance=4., detector_length=0.2, detector_area=0.04, det_z=18,
+                 axion_mass=0.1, axion_coupling=1e-3, nsamples=10000):
+        pass
 
