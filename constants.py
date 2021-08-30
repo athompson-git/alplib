@@ -43,6 +43,7 @@ MEV_PER_KG = 5.6095887e29  # MeV/kg
 MEV_PER_HZ = 6.58e-22  # 1 s^-1 = 6.58e-22 MeV
 CM_PER_ANG = 1e-8  # cm to angstroms
 KEV_CM = HBARC / keV / ang
+MEV2_CM2 = (METER_BY_MEV * 100)**2
 S_PER_DAY = 3600*24
 
 # SM parameters

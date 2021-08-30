@@ -1,35 +1,53 @@
 {
-    "ge":
+  "C":
     {
-      "iso": 5,
-      "z": [32],
-      "n": [41],
+      "iso": 1,
+      "z": [6],
+      "n": [6],
       "frac": [1.0],
-      "lattice_const": [5.66],
-      "cell_volume": 181,
-      "atomic_radius": [0.53],
-      "m": [67.92e3],
+      "lattice_const": 2.46,
+      "cell_volume": 181.0,
+      "atomic_radius": [0.17],
+      "m": [11.27e3],
+      "density": 2.26,
       "er_min": 100e-6,
       "er_max": 10e-3,
       "bg": 1,
       "bg_un": 0.1
     },
-    "si":
+  "Ge":
+    {
+      "iso": 1,
+      "z": [32],
+      "n": [41],
+      "frac": [1.0],
+      "lattice_const": 5.657,
+      "cell_volume": 181.0,
+      "atomic_radius": [0.53],
+      "m": [67.92e3],
+      "density": 5.323,
+      "er_min": 100e-6,
+      "er_max": 10e-3,
+      "bg": 1,
+      "bg_un": 0.1
+    },
+  "Si":
     {
       "iso": 3,
       "z": [14, 14, 14],
       "n": [14, 15, 16],
       "frac": [0.9223, 0.0467, 0.031],
-      "lattice_const": [],
-      "cell_volume": [],
-      "atomic_radius": [],
+      "lattice_const": 5.429,
+      "cell_volume": 160.0,
+      "atomic_radius": [0.21],
       "m": [26.06e3, 26.99e3, 27.92e3],
+      "density": 2.329,
       "er_min": 100e-6,
       "er_max": 20e-6,
       "bg": 1,
       "bg_un": 0.1
     },
-    "ar":
+  "Ar":
     {
       "iso": 1,
       "z": [18],
@@ -37,96 +55,86 @@
       "m": [37.211e3],
       "frac": [1],
       "lattice_const": [],
-      "cell_volume": [],
+      "cell_volume": 10.0,
       "atomic_radius": [],
+      "density": 1.3982,
       "er_min": 1e-4,
       "er_max": 1e-1,
       "bg": 5e-3,
       "bg_un": 0.05
     },
-    "csi":
+  "CsI":
     {
       "iso": 2,
       "z": [55, 53],
       "n": [78, 74],
       "frac": [0.5, 0.5],
-      "lattice_const": [],
-      "cell_volume": [],
-      "atomic_radius": [],
+      "lattice_const": 4.503,
+      "cell_volume": 22.82,
+      "atomic_radius": [2.0, 2.0],
       "m": [123.8e3, 118.21e3],
+      "density": 4.51,
       "er_min": 4.25e-3,
       "er_max":26e-3,
       "bg": 5e-3,
       "bg_un": 0.05
     },
-    "nai":
+  "NaI":
     {
       "iso": 2,
       "z": [11, 53],
       "n": [12, 74],
       "frac": [0.5, 0.5],
-      "lattice_const": [6.47],
+      "lattice_const": 6.462,
       "cell_volume": 67.71,
       "atomic_radius": [1.0, 2.0],
       "m": [21.42e3, 118.21e3],
+      "density": 3.67,
       "er_min": 2e-3,
       "er_max": 4e-2,
       "bg": 5e-3,
       "bg_un": 0.05
     },
-    "xe":
+  "Xe":
     {
       "iso": 1,
       "z": [54],
       "n": [78],
       "m": [122.3e3],
       "frac": [1.0],
-      "lattice_const": [],
-      "cell_volume": [],
+      "lattice_const": 2.45,
+      "cell_volume": 10.0,
       "atomic_radius": [],
+      "density": 3.0,
       "er_min": 1e-3,
       "er_max": 100e-3,
       "bg": 0,
       "bg_un": 0.05
     },
-    "future-xe":
+  "W":
     {
       "iso": 1,
-      "z": [54],
-      "n": [78],
-      "m": [122.3e3],
+      "z": [74],
+      "n": [108],
+      "m": [170.9e3],
       "frac": [1.0],
-      "lattice_const": [],
-      "cell_volume": [],
-      "atomic_radius": [],
-      "er_min": 4.5e-3,
-      "er_max": 16.0,
+      "lattice_const": 3.1648,
+      "cell_volume": 31.7,
+      "atomic_radius": [2.1],
+      "density": 19.3,
+      "er_min": 1e-3,
+      "er_max": 100e-3,
       "bg": 0,
       "bg_un": 0.05
     },
-    "dune":
-    {
-      "iso": 1,
-      "z": [18],
-      "n": [22],
-      "m": [37.211e3],
-      "frac": [1],
-      "lattice_const": [],
-      "cell_volume": [],
-      "atomic_radius": [],
-      "er_min": 20,
-      "er_max": 10000,
-      "bg": 0,
-      "bg_un": 0.05
-    },
-    "hyper-k":
+  "H2O":
     {
       "iso": 2,
       "z": [1, 8],
       "n": [0, 8],
       "frac": [0.666667, 0.333333],
       "lattice_const": [],
-      "cell_volume": [],
+      "cell_volume": 10.0,
       "atomic_radius": [],
       "m": [0.9389e3, 15.015e3],
       "er_min": 0.8,
@@ -134,14 +142,14 @@
       "bg": 0,
       "bg_un": 0.05
     },
-    "jsns_scintillator":
+  "Gd-scintillator":
     {
       "iso": 2,
       "z": [6, 1],
       "n": [6, 0],
       "frac": [0.38, 0.62],
       "lattice_const": [],
-      "cell_volume": [],
+      "cell_volume": 10.0,
       "atomic_radius": [],
       "m": [12e3, 0.9389e3],
       "er_min": 0.3,
@@ -149,14 +157,14 @@
       "bg": 0,
       "bg_un": 0.0
     },
-    "MiniBooNE":
+  "CH2":
     {
       "iso": 2,
       "z": [6, 1],
       "n": [6, 0],
       "frac": [0.34, 0.66],
       "lattice_const": [],
-      "cell_volume": [],
+      "cell_volume": 10.0,
       "atomic_radius": [],
       "m": [12e3, 0.9389e3],
       "er_min": 0.3,

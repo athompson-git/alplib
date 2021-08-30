@@ -4,17 +4,20 @@
 
 from .constants import *
 from .fmath import *
+from .materials import *
 from .decay import *
 from .prod_xs import *
 from .det_xs import *
+from .photon_xs import *
 
 
 class AxionFlux:
     # Generic superclass for constructing fluxes
-    def __init__(self, axion_mass, target_z, det_z, det_dist, det_length, det_area, nsamples=1000):
+    def __init__(self, axion_mass, target: Material, detector: Material,
+                    det_dist, det_length, det_area, nsamples=1000):
         self.ma = axion_mass
-        self.target_z = target_z
-        self.det_z = det_z
+        self.target_z = target.z[0]  # TODO: take z array for compound mats
+        self.det_z = detector.z[0]
         self.det_dist = det_dist  # meters
         self.det_length = det_length  # meters
         self.det_area = det_area  # square meters
@@ -36,7 +39,7 @@ class AxionFlux:
         p_a = sqrt(e_a**2 - self.ma**2)
         v_a = p_a / e_a
         boost = e_a / self.ma
-        tau =  boost / decay_width
+        tau = boost if decay_width > 0.0 else np.inf * np.ones_like(boost)
 
         # Get decay and survival probabilities
         surv_prob = np.array([mp.exp(-self.det_dist / METER_BY_MEV / v_a[i] / tau[i]) \
@@ -68,8 +71,9 @@ class FluxPrimakoff(AxionFlux):
 
 class FluxPrimakoffIsotropic(AxionFlux):
     # Generator for ALP flux from 2D photon spectrum (E_\gamma, \theta_\gamma)
-    def __init__(self, axion_mass, target_z, det_z, det_dist, det_length, det_area, nsamples=1000):
-        super().__init__(axion_mass, target_z, det_z, det_dist, det_length, det_area, nsamples)
+    def __init__(self, axion_mass, target: Material, detector: Material,
+                    det_dist, det_length, det_area, nsamples=1000):
+        super().__init__(axion_mass, target, detector, det_dist, det_length, det_area, nsamples)
     
     def decay_width(self):
         pass
@@ -85,8 +89,9 @@ class FluxPrimakoffIsotropic(AxionFlux):
 
 class FluxCompton(AxionFlux):
     # Generator for ALP flux from 2D photon spectrum (E_\gamma, \theta_\gamma)
-    def __init__(self, axion_mass, target_z, det_z, det_dist, det_length, det_area, nsamples=1000):
-        super().__init__(axion_mass, target_z, det_z, det_dist, det_length, det_area, nsamples)
+    def __init__(self, axion_mass, target: Material, detector: Material,
+                    det_dist, det_length, det_area, nsamples=1000):
+        super().__init__(axion_mass, target, detector, det_dist, det_length, det_area, nsamples)
     
     def decay_width(self):
         pass
@@ -105,14 +110,13 @@ class FluxComptonIsotropic(AxionFlux):
     Generator for axion-bremsstrahlung flux
     Takes in a flux of el
     """
-    def __init__(self, photon_flux=[1,1], target_z=90, target_photon_xs=15e-24,
-                 det_dist=4., det_length=0.2, det_area=0.04, det_z=18,
-                 axion_mass=0.1, axion_coupling=1e-3, nsamples=100):
-        super().__init__(axion_mass, target_z, det_z, det_dist, det_length, det_area)
+    def __init__(self, photon_flux=[1,1], target=Material("W"), detector=Material("Ar"), det_dist=4.,
+                    det_length=0.2, det_area=0.04, axion_mass=0.1, axion_coupling=1e-3, nsamples=100):
+        super().__init__(axion_mass, target, detector, det_dist, det_length, det_area)
         self.photon_flux = photon_flux
         self.ge = axion_coupling
-        self.target_photon_xs = (target_photon_xs / power(100*METER_BY_MEV, 2))
         self.nsamples = nsamples
+        self.target_photon_xs = AbsCrossSection(target)
     
     def decay_width(self, ge, ma):
         return W_ee(self.ge, self.ma)
@@ -126,8 +130,8 @@ class FluxComptonIsotropic(AxionFlux):
             return
 
         ea_rnd = np.random.uniform(self.ma, gamma_energy, self.nsamples)
-        mc_vol = (gamma_energy - self.ma)/self.nsamples
-        diff_br = mc_vol * compton_dsigma_dea(ea_rnd, gamma_energy, self.ge, self.ma, self.target_z) / self.target_photon_xs
+        mc_xs = (gamma_energy - self.ma) * compton_dsigma_dea(ea_rnd, gamma_energy, self.ge, self.ma, self.target_z) / self.nsamples
+        diff_br = mc_xs / self.target_photon_xs.sigma_mev(gamma_energy)
 
         for i in range(self.nsamples):
             self.axion_energy.append(ea_rnd[i])
@@ -294,11 +298,14 @@ class ElectronEventGenerator:
     """
     Takes in an AxionFlux at the detector (N/s) and gives scattering / decay rates (# events)
     """
-    def __init__(self, flux: AxionFlux):
+    def __init__(self, flux: AxionFlux, detector: Material):
         self.flux = flux
+        self.det_z = detector.z[0]
         self.axion_energy = np.array(flux.axion_energy)
         self.decay_weights = flux.decay_axion_weight
         self.scatter_weights = flux.scatter_axion_weight
+        self.efficiency = None  # TODO: add efficiency info
+        self.energy_threshold = None  # TODO: add threshold as member var
 
     def pair_production(self):
         # TODO: add pair production cross section
