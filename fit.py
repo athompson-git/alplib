@@ -76,8 +76,10 @@ def binary_search(test_function, stop_value, lower_edge, upper_edge, tolerance=0
     x_lower = lower_edge
     x = x_lower
     test = test_function(x)
-    while abs(test-stop_value)/stop_value > tolerance:
+    while abs(x_upper - x_lower) > tolerance*abs(upper_edge - lower_edge):
         test = test_function(x)
+        if verbose:
+            print("trying x, test_func = ", x, test)
         if test < stop_value:
             if is_increasing:
                 x_lower = x
@@ -97,9 +99,6 @@ def binary_search(test_function, stop_value, lower_edge, upper_edge, tolerance=0
             if verbose:
                 print("Ran into edge of search window, exiting")
             return x
-        
-        if verbose:
-            print("changing param to ", x)
     return x
 
 
@@ -243,6 +242,7 @@ class ChiSquareRandomizedSearch:
         self.cl = target_cl
         self.max_points = max_points
         self.target_chi2 = chi2.ppf(target_cl, observations.shape[0] - 1 - ddof) if background is not None else 2.3
+        print("using target chi2 = ", self.target_chi2)
 
         # Chi2 map
         self.chisq_list = []
@@ -311,11 +311,17 @@ class ChiSquareRandomizedSearch:
         lower_edge = self.range[0]
         # We need at least 3 points: one point in the middle of the chisquare dist.
         # between the two CL levels, and two points outside
+        trial_counter = 0
         while len(middle_ctrl_pts) < 1:
+            trial_counter += 1
+            if trial_counter > self.max_points:
+                return (upper_edge + lower_edge)/2, (upper_edge + lower_edge)/2
             if (upper_edge - lower_edge)/(self.range[1] - self.range[0]) < self.tol:
-                return lower_edge, upper_edge
+                print("Search window too narrow before finding target CL; exiting")
+                return (upper_edge + lower_edge)/2, (upper_edge + lower_edge)/2
             if verbose:
                 print("Checking in range ", lower_edge, upper_edge)
+
             theta_rnd = np.random.uniform(lower_edge, upper_edge)
             stat = self.test_stat(theta_rnd)
 
@@ -367,18 +373,9 @@ class ChiSquareRandomizedSearch:
                                             tolerance=self.tol, is_increasing=False, verbose=verbose)
             self.param_list.append(self.upper_cl)
             self.chisq_list.append(self.test_stat(self.upper_cl))
+        print("found upper CL and lower CL at chi2 = ", self.chisq_list[-1], self.chisq_list[-2])
         return self.lower_cl, self.upper_cl
     
     def get_sorted_chisq_dist(self):
         chisq_param_pairs = np.array([self.param_list, self.chisq_list]).transpose()
         return chisq_param_pairs[chisq_param_pairs[:,0].argsort()]
-
-        
-
-
-
-
-
-    
-    
-

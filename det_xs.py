@@ -3,6 +3,7 @@
 # All energies in MeV
 from .constants import *
 from .fmath import *
+from .photon_xs import PairProdutionCrossSection
 
 import multiprocessing as multi
 from matplotlib.pyplot import hist2d

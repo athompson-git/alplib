@@ -190,6 +190,7 @@ class FluxBremIsotropic(AxionFlux):
         return W_ee(self.ge, self.ma)
     
     def electron_flux_dN_dE(self, energy):
+        # TODO: remove ad hoc factor of 2 and use actual electron/positron flux
         return 2*np.interp(energy, self.electron_flux[:,0], self.electron_flux[:,1], left=0.0, right=0.0)
     
     def electron_flux_attenuated(self, t, E0, E1):
@@ -332,12 +333,6 @@ class ElectronEventGenerator:
         res = 0
         self.decay_weights = days_exposure * S_PER_DAY * self.flux.decay_axion_weight * heaviside(self.axion_energy - threshold, 0.0)
         res = np.sum(self.decay_weights)
-        #for i in range(len(self.axion_energy)):
-        #    if self.axion_energy[i] >= threshold:
-        #        self.decay_weights[i] += days_exposure * S_PER_DAY
-        #        res += self.flux.decay_axion_weight[i]
-        #    else:
-        #        self.decay_weights[i] = 0.0
         return res
 
 
