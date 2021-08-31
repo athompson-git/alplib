@@ -1,6 +1,6 @@
 # Classes and constants for axion production and detection from 3-body decay of charged mesons
 
-from alplib.src.decay import p_decay_lifetime
+from alplib.decay import p_decay_lifetime
 from .constants import *
 from .fmath import *
 from .prod_xs import *
