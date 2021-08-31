@@ -318,7 +318,6 @@ class ElectronEventGenerator:
             * (2 * ge**2 / ALPHA)*self.pair_xs.sigma_mev(sqrt(self.axion_energy**2 - ma**2)) \
                 * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.axion_energy - threshold, 0.0)
         res = np.sum(self.pair_weights)
-        print(res, " <- pair")
         return res
 
     def compton(self, ge, ma, ntargets, days_exposure, threshold):
@@ -326,7 +325,6 @@ class ElectronEventGenerator:
             * icompton_sigma(self.axion_energy, ma, ge, self.det_z) \
                 * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.axion_energy - threshold, 0.0)
         res = np.sum(self.scatter_weights)
-        print(res, "<- compton")
         return res
     
     def decays(self, days_exposure, threshold):
