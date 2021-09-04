@@ -51,7 +51,7 @@ def primakoff_sigma(energy, z, a, ma, g):
 
 #### Electron coupling ####
 
-def compton_sigma_v2(eg, g, ma, z=1):
+def compton_sigma(eg, g, ma, z=1):
     # Compton scattering total cross section (γ + e- > a + e-)
     # Taken from 0807.2926. Validated.
     s = 2*eg*M_E + M_E**2

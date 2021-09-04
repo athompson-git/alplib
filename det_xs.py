@@ -74,6 +74,7 @@ def axioelectric_xs(pe_xs, energy, z, a, g, ma):
 
 
 def icompton_sigma_old(ea, g, z=1):
+    # TODO: deprecate
     # Total cross section (a + e- -> \gamma + e-)
     a = 1 / 137
     aa = g ** 2 / 4 / pi
@@ -85,6 +86,7 @@ def icompton_sigma_old(ea, g, z=1):
 
 
 def icompton_sigma(ea, ma, g, z=1):
+    # Inverse Compton total cross section (a + e- -> \gamma + e-)
     # Borexino 2008, eq. 14
     y = 2 * M_E * ea + ma**2
     pa = sqrt((ea**2 - ma**2)*heaviside(ea - ma, 0.0))
@@ -99,7 +101,7 @@ def icompton_sigma(ea, ma, g, z=1):
 
 
 def icompton_dsigma_det(ea, et, g, ma):
-    # Differential cross section by electron recoil (a + e- -> \gamma + e-)
+    # Inverse Compton differential cross section by electron recoil (a + e- -> \gamma + e-)
     # dSigma / dEt   electron kinetic energy
     # ea: axion energy
     # et: transferred electron energy = E_e - m_e.
@@ -114,7 +116,8 @@ def icompton_dsigma_det(ea, et, g, ma):
 
 
 def icompton_dsigma_domega(theta, Ea, ma, ge):
-    # Compton cross section dSigmadOmega
+    # Compton differential cross section by solid angle (a + e- -> \gamma + e-)
+    # dSigma / dOmega
     y = 2*M_E*Ea + ma**2
     pa = sqrt(Ea**2 - ma**2)
     e_gamma = 0.5*y/(M_E + Ea - pa*cos(theta))
@@ -128,6 +131,7 @@ def icompton_dsigma_domega(theta, Ea, ma, ge):
 # Define form factors
 
 def _nuclear_ff(t, m, z, a):
+    # Parameterization of the coherent nuclear form factor (Tsai, 1986)
     # t: MeV
     # m: nucleus mass
     # z: atomic number
@@ -136,7 +140,10 @@ def _nuclear_ff(t, m, z, a):
 
 
 
-def _atomic_elastic_ff(t, m, z):
+
+def _atomic_elastic_ff(t, z):
+    # Coherent atomic form factor parameterization (Tsai, 1986)
+    # Fit based on Thomas-Fermi model
     # t: MeV
     # m: nucleus mass
     # z: atomic number
@@ -145,12 +152,10 @@ def _atomic_elastic_ff(t, m, z):
 
 
 
-def _atomic_elastic_ff(t, m, z):
-    # t: MeV
-    # m: nucleus mass
-    # z: atomic number
-    b = 1194*np.power(2.718, -1/2)*np.power(z, -2/3) / M_E
-    return (z*t*b**2)**2 / (1 + t*b**2)**2
+
+def _helm_ff(t, z):
+    pass
+
 
 
 
