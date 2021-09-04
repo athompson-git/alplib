@@ -51,25 +51,20 @@ def primakoff_sigma(energy, z, a, ma, g):
 
 #### Electron coupling ####
 
-def compton_sigma(eg, g, ma, z=1):
-    a = 1 / 137
-    aa = g ** 2 / 4 / pi
-    s = 2 * M_E * eg + M_E ** 2
-    xmin = ((s - M_E**2)*(s - M_E**2 + ma**2) 
-            - (s - M_E**2)*sqrt((s - M_E**2 + ma**2)**2 - 4*s*ma**2))/(2*s*(s-M_E**2))
-    xmax = ((s - M_E**2)*(s - M_E**2 + ma**2) 
-            + (s - M_E**2)*sqrt((s - M_E**2 + ma**2)**2 - 4*s*ma**2))/(2*s*(s-M_E**2))
-    def compton_dsigma_dx(x):
-        thresh = heaviside(s - (M_E + ma)**2, 0.0)*heaviside(x-xmin,0.0)*heaviside(xmax-x,0.0)
-        return z * thresh * pi * a * aa / (s - M_E ** 2) \
-            * (x / (1 - x) * (-2 * ma ** 2 / (s - M_E ** 2) ** 2
-                                * (s - M_E ** 2 / (1 - x) - ma ** 2 / x) + x))
+def compton_sigma_v2(eg, g, ma, z=1):
+    # Compton scattering total cross section (γ + e- > a + e-)
+    # Taken from 0807.2926. Validated.
+    s = 2*eg*M_E + M_E**2
+    p0 = 0.5*(2*eg*M_E + ma**2)/sqrt(s)
+    k0 = (eg*M_E + M_E**2)/sqrt(s)
+    p = sqrt(p0**2 - ma**2)
+    k = sqrt(s) - k0
     
-    return quad(compton_dsigma_dx, xmin, xmax)[0]
+    prefactor = (z*ALPHA*g**2 / (8*s)) * (p/k)
+    return prefactor * (-3 + (M_E**2 - ma**2)/s + s*power(ma / (2*eg*M_E),2) \
+                        + (1 - (ma**2 / (eg*M_E)) + (ma**2 * (ma**2 - 2*M_E**2)/(2*power(eg*M_E,2)))) \
+                            * (sqrt(s)/p)*log((2*p0*k0 + 2*p*k - ma**2)/(2*p0*k0 - 2*p*k - ma**2)))
 
-
-def compton_nsigma(eg, g, ma, z=1):
-    return quad(compton_dsigma_dea, ma, eg, args=(eg, g, ma, z,))[0]
 
 
 
