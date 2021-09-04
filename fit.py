@@ -3,7 +3,7 @@ Classes and functions for performing fits an calculating limit contours
 """
 
 from .fmath import *
-from scipy.stats import chi2
+from scipy.stats import chi2, norm
 from scipy.signal import savgol_filter
 
 
@@ -379,3 +379,45 @@ class ChiSquareRandomizedSearch:
     def get_sorted_chisq_dist(self):
         chisq_param_pairs = np.array([self.param_list, self.chisq_list]).transpose()
         return chisq_param_pairs[chisq_param_pairs[:,0].argsort()]
+
+
+
+
+class PseudoExperiment:
+    """
+    Class for running pseudoexperiments given a set of observations 'obs', assuming
+    that the errors on the observations are sqrt(obs) and are normally distributed.
+    """
+    def __init__(self, expectations, ddof=1, data_name="pe_output.dat"):
+        self.exp_values = np.array(expectations)
+        self.ddof = ddof
+        self.dat_loc = data_name
+        self.chi2_values = []
+
+    def draw_variates(self):
+        # Given the array of expectation values and errors, draw normally dist. variates
+        n_bins = len(self.exp_values)
+        u = np.random.uniform(0,1,n_bins)
+        obs = norm.ppf(u, loc=self.exp_values, scale=np.sqrt(self.exp_values))
+        return np.round(obs, 2)
+
+    def run(self, n_experiments=10000):
+        # draw_variates n_samples times
+        outfile = open(self.dat_loc, "w")
+        for i in range(n_experiments):
+            obs_i = self.draw_variates()
+            data_str = ' '.join([str(obs) for obs in obs_i]) + "\n"
+            outfile.write(data_str)
+
+        outfile.close()
+
+    def get_chi2_dist(self):
+        # Get the chi2 distribution for the generated samples
+        self.chi2_values = []
+        readfile = np.genfromtxt(self.dat_loc)
+        n_dof = len(self.exp_values) - self.ddof
+        for i in range(readfile.shape[0]):
+            obs_i = readfile[i,:]
+            self.chi2_values.append(chisquare(obs_i, self.exp_values, n_dof)[0])
+        return np.array(self.chi2_values)
+
