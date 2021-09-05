@@ -45,3 +45,18 @@ class Material:
             self.ntargets = density * volume / (np.sum(self.m) / MEV_PER_KG / 1e-3)
         else:
             raise Exception("No such detector in mat_params.json.")
+
+
+
+
+class Efficiency:
+    """
+    TODO: efficiency super class
+    should be able to pass in a function or an array of points to interpolate between
+    __call__ returns an efficiency function
+    """
+    def __init__(self):
+        pass
+
+    def __call__(self):
+        pass
