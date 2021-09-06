@@ -264,7 +264,7 @@ class FluxBremIsotropic(AxionFlux):
 class FluxResonanceIsotropic(AxionFlux):
     """
     Generator for e+ e- resonant ALP production flux
-    Takes in a flux of el
+    Takes in a flux of positrons
     """
     def __init__(self, positron_flux=[1.,0.], target=Material("W"), detector=Material("Ar"), target_density=19.3, target_length=10.0,
                  target_radiation_length=6.76, det_dist=4., det_length=0.2, det_area=0.04,
@@ -324,6 +324,50 @@ class FluxResonanceIsotropic(AxionFlux):
 
 
 
+class FluxPairAnnihilationIsotropic(AxionFlux):
+    """
+    Generator associated production via electron-positron annihilation
+    (e+ e- -> a gamma)
+    Takes in a flux of positrons
+    """
+    def __init__(self, positron_flux=[1.,0.], target=Material("W"), detector=Material("Ar"), target_density=19.3, target_length=10.0,
+                 target_radiation_length=6.76, det_dist=4., det_length=0.2, det_area=0.04,
+                 axion_mass=0.1, axion_coupling=1e-3, nsamples=100):
+        # TODO: make flux take in a Detector class and a Target class (possibly Material class?)
+        # Replace A = 2*Z with real numbers of nucleons
+        super().__init__(axion_mass, target, detector, det_dist, det_length, det_area, nsamples)
+        self.positron_flux = positron_flux  # differential positron energy flux dR / dE+ / s
+        self.positron_flux_bin_widths = positron_flux[1:,0] - positron_flux[:-1,0]
+        self.ge = axion_coupling
+        self.target_density = target_density  # g/cm3
+        self.target_radius = target_length  # cm
+        self.ntargets_by_area = target_length * target_density * AVOGADRO / (2*target.z[0])  # N_T / cm^2
+        self.ntarget_area_density = target_radiation_length * AVOGADRO / (2*target.z[0])
+    
+    def decay_width(self):
+        return W_ee(self.ge, self.ma)
+    
+    def positron_flux_dN_dE(self, energy):
+        return np.interp(energy, self.positron_flux[:,0], self.positron_flux[:,1], left=0.0, right=0.0)
+    
+    def positron_flux_attenuated(self, t, energy_pos, energy_res):
+        return self.positron_flux_dN_dE(energy_pos) * track_length_prob(energy_pos, energy_res, t)
+    
+    def simulate(self):
+        pass
+    
+    def propagate(self, new_coupling=None):
+        if new_coupling is not None:
+            super().propagate(W_ee(new_coupling, self.ma), rescale_factor=power(new_coupling/self.ge, 2))
+        else:
+            super().propagate(W_ee(self.ge, self.ma))
+        geom_accept = self.det_area / (4*pi*self.det_dist**2)
+        self.decay_axion_weight *= geom_accept
+        self.scatter_axion_weight *= geom_accept
+
+
+
+
 class ElectronEventGenerator:
     """
     Takes in an AxionFlux at the detector (N/s) and gives scattering / decay rates (# events)
@@ -331,7 +375,7 @@ class ElectronEventGenerator:
     def __init__(self, flux: AxionFlux, detector: Material):
         self.flux = flux
         self.det_z = detector.z[0]
-        self.axion_energy = np.array(flux.axion_energy)
+        self.axion_energy = np.zeros_like(flux.axion_energy)
         self.decay_weights = np.zeros_like(flux.decay_axion_weight)
         self.scatter_weights = np.zeros_like(flux.scatter_axion_weight)
         self.pair_weights = np.zeros_like(flux.scatter_axion_weight)
@@ -341,21 +385,24 @@ class ElectronEventGenerator:
 
     def pair_production(self, ge, ma, ntargets, days_exposure, threshold):
         # TODO: remove this ad hoc XS and replace with real calc
+        self.axion_energy = np.array(self.flux.axion_energy)
         self.pair_weights = days_exposure * S_PER_DAY * (ntargets / self.flux.det_area) \
-            * (2 * ge**2 / ALPHA)*self.pair_xs.sigma_mev(sqrt(self.flux.axion_energy**2 - ma**2)) \
-                * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.flux.axion_energy - threshold, 0.0)
+            * (2 * ge**2 / ALPHA)*self.pair_xs.sigma_mev(sqrt(self.axion_energy**2 - ma**2)) \
+                * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.axion_energy - threshold, 0.0)
         res = np.sum(self.pair_weights)
         return res
 
     def compton(self, ge, ma, ntargets, days_exposure, threshold):
+        self.axion_energy = np.array(self.flux.axion_energy)
         self.scatter_weights = days_exposure * S_PER_DAY * (ntargets / self.flux.det_area) \
-            * icompton_sigma(self.flux.axion_energy, ma, ge, self.det_z) \
-                * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.flux.axion_energy - threshold, 0.0)
+            * icompton_sigma(self.axion_energy, ma, ge, self.det_z) \
+                * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.axion_energy - threshold, 0.0)
         res = np.sum(self.scatter_weights)
         return res
     
     def decays(self, days_exposure, threshold):
-        self.decay_weights = days_exposure * S_PER_DAY * self.flux.decay_axion_weight * heaviside(self.flux.axion_energy - threshold, 0.0)
+        self.axion_energy = np.array(self.flux.axion_energy)
+        self.decay_weights = days_exposure * S_PER_DAY * self.flux.decay_axion_weight * heaviside(self.axion_energy - threshold, 0.0)
         res = np.sum(self.decay_weights)
         return res
 
@@ -366,7 +413,7 @@ class PhotonEventGenerator:
     def __init__(self, flux: AxionFlux, detector: Material):
         self.flux = flux
         self.det_z = detector.z[0]
-        self.axion_energy = np.array(flux.axion_energy)
+        self.axion_energy = np.zeros_like(flux.axion_energy)
         self.decay_weights = np.zeros_like(flux.decay_axion_weight)
         self.scatter_weights = np.zeros_like(flux.scatter_axion_weight)
         self.pair_weights = np.zeros_like(flux.scatter_axion_weight)
@@ -375,6 +422,7 @@ class PhotonEventGenerator:
         self.pair_xs = PairProdutionCrossSection(detector)
 
     def inverse_primakoff(self, gagamma, ma, ntargets, days_exposure, threshold):
+        self.axion_energy = self.flux.axion_energy
         self.scatter_weights = days_exposure * S_PER_DAY * (ntargets / self.flux.det_area) \
             * iprimakoff_sigma(self.flux.axion_energy, gagamma, ma, self.det_z) \
                 * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.flux.axion_energy - threshold, 0.0)
@@ -382,6 +430,7 @@ class PhotonEventGenerator:
         return res
 
     def decay(self, days_exposure, threshold):
+        self.axion_energy = self.flux.axion_energy
         self.decay_weights = days_exposure * S_PER_DAY * self.flux.decay_axion_weight * heaviside(self.flux.axion_energy - threshold, 0.0)
         res = np.sum(self.decay_weights)
         return res
