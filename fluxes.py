@@ -92,7 +92,7 @@ class FluxPrimakoffIsotropic(AxionFlux):
         gamma_wgt = photon[1]
 
         xs = primakoff_sigma(gamma_energy, self.target_z, self.target_a, self.ma, self.gagamma)
-        br = xs / self.target_photon_xs(gamma_energy)
+        br = xs / self.target_photon_xs.sigma_mev(gamma_energy)
         self.axion_energy.append(gamma_energy)
         self.axion_flux.append(gamma_wgt * br)
 
@@ -429,7 +429,7 @@ class PhotonEventGenerator:
         res = np.sum(self.scatter_weights)
         return res
 
-    def decay(self, days_exposure, threshold):
+    def decays(self, days_exposure, threshold):
         self.axion_energy = self.flux.axion_energy
         self.decay_weights = days_exposure * S_PER_DAY * self.flux.decay_axion_weight * heaviside(self.flux.axion_energy - threshold, 0.0)
         res = np.sum(self.decay_weights)
