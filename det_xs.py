@@ -34,7 +34,7 @@ def iprimakoff_nsigma(ea, g, ma, z, r0):
 
 
 
-def iprimakoff_sigma(ea, g, ma, z, r0):
+def iprimakoff_sigma(ea, g, ma, z, r0 = 2.2e-10 / METER_BY_MEV):
     # inverse-Primakoff scattering total xs (Creswick et al)
     # r0: screening parameter
     prefactor = (g * z)**2 / (2*137)
@@ -57,7 +57,7 @@ def dark_iprim_dsigma_dcostheta(cosTheta, Ea, gZN, gaGZ, ma, mZp, z=6):
     prefactor = sqrt(M_P*(Ea - ma)*(2*Ea*M_P + ma**2))/(4*sqrt(2)*pi**2 * (2*Ea*M_P + M_P**2 + ma**2))
     t = ma**2 - ((ma**2 + 2*Ea*M_P)/(M_P + Ea - sqrt(Ea**2 - ma**2)*cosTheta)) * (Ea - sqrt(Ea**2 - ma**2)*cosTheta)
     s = M_P**2 + ma**2 + 2*Ea*M_P
-    return prefactor * dark_iprim_dsigma_dt(t, s, gZN, gaGZ, ma, mZp, 2*z*M_P)
+    return prefactor * heaviside(Ea - ma, 0.0) * dark_iprim_dsigma_dt(t, s, gZN, gaGZ, ma, mZp, 2*z*M_P)
 
 
 
@@ -128,42 +128,3 @@ def icompton_dsigma_domega(theta, Ea, ma, ge):
 
 
 
-# Define form factors
-
-def _nuclear_ff(t, m, z, a):
-    # Parameterization of the coherent nuclear form factor (Tsai, 1986)
-    # t: MeV
-    # m: nucleus mass
-    # z: atomic number
-    # a: number of nucleons
-    return (2*m*z**2) / (1 + t / 164000*np.power(a, -2/3))**2
-
-
-
-
-def _atomic_elastic_ff(t, z):
-    # Coherent atomic form factor parameterization (Tsai, 1986)
-    # Fit based on Thomas-Fermi model
-    # t: MeV
-    # m: nucleus mass
-    # z: atomic number
-    b = 184*np.power(2.718, -1/2)*np.power(z, -1/3) / M_E
-    return (z*t*b**2)**2 / (1 + t*b**2)**2
-
-
-
-
-def _helm_ff(t, z):
-    pass
-
-
-
-
-def _screening(e, ma):
-    if ma == 0:
-        return 0
-    r0 = 1/0.001973  # 0.001973 MeV A -> 1 A (Ge) = 1/0.001973
-    x = (r0 * ma**2 / (4*e))**2
-    numerator = 2*log(2*e/ma) - 1 - exp(-x) * (1 - exp(-x)/2) + (x + 0.5)*exp1(2*x) - (1+x)*exp1(x)
-    denomenator = 2*log(2*e/ma) - 1
-    return numerator / denomenator

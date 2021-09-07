@@ -359,11 +359,11 @@ class ChargedMeson3BodyDecay:
             self.weights.append(weights[i]*jacobian[i]*heaviside(e_lab[i]-self.energy_cut,1.0))
     
     def simulate(self):
-        self.energies = [0.0]
-        self.cosines = [0.0]
-        self.weights = [0.0]
-        self.scatter_weight = [0.0]
-        self.decay_weight = [0.0]
+        self.energies = []
+        self.cosines = []
+        self.weights = []
+        self.scatter_weight = []
+        self.decay_weight = []
 
         if self.ma > self.mm - M_MU:
             # Kinematically forbidden beyond Meson mass - muon mass difference
@@ -390,23 +390,25 @@ class ChargedMeson3BodyDecay:
     
     def scatter_compton(self, ge, n_e, cosine_bins):
         # make a histogram
-        h = np.histogram([0.0], weights=[0.0], bins=cosine_bins)[0]
+        binned_events = np.histogram([0.0], weights=[0.0], bins=cosine_bins)[0]
         centers = (cosine_bins[1:] + cosine_bins[:-1])/2
         for i in range(self.scatter_weight.shape[0]):
             rcos = np.random.uniform(-1, 1, self.nsamples)
             rthetas = arccos(rcos)
             wgts = 4*pi*icompton_dsigma_domega(rthetas, self.energies[i], self.ma, ge)/self.nsamples
-            h += np.histogram(rcos, weights=self.scatter_weight[i]*n_e*power(METER_BY_MEV*100, 2)*wgts, bins=cosine_bins)[0]
-        return h, centers
+            h, hbins = np.histogram(rcos, weights=self.scatter_weight[i]*n_e*power(METER_BY_MEV*100, 2)*wgts, bins=cosine_bins)
+            binned_events += h
+        return binned_events, centers
     
     def scatter_dark_primakoff(self, gZN, gaGZ, mZp, n_e, cosine_bins):
         # make a histogram
-        h = np.histogram([0.0], weights=[0.0], bins=cosine_bins)[0]
+        binned_events = np.zeros(cosine_bins.shape[0]-1)
         centers = (cosine_bins[1:] + cosine_bins[:-1])/2
         for i in range(self.scatter_weight.shape[0]):
             rcos = np.random.uniform(-1, 1, self.nsamples)
-            wgts = 4*pi*dark_iprim_dsigma_dcostheta(rcos, self.energies[i], gZN, gaGZ, self.ma, mZp)/self.nsamples
-            wgts = wgts * 4.75  # ad hoc coherency factor
-            h += np.histogram(rcos, weights=self.scatter_weight[i]*n_e*power(METER_BY_MEV*100, 2)*wgts, bins=cosine_bins)[0] 
-        return h, centers
+            xs = 4*pi*dark_iprim_dsigma_dcostheta(rcos, self.energies[i], gZN, gaGZ, self.ma, mZp)/self.nsamples
+            wgts = 4.75 * self.scatter_weight[i]*n_e*power(METER_BY_MEV*100, 2)*xs  # ad hoc coherency factor 4.75
+            h, hbins = np.histogram(rcos, weights=wgts, bins=cosine_bins)
+            binned_events += h
+        return binned_events, centers
 
