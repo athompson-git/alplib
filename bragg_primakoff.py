@@ -5,6 +5,7 @@ from .constants import *
 from .fmath import *
 from .det_xs import iprimakoff_sigma
 from .crystal import Crystal
+from .borrmann import Borrmann
 
 # Global Constants in keV angstroms
 M_E_KeV = 1e3 * M_E

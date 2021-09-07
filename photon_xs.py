@@ -19,7 +19,7 @@ class AbsCrossSection:
     def __init__(self, material: Material):
         #self.pe_data = np.empty()
         self.xs_dim = 1e-24  # barns to cm2
-        self.mat_name = material.mat_type
+        self.mat_name = material.mat_name
         self.path_prefix = "data/photon_absorption/photon_abs_"
         self.file_extension = ".txt"
         fpath = pkg_resources.resource_filename(__name__, self.path_prefix + self.mat_name + self.file_extension)
@@ -41,7 +41,7 @@ class AbsCrossSection:
         return 10**np.interp(log10(E), log10(self.pe_data[:,0]), log10(self.xs_dim * self.pe_data[:,1]))
     
     def sigma_mev(self, E):
-        return 10**np.interp(log10(E), log10(self.pe_data[:,0]), log10(self.xs_dim * self.pe_data[:,1] / MEV2_CM2))
+        return 10**np.interp(log10(E), log10(self.pe_data[:,0]), log10(self.xs_dim * self.pe_data[:,1])) / MEV2_CM2
     
     def mu(self, E, n):  # atomic number density in cm^-3
         return self.sigma(E) * n
@@ -51,7 +51,7 @@ class AbsCrossSection:
 class PairProdutionCrossSection:
     def __init__(self, material: Material):
         self.xs_dim = 1e-24  # barns to cm2
-        self.mat_name = material.mat_type
+        self.mat_name = material.mat_name
         self.path_prefix = "data/photon_pair_production/pair_production_xs_"
         self.file_extension = ".txt"
         fpath = pkg_resources.resource_filename(__name__, self.path_prefix + self.mat_name + self.file_extension)
@@ -77,7 +77,7 @@ class PairProdutionCrossSection:
 class ComptonCrossSection:
     def __init__(self, material: Material):
         self.xs_dim = 1e-24  # barns to cm2
-        self.mat_name = material.mat_type
+        self.mat_name = material.mat_name
         self.path_prefix = "data/photon_compton/compton_xs_"
         self.file_extension = ".txt"
         fpath = pkg_resources.resource_filename(__name__, self.path_prefix + self.mat_name + self.file_extension)

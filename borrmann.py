@@ -11,16 +11,17 @@ cell_density: No. unit cells per volume cm^-3
 abs_coeff: absorption coefficient in cm^-1
 """
 class Borrmann:
-    def __init__(self, material, density, abs_coeff, verbose=False):
-        self.n = density
+    def __init__(self, material: Material, abs_coeff, verbose=False):
+        self.n = 4.41348e22 #material.ndensity
+        print(self.n)
         self.abs_xs = AbsCrossSection(material)
         self.mu = abs_coeff
-        self.crystal = get_crystal(material)
+        self.crystal = get_crystal(material, volume=1000)
         self.verbose = verbose
 
     def imff(self, h, k, l):
         energy = self.crystal.energy(h, k, l)
-        sigma = self.abs_xs.sigma(energy)
+        sigma = self.abs_xs.sigma_cm2(energy)
         print("   energy=", energy)
         imff = energy * sigma / (2 * HC * R_E)
         
@@ -36,7 +37,7 @@ class Borrmann:
 
     def zj_etaj_sum(self, energy):
         lam = HC / energy
-        mu = self.n * self.abs_xs.sigma(energy)
+        mu = self.n * self.abs_xs.sigma_cm2(energy)
         ZjEtaj = (M_E * mu) / (2 * HBARC * ALPHA * lam * (self.n/4))
 
         if self.verbose == True:
@@ -48,7 +49,7 @@ class Borrmann:
         return self.sf_ratio(h, k, l) * self.debye_waller() * self.imff(h, k, l) / self.zj_etaj_sum(energy)
 
     def anomalous_abs(self, energy, h, k, l):
-        mu = self.n * self.abs_xs.sigma(energy)
+        mu = self.n * self.abs_xs.sigma_cm2(energy)
         return mu / (1 - self.epsilon(energy, h, k, l))
 
     def anomalous_depth(self, energy, h, k, l):

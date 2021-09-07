@@ -90,8 +90,10 @@ class FluxPrimakoffIsotropic(AxionFlux):
     def simulate_single(self, photon):
         gamma_energy = photon[0]
         gamma_wgt = photon[1]
+        if gamma_energy < self.ma:
+            return
 
-        xs = primakoff_sigma(gamma_energy, self.target_z, self.target_a, self.ma, self.gagamma)
+        xs = primakoff_sigma(gamma_energy, self.gagamma, self.ma, self.target_z)
         br = xs / self.target_photon_xs.sigma_mev(gamma_energy)
         self.axion_energy.append(gamma_energy)
         self.axion_flux.append(gamma_wgt * br)
@@ -388,7 +390,7 @@ class ElectronEventGenerator:
         self.axion_energy = np.array(self.flux.axion_energy)
         self.pair_weights = days_exposure * S_PER_DAY * (ntargets / self.flux.det_area) \
             * (2 * ge**2 / ALPHA)*self.pair_xs.sigma_mev(sqrt(self.axion_energy**2 - ma**2)) \
-                * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.axion_energy - threshold, 0.0)
+                * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.axion_energy - threshold, 1.0)
         res = np.sum(self.pair_weights)
         return res
 
@@ -396,13 +398,13 @@ class ElectronEventGenerator:
         self.axion_energy = np.array(self.flux.axion_energy)
         self.scatter_weights = days_exposure * S_PER_DAY * (ntargets / self.flux.det_area) \
             * icompton_sigma(self.axion_energy, ma, ge, self.det_z) \
-                * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.axion_energy - threshold, 0.0)
+                * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.axion_energy - threshold, 1.0)
         res = np.sum(self.scatter_weights)
         return res
     
     def decays(self, days_exposure, threshold):
         self.axion_energy = np.array(self.flux.axion_energy)
-        self.decay_weights = days_exposure * S_PER_DAY * self.flux.decay_axion_weight * heaviside(self.axion_energy - threshold, 0.0)
+        self.decay_weights = days_exposure * S_PER_DAY * self.flux.decay_axion_weight * heaviside(self.axion_energy - threshold, 1.0)
         res = np.sum(self.decay_weights)
         return res
 
@@ -410,6 +412,9 @@ class ElectronEventGenerator:
 
 
 class PhotonEventGenerator:
+    """
+    Takes in an AxionFlux at the detector (N/s) and gives scattering / decay rates (# events)
+    """
     def __init__(self, flux: AxionFlux, detector: Material):
         self.flux = flux
         self.det_z = detector.z[0]
@@ -420,18 +425,27 @@ class PhotonEventGenerator:
         self.efficiency = None  # TODO: add efficiency info
         self.energy_threshold = None  # TODO: add threshold as member var
         self.pair_xs = PairProdutionCrossSection(detector)
+    
+    def propagate_isotropic(self, new_gagamma=1.0):
+        #self.flux.propagate(W_gg(new_gagamma, self.flux.ma), rescale_factor=power(new_gagamma/self.flux.ge, 2))
+        # TODO: add detector arguments
+        #geom_accept = 1#self.det_area / (4*pi*self.det_dist**2)
+        #self.decay_axion_weight *= geom_accept
+        #self.scatter_axion_weight *= geom_accept
+        pass
+
 
     def inverse_primakoff(self, gagamma, ma, ntargets, days_exposure, threshold):
-        self.axion_energy = self.flux.axion_energy
+        self.axion_energy = np.array(self.flux.axion_energy)
         self.scatter_weights = days_exposure * S_PER_DAY * (ntargets / self.flux.det_area) \
-            * iprimakoff_sigma(self.flux.axion_energy, gagamma, ma, self.det_z) \
-                * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.flux.axion_energy - threshold, 0.0)
+            * iprimakoff_sigma(self.axion_energy, gagamma, ma, self.det_z) \
+                * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.axion_energy - threshold, 1.0)
         res = np.sum(self.scatter_weights)
         return res
 
     def decays(self, days_exposure, threshold):
-        self.axion_energy = self.flux.axion_energy
-        self.decay_weights = days_exposure * S_PER_DAY * self.flux.decay_axion_weight * heaviside(self.flux.axion_energy - threshold, 0.0)
+        self.axion_energy = np.array(self.flux.axion_energy)
+        self.decay_weights = days_exposure * S_PER_DAY * self.flux.decay_axion_weight * heaviside(self.axion_energy - threshold, 1.0)
         res = np.sum(self.decay_weights)
         return res
 

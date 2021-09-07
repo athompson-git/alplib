@@ -54,7 +54,8 @@ class Crystal(Material):
 cryslist = ["Ge", "Si", "NaI", "CsI"]
 
 
-def get_crystal(name, volume):
+def get_crystal(material: Material, volume):
+    name = material.name
     if name not in cryslist:
         print("Specified material not in library. Supported crystals:\n", cryslist)
         return
@@ -70,7 +71,14 @@ def get_crystal(name, volume):
         return Crystal(name, Primitives, A1, A2, A3, volume=volume)
     
     if name == "Si":
-        pass
+        # Diamond cubic, sodium iodide
+        Alpha0 = [0.0, 0.0, 0.0]
+        Alpha1 = [0.25, 0.25, 0.25]
+        Primitives = [Alpha0, Alpha1]
+        A1 = [0.0, 0.5, 0.5]
+        A2 = [0.5, 0.0, 0.5]
+        A3 = [0.5, 0.5, 0.0]
+        return Crystal(name, Primitives, A1, A2, A3)
     
     if name == "NaI":
         # Diamond cubic, sodium iodide
