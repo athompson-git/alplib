@@ -5,45 +5,48 @@
 from .constants import *
 from .fmath import *
 
-# a -> gamma gamma
-# g_agamma in MeV^-1
+
 def W_gg(g_agamma, ma):
+    # a -> gamma gamma
+    # g_agamma in MeV^-1
     return g_agamma**2 * ma**3 / (64*pi)
 
 
 
 
-# a -> e+ e-
 def W_ee(g_ae, ma):
+    # a -> e+ e-
     return g_ae**2 * ma * sqrt(1 - (2 * M_E / ma)**2) / (8 * pi) \
         if 1 - 4 * (M_E / ma) ** 2 > 0 else 0.0
 
 
 
 
-# Get the lifetime in the rest frame in s
 def Tau(width):
+    # Get the lifetime in the rest frame in s
     pass
 
 
 
 
-# Get the lifetime in the lab frame in s
 def Tau_lab(width, va):
+    # Get the lifetime in the lab frame in s
     pass
 
 
 
 
-# Probability that the ALP will survive a distance l from production site
 def p_survive(width, va, l):
+    # Probability that the ALP will survive a distance l from production site
+    # TODO: try numba: @vectorize
     pass
 
 
 
 
-# Probability that the ALP will decay within a region (l, l + dl)
 def p_decay(width, va, l, dl):
+    # Probability that the ALP will decay within a region (l, l + dl)
+    # TODO: try numba: @vectorize
     pass
 
 
