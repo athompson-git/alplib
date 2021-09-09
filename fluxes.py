@@ -19,6 +19,7 @@ class AxionFlux:
         self.target_z = target.z[0]  # TODO: take z array for compound mats
         self.target_a = target.z[0] + target.n[0]
         self.det_z = detector.z[0]
+        self.target_density = target.density
         self.det_dist = det_dist  # meters
         self.det_length = det_length  # meters
         self.det_area = det_area  # square meters
@@ -309,7 +310,7 @@ class FluxResonanceIsotropic(AxionFlux):
         mc_vol = (5.0 - 0.0)*(max(self.positron_flux[:,0]) - resonant_energy)
 
         attenuated_flux = mc_vol*np.sum(self.positron_flux_attenuated(t_rnd, e_rnd, resonant_energy))/self.nsamples
-        wgt = (self.ntarget_area_density * HBARC**2) * resonance_peak(self.ge) * attenuated_flux
+        wgt = self.target_z * (self.ntarget_area_density * HBARC**2) * resonance_peak(self.ge) * attenuated_flux
         
         self.axion_energy.append(resonant_energy + M_E)
         self.axion_flux.append(wgt)
@@ -332,7 +333,7 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
     (e+ e- -> a gamma)
     Takes in a flux of positrons
     """
-    def __init__(self, positron_flux=[1.,0.], target=Material("W"), detector=Material("Ar"), target_density=19.3, target_length=10.0,
+    def __init__(self, positron_flux=[1.,0.], target=Material("W"), detector=Material("Ar"),
                  target_radiation_length=6.76, det_dist=4., det_length=0.2, det_area=0.04,
                  axion_mass=0.1, axion_coupling=1e-3, nsamples=100):
         # TODO: make flux take in a Detector class and a Target class (possibly Material class?)
@@ -341,23 +342,48 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
         self.positron_flux = positron_flux  # differential positron energy flux dR / dE+ / s
         self.positron_flux_bin_widths = positron_flux[1:,0] - positron_flux[:-1,0]
         self.ge = axion_coupling
-        self.target_density = target_density  # g/cm3
-        self.target_radius = target_length  # cm
-        self.ntargets_by_area = target_length * target_density * AVOGADRO / (2*target.z[0])  # N_T / cm^2
         self.ntarget_area_density = target_radiation_length * AVOGADRO / (2*target.z[0])
     
     def decay_width(self):
         return W_ee(self.ge, self.ma)
     
-    def positron_flux_dN_dE(self, energy):
-        return np.interp(energy, self.positron_flux[:,0], self.positron_flux[:,1], left=0.0, right=0.0)
-    
-    def positron_flux_attenuated(self, t, energy_pos, energy_res):
-        return self.positron_flux_dN_dE(energy_pos) * track_length_prob(energy_pos, energy_res, t)
+    def simulate_single(self, positron):
+        ep_lab = positron[0]
+        pos_wgt = positron[1]
+
+        if ep_lab < max((self.ma**2 - M_E**2)/(2*M_E), M_E):
+            # Threshold check
+            return
+
+        # Simulate ALPs produced in the CM frame
+        cm_cosines = np.random.uniform(-1, 1, self.nsamples)
+        cm_wgts = (self.ntarget_area_density * HBARC**2) * associated_dsigma_dcos_CM(cm_cosines, ep_lab, self.ma, self.ge, self.target_z)
+
+        # Boost the ALPs to the lab frame and multiply weights by jacobian for the boost
+        jacobian_cm_to_lab = power(2, 1.5) * power(1 + cm_cosines, 0.5)
+        ea_cm = sqrt(M_E * (ep_lab + M_E) / 2)
+        paz_cm = sqrt(M_E * (ep_lab + M_E) / 2 - self.ma**2) * cm_cosines
+        beta = sqrt(ep_lab**2 - M_E**2) / (M_E + ep_lab)
+        gamma = power(1-beta**2, -0.5)
+
+        # Get the lab frame energy distribution
+        ea_lab = gamma*(ea_cm + beta*paz_cm)
+        mc_volume = 2 / self.nsamples  # we integrated over cosThetaLab from -1 to 1
+
+        for i in range(self.nsamples):
+            self.axion_energy.append(ea_lab[i])
+            self.axion_flux.append(pos_wgt * jacobian_cm_to_lab[i] * cm_wgts[i] * mc_volume)
+
     
     def simulate(self):
-        pass
-    
+        self.axion_energy = []
+        self.axion_flux = []
+        self.scatter_axion_weight = []
+        self.decay_axion_weight = []
+
+        for i, el in enumerate(self.positron_flux):
+            self.simulate_single(el)
+
     def propagate(self, new_coupling=None):
         if new_coupling is not None:
             super().propagate(W_ee(new_coupling, self.ma), rescale_factor=power(new_coupling/self.ge, 2))
