@@ -201,14 +201,13 @@ class FluxBremIsotropic(AxionFlux):
     Generator for axion-bremsstrahlung flux
     Takes in a flux of el
     """
-    def __init__(self, electron_flux=[1.,0.], target=Material("W"), detector=Material("Ar"), target_density=19.3,
-                 target_radiation_length=6.76, target_length=10.0, det_dist=4., det_length=0.2,
-                 det_area=0.04, axion_mass=0.1, axion_coupling=1e-3, nsamples=100):
+    def __init__(self, electron_flux=[1.,0.], positron_flux=[1.,0.], target=Material("W"), detector=Material("Ar"),
+                    target_density=19.3, target_radiation_length=6.76, target_length=10.0, det_dist=4., det_length=0.2,
+                    det_area=0.04, axion_mass=0.1, axion_coupling=1e-3, nsamples=100):
         super().__init__(axion_mass, target, detector, det_dist, det_length, det_area)
-        # TODO: make flux take in a Detector class and a Target class (possibly Material class?)
-        # Replace A = 2*Z with real numbers of nucleons
+        # TODO: Replace A = 2*Z with real numbers of nucleons
         self.electron_flux = electron_flux
-        self.positron_flux = electron_flux
+        self.positron_flux = positron_flux
         self.ge = axion_coupling
         self.target_density = target_density  # g/cm3
         self.target_radius = target_length  # cm
@@ -220,11 +219,13 @@ class FluxBremIsotropic(AxionFlux):
         return W_ee(self.ge, self.ma)
     
     def electron_flux_dN_dE(self, energy):
-        # TODO: remove ad hoc factor of 2 and use actual electron/positron flux
-        return 2*np.interp(energy, self.electron_flux[:,0], self.electron_flux[:,1], left=0.0, right=0.0)
+        return np.interp(energy, self.electron_flux[:,0], self.electron_flux[:,1], left=0.0, right=0.0)
+    
+    def positron_flux_dN_dE(self, energy):
+        return np.interp(energy, self.positron_flux[:,0], self.positron_flux[:,1], left=0.0, right=0.0)
     
     def electron_flux_attenuated(self, t, E0, E1):
-        return self.electron_flux_dN_dE(E0) * track_length_prob(E0, E1, t)
+        return (self.electron_flux_dN_dE(E0) + self.positron_flux_dN_dE(E0)) * track_length_prob(E0, E1, t)
 
     def simulate_single(self, electron):
         el_energy = electron[0]
