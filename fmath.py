@@ -12,10 +12,12 @@ from mpmath import mpmathify, fsub
 mp.dps = 5
 
 
-# Fast 1D monte carlo, regenerating random variates each time
-def fastMC1D(func, a, b, n_samples):
+
+
+def fastMC1D(func, a, b, n_samples, **kwargs):
+    # Fast 1D monte carlo, regenerating random variates each time
     vars = np.random.uniform(a, b, n_samples)
-    return (b-a)*np.sum(func(vars))/n_samples
+    return (b-a)*np.sum(func(vars, kwargs))/n_samples
 
 
 

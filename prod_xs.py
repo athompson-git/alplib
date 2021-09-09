@@ -39,10 +39,26 @@ def free_primakoff_dsigma_dt(t, s, ma, M, g):
 
 
 
-def primakoff_dsigma_dt(t, s, ma, M, g, z=1):
-    num = ALPHA * g**2 * (t*(M**2 + s)*ma**2 - (M * ma**2)**2 - t*((s-M**2)**2 + s*t) - t*(t-ma**2)/2)
-    denom = 4*t**2 * ((M + ma)**2 - s)*((M - ma)**2 - s)
-    return heaviside(num/denom, 0.0) * (num / denom)
+class PrimakoffSigmaFF:
+    # Primakoff scattering with Nuclear and Atomic Form factors
+    def __init__(self, mat: Material):
+        self.mat = mat
+        self.z = mat.z[0]
+        self.M = mat.m[0]
+        self.helm_ff = NuclearHelmFF(mat)
+        self.atomic_ff = ElectronElasticFF(mat)
+    
+    def dsigma_dt(self, t, s, ma, M, g):
+        dsigma_dt = free_primakoff_dsigma_dt(t, s, ma, M, g)
+        return dsigma_dt * (self.helm_ff(sqrt(-t)) + self.atomic_ff(sqrt(-t)))
+
+    def __call__(self, egamma, ma, g):
+        s = 2*egamma*self.M + self.M**2
+        pa_cm2 = (s - self.M**2)**2 / (4*s)
+        tmin = ma**2 - 2*egamma*(sqrt(pa_cm2 + ma**2) + sqrt(pa_cm2))
+        tmax = ma**2 - 2*egamma*(sqrt(pa_cm2 + ma**2) - sqrt(pa_cm2))
+        
+        return quad(self.dsigma_dt, tmin, tmax, args=(s, ma, self.M, g,))[0]
 
 
 
@@ -207,7 +223,7 @@ def resonance_peak(g):
 
 
 
-def associated_dsigma_dcos_CM(costheta_cm, ep_lab, ma, g):
+def associated_dsigma_dcos_CM(costheta_cm, ep_lab, ma, g, z=1):
     # Associated production from pair annihilation (e+ e- -> \gamma a)
     # Calculated with Mathematica
     s = 2*M_E*(ep_lab + M_E)
@@ -226,6 +242,8 @@ def associated_dsigma_dcos_CM(costheta_cm, ep_lab, ma, g):
     MtMu = 4*((M_E**2 * (s - 2*t)) - 3*M_E**4 + tmast)/(u_prop*t_prop)
 
     M2 = Mt2 + Mu2 + 2*MtMu
-    jacobian = 2 * ep_cm * ea_cm
+    jacobian = 2 * ep_cm * ea_cm  # dt/dcostheta
+
+    prefactor = z * (4*pi*ALPHA) * g**2
     
-    return jacobian * M2 / (16*pi*(s - 4*M_E**2)*s)
+    return heaviside(ep_lab - max((ma**2 - M_E**2)/(2*M_E), M_E), 1.0) * prefactor * jacobian * M2 / (16*pi*(s - 4*M_E**2)*s)
