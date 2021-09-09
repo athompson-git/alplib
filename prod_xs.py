@@ -5,10 +5,41 @@
 from .constants import *
 from .fmath import *
 from .decay import *
+from .form_factors import *
+
+def nuclear_ff(t, m, z, a):
+    # Parameterization of the coherent nuclear form factor (Tsai, 1986)
+    # t: MeV
+    # m: nucleus mass
+    # z: atomic number
+    # a: number of nucleons
+    return (2*m*z**2) / (1 + t / 164000*np.power(a, -2/3))**2
+
+
+
+
+def atomic_elastic_ff(t, z):
+    # Coherent atomic form factor parameterization (Tsai, 1986)
+    # Fit based on Thomas-Fermi model
+    # t: MeV
+    # m: nucleus mass
+    # z: atomic number
+    b = 184*np.power(2.718, -1/2)*np.power(z, -1/3) / M_E
+    return (z*t*b**2)**2 / (1 + t*b**2)**2
+
+
 
 #### Photon coupling ####
 
 def free_primakoff_dsigma_dt(t, s, ma, M, g):
+    num = ALPHA * g**2 * (t*(M**2 + s)*ma**2 - (M * ma**2)**2 - t*((s-M**2)**2 + s*t) - t*(t-ma**2)/2)
+    denom = 4*t**2 * ((M + ma)**2 - s)*((M - ma)**2 - s)
+    return heaviside(num/denom, 0.0) * (num / denom)
+
+
+
+
+def primakoff_dsigma_dt(t, s, ma, M, g, z=1):
     num = ALPHA * g**2 * (t*(M**2 + s)*ma**2 - (M * ma**2)**2 - t*((s-M**2)**2 + s*t) - t*(t-ma**2)/2)
     denom = 4*t**2 * ((M + ma)**2 - s)*((M - ma)**2 - s)
     return heaviside(num/denom, 0.0) * (num / denom)
@@ -35,7 +66,7 @@ def primakoff_nsigma(energy, z, ma, g=1):
 
 
 
-def primakoff_sigma(energy, z, a, ma, g):
+def primakoff_sigma_tsai(energy, z, a, ma, g):
     # Primakoff production total xs (γ + A -> a + A)
     # Tsai, '86 (ma << E)
     if energy < ma:
@@ -45,6 +76,17 @@ def primakoff_sigma(energy, z, a, ma, g):
     return prefactor * ((z ** 2) * (log(184 * power(z, -1 / 3)) \
         + log(403 * power(a, -1 / 3) / M_E)) \
         + z * log(1194 * power(z, -2 / 3)))
+
+
+
+
+def primakoff_sigma(eg, g, ma, z, r0 = 2.2e-10 / METER_BY_MEV):
+    # inverse-Primakoff scattering total xs (Creswick et al)
+    # r0: screening parameter
+    prefactor = (g * z)**2 / (2*137)
+    eta2 = r0**2 * eg**2
+    return heaviside(eg-ma, 0.0)*prefactor * (((2*eta2 + 1)/(4*eta2))*log(1+4*eta2) - 1)
+
 
 
 
@@ -60,7 +102,7 @@ def compton_sigma(eg, g, ma, z=1):
     p = sqrt(p0**2 - ma**2)
     k = sqrt(s) - k0
     
-    prefactor = (z*ALPHA*g**2 / (8*s)) * (p/k)
+    prefactor = heaviside(eg-ma,0.0)*(z*ALPHA*g**2 / (8*s)) * (p/k)
     return prefactor * (-3 + (M_E**2 - ma**2)/s + s*power(ma / (2*eg*M_E),2) \
                         + (1 - (ma**2 / (eg*M_E)) + (ma**2 * (ma**2 - 2*M_E**2)/(2*power(eg*M_E,2)))) \
                             * (sqrt(s)/p)*log((2*p0*k0 + 2*p*k - ma**2)/(2*p0*k0 - 2*p*k - ma**2)))
@@ -80,7 +122,7 @@ def compton_dsigma_dea(ea, eg, g, ma, z=1):
     xmax = ((s - M_E**2)*(s - M_E**2 + ma**2) 
             + (s - M_E**2)*sqrt((s - M_E**2 + ma**2)**2 - 4*s*ma**2))/(2*s*(s-M_E**2))
 
-    thresh = heaviside(s - (M_E + ma)**2, 0.0)*heaviside(x-xmin,0.0)*heaviside(xmax-x,0.0)
+    thresh = heaviside(eg - ma, 0.0)*heaviside(x-xmin,0.0)*heaviside(xmax-x,0.0)
     return z * thresh * (1 / eg) * pi * a * aa / (s - M_E ** 2) * (x / (1 - x) * (-2 * ma ** 2 / (s - M_E ** 2) ** 2
                                                                 * (s - M_E ** 2 / (1 - x) - ma ** 2 / x) + x))
 
@@ -131,10 +173,14 @@ def brem_sigma(Ee, g, ma, z=1):
     return heaviside(Ee-ma,0.0)*quad(brem_dsigma_dea, ma, ea_max, args=(Ee, g, ma, z,))[0]
 
 
+
+
 def brem_sigma_v2(Ee, g, ma, z=1):
     # Total axion bremsstrahlung production cross section (e- Z -> e- Z a)
     # Tsai 1986
     return heaviside(Ee-ma,0.0)*quad(brem_dsigma_dea, ma, Ee*0.9999, args=(Ee, g, ma, z,))[0]
+
+
 
 
 def brem_sigma_mc(Ee, g, ma, z=1, nsamples=100):
@@ -142,6 +188,7 @@ def brem_sigma_mc(Ee, g, ma, z=1, nsamples=100):
     ea_rnd = np.random.uniform(ma, ea_max, nsamples)
     mc_vol = (Ee - ma)/nsamples
     return mc_vol * np.sum(brem_dsigma_dea(ea_rnd, Ee, g, ma, z))
+
 
 
 
@@ -156,3 +203,29 @@ def resonance_sigma(ee, ma, g):
 def resonance_peak(g):
     # Returns the peak value of the resonance production cross section (e- e+ -> a)
     return pi * g**2 / (2 * M_E)
+
+
+
+
+def associated_dsigma_dcos_CM(costheta_cm, ep_lab, ma, g):
+    # Associated production from pair annihilation (e+ e- -> \gamma a)
+    # Calculated with Mathematica
+    s = 2*M_E*(ep_lab + M_E)
+    ea_cm = sqrt(power(s - ma**2, 2) / (4*s) + ma**2)
+    ep_cm = sqrt(M_E * (ep_lab + M_E) / 2)
+    pa_cm = sqrt(ea_cm**2 - ma**2)
+    pp_cm = sqrt(ep_cm**2 - M_E**2)
+    t = ma**2 + M_E**2 - 2 * (ep_cm * ea_cm - pp_cm * pa_cm * costheta_cm)
+
+    u_prop = (M_E**2 + ma**2 - s - t)
+    t_prop = (M_E**2 - t)
+    tmast = t * (-ma**2 + s + t)
+
+    Mt2 = -4*((-M_E**2 * (s + ma**2)) + 3*M_E**4 + tmast)/t_prop**2
+    Mu2 = -4*((M_E**2 * (ma**2 - 3*s - 4*t)) + 7*M_E**4 + tmast)/u_prop**2
+    MtMu = 4*((M_E**2 * (s - 2*t)) - 3*M_E**4 + tmast)/(u_prop*t_prop)
+
+    M2 = Mt2 + Mu2 + 2*MtMu
+    jacobian = 2 * ep_cm * ea_cm
+    
+    return jacobian * M2 / (16*pi*(s - 4*M_E**2)*s)
