@@ -1,10 +1,11 @@
 # Classes and constants for axion production and detection from 3-body decay of charged mesons
 
-from alplib.decay import p_decay_lifetime
 from .constants import *
 from .fmath import *
 from .prod_xs import *
 from .det_xs import *
+from .decay import *
+from .couplings import *
 
 # Proton total cross section
 def sigmap(p):
@@ -214,10 +215,8 @@ class ChargedMeson3BodyDecay:
         self.decay_weight = []
         self.scatter_weight = []
     
-    def lifetime(self, ge):
-        if 1 < 4 * (M_E / self.ma) ** 2:
-            return np.inf
-        return (8 * pi) / (ge**2 * self.ma * power(1 - 4 * (M_E / self.ma) ** 2, 1 / 2))
+    def lifetime(self, gmu):
+        return W_gg(gamma_loop(gmu, M_MU, self.ma))
 
     def dGammadEa(self, Ea):
         m212 = self.mm**2 + self.ma**2 - 2*self.mm*Ea

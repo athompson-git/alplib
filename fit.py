@@ -71,7 +71,8 @@ def binary_search(test_function, stop_value, lower_edge, upper_edge, tolerance=0
     # upper_edge and lower_edge: the range of x values to test
     # is_increasing: True if test_function is expected to increase with x, False otherwise
     # test_function is assumed to be monotonic over the range x ~ [lower_edge, upper_edge]
-    print("starting binary search")
+    if verbose:
+        print("starting binary search")
     x_upper = upper_edge
     x_lower = lower_edge
     x = x_lower
@@ -241,8 +242,7 @@ class ChiSquareRandomizedSearch:
         self.ddof = ddof
         self.cl = target_cl
         self.max_points = max_points
-        self.target_chi2 = chi2.ppf(target_cl, observations.shape[0] - 1 - ddof) if background is not None else 2.3
-        print("using target chi2 = ", self.target_chi2)
+        self.target_chi2 = chi2.ppf(target_cl, observations.shape[0] - ddof) - observations.shape[0] if background is not None else 2.3
 
         # Chi2 map
         self.chisq_list = []
@@ -317,7 +317,8 @@ class ChiSquareRandomizedSearch:
             if trial_counter > self.max_points:
                 return (upper_edge + lower_edge)/2, (upper_edge + lower_edge)/2
             if (upper_edge - lower_edge)/(self.range[1] - self.range[0]) < self.tol:
-                print("Search window too narrow before finding target CL; exiting")
+                if verbose:
+                    print("Search window too narrow before finding target CL; exiting")
                 return (upper_edge + lower_edge)/2, (upper_edge + lower_edge)/2
             if verbose:
                 print("Checking in range ", lower_edge, upper_edge)
@@ -420,4 +421,17 @@ class PseudoExperiment:
             obs_i = readfile[i,:]
             self.chi2_values.append(chisquare(obs_i, self.exp_values, n_dof)[0])
         return np.array(self.chi2_values)
+    
+    def get_chi2_median(self):
+        return np.median(self.chi2_values)
+
+    def get_chi2_pvalue(self, p):
+        chi2_sorted = self.get_chi2_dist()
+        chi2_hist = np.histogram(chi2_sorted, bins=100)
+        cdf = np.cumsum(chi2_hist[0])/len(chi2_sorted)
+        absolute_val_array = np.abs(cdf - p)
+        smallest_difference_index = absolute_val_array.argmin()
+        return chi2_hist[1][smallest_difference_index]
+
+
 

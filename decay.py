@@ -22,6 +22,20 @@ def W_ee(g_ae, ma):
 
 
 
+def W_aprime_gamma_phi(g_gauge, m_aprime, m_phi):
+    # Aprime -> gamma + phi (scalar)
+    return power(g_gauge, 2) * power((m_aprime**2 - m_phi**2)/m_aprime, 3) / (128*pi)
+
+
+
+
+def W_aprime_gamma_a(g_gauge, m_aprime, m_phi):
+    # Aprime -> gamma + a (pseudoscalar)
+    pass
+
+
+
+
 def Tau(width):
     # Get the lifetime in the rest frame in s
     pass

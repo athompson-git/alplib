@@ -11,6 +11,8 @@ from .det_xs import *
 from .photon_xs import *
 
 
+
+
 class AxionFlux:
     # Generic superclass for constructing fluxes
     def __init__(self, axion_mass, target: Material, detector: Material,
@@ -44,9 +46,9 @@ class AxionFlux:
         tau = boost / decay_width if decay_width > 0.0 else np.inf * np.ones_like(boost)
 
         # Get decay and survival probabilities
-        surv_prob = np.array([mp.exp(-self.det_dist / METER_BY_MEV / v_a[i] / tau[i]) \
+        surv_prob = np.array([np.exp(-self.det_dist / METER_BY_MEV / v_a[i] / tau[i]) \
                      for i in range(len(v_a))])
-        decay_prob = np.array([fsub(1, mp.exp(-self.det_length / METER_BY_MEV / v_a[i] / tau[i])) \
+        decay_prob = np.array([(1 - np.exp(-self.det_length / METER_BY_MEV / v_a[i] / tau[i])) \
                       for i in range(len(v_a))])
 
         self.decay_axion_weight = np.asarray(rescale_factor * wgt * surv_prob * decay_prob, dtype=np.float32)  # removed g^2
