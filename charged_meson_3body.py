@@ -372,7 +372,7 @@ class ChargedMeson3BodyDecay:
             self.simulate_single(p[0], p[1], p[2])
         
 
-    def propagate(self, ge):  # propagate to detector
+    def propagate(self, gmu):  # propagate to detector
         e_a = np.array(self.energies)
         wgt = np.array(self.weights)
 
@@ -381,8 +381,8 @@ class ChargedMeson3BodyDecay:
         v_a = p_a / e_a
         axion_boost = e_a / self.ma
 
-        surv_prob = 1.0 #exp(-self.det_dist / METER_BY_MEV / v_a / (axion_boost * self.lifetime(ge)))
-        decay_prob = 0.0 #1.0 - exp(-self.det_length / METER_BY_MEV / v_a / (axion_boost * self.lifetime(ge)))
+        surv_prob = exp(-self.det_dist / METER_BY_MEV / v_a / (axion_boost * self.lifetime(gmu)))
+        decay_prob = 1.0 - exp(-self.det_length / METER_BY_MEV / v_a / (axion_boost * self.lifetime(gmu)))
         
         self.decay_weight = np.asarray(wgt * surv_prob * decay_prob, dtype=np.float64)
         self.scatter_weight = np.asarray(wgt * surv_prob, dtype=np.float64)
@@ -410,4 +410,11 @@ class ChargedMeson3BodyDecay:
             h, hbins = np.histogram(rcos, weights=wgts, bins=cosine_bins)
             binned_events += h
         return binned_events, centers
+    
+    def decay_gamma_cosines(self, cosine_bins):
+        centers = (cosine_bins[1:] + cosine_bins[:-1])/2
+        cosines = np.ones_like(self.decay_weight)  # assume all ALPs decay forward
+        h, hbins = np.histogram(cosines, weights=self.decay_weight, bins=cosine_bins)
+        return h, centers
+
 
