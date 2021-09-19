@@ -215,8 +215,8 @@ class ChargedMeson3BodyDecay:
         self.decay_weight = []
         self.scatter_weight = []
     
-    def lifetime(self, gmu):
-        return 1/W_gg(gamma_loop(gmu, M_MU, self.ma), self.ma)
+    def lifetime(self, gagamma):
+        return 1/W_gg(gagamma, self.ma)
 
     def dGammadEa(self, Ea):
         m212 = self.mm**2 + self.ma**2 - 2*self.mm*Ea
@@ -372,18 +372,18 @@ class ChargedMeson3BodyDecay:
             self.simulate_single(p[0], p[1], p[2])
         
 
-    def propagate(self, gmu=None):  # propagate to detector
+    def propagate(self, gagamma=None):  # propagate to detector
         e_a = np.array(self.energies)
         wgt = np.array(self.weights)
-        if gmu is not None:
+        if gagamma is not None:
             # Decay via loop-induced gamma coupling
             # Get axion Lorentz transformations and kinematics
             p_a = sqrt(e_a**2 - self.ma**2)
             v_a = p_a / e_a
             axion_boost = e_a / self.ma
 
-            surv_prob = exp(-self.det_dist / METER_BY_MEV / v_a / (axion_boost * self.lifetime(gmu)))
-            decay_prob = 1.0 - exp(-self.det_length / METER_BY_MEV / v_a / (axion_boost * self.lifetime(gmu)))
+            surv_prob = exp(-self.det_dist / METER_BY_MEV / v_a / (axion_boost * self.lifetime(gagamma)))
+            decay_prob = 1.0 - exp(-self.det_length / METER_BY_MEV / v_a / (axion_boost * self.lifetime(gagamma)))
             
             self.decay_weight = np.asarray(wgt * surv_prob * decay_prob, dtype=np.float64)
             self.scatter_weight = np.asarray(wgt * surv_prob, dtype=np.float64)
