@@ -216,7 +216,6 @@ class ChargedMeson3BodyDecay:
         self.scatter_weight = []
     
     def lifetime(self, gmu):
-        print(gamma_loop(gmu, M_MU, self.ma))
         return 1/W_gg(gamma_loop(gmu, M_MU, self.ma), self.ma)
 
     def dGammadEa(self, Ea):
@@ -373,20 +372,26 @@ class ChargedMeson3BodyDecay:
             self.simulate_single(p[0], p[1], p[2])
         
 
-    def propagate(self, gmu):  # propagate to detector
+    def propagate(self, gmu=None):  # propagate to detector
         e_a = np.array(self.energies)
         wgt = np.array(self.weights)
+        if gmu is not None:
+            # Decay via loop-induced gamma coupling
+            # Get axion Lorentz transformations and kinematics
+            p_a = sqrt(e_a**2 - self.ma**2)
+            v_a = p_a / e_a
+            axion_boost = e_a / self.ma
 
-        # Get axion Lorentz transformations and kinematics
-        p_a = sqrt(e_a**2 - self.ma**2)
-        v_a = p_a / e_a
-        axion_boost = e_a / self.ma
+            surv_prob = exp(-self.det_dist / METER_BY_MEV / v_a / (axion_boost * self.lifetime(gmu)))
+            decay_prob = 1.0 - exp(-self.det_length / METER_BY_MEV / v_a / (axion_boost * self.lifetime(gmu)))
+            
+            self.decay_weight = np.asarray(wgt * surv_prob * decay_prob, dtype=np.float64)
+            self.scatter_weight = np.asarray(wgt * surv_prob, dtype=np.float64)
+        else:
+            # Do not decay
+            self.decay_weight = np.asarray(wgt*0.0, dtype=np.float64)
+            self.scatter_weight = np.asarray(wgt, dtype=np.float64)
 
-        surv_prob = exp(-self.det_dist / METER_BY_MEV / v_a / (axion_boost * self.lifetime(gmu)))
-        decay_prob = 1.0 - exp(-self.det_length / METER_BY_MEV / v_a / (axion_boost * self.lifetime(gmu)))
-        
-        self.decay_weight = np.asarray(wgt * surv_prob * decay_prob, dtype=np.float64)
-        self.scatter_weight = np.asarray(wgt * surv_prob, dtype=np.float64)
     
     def scatter_compton(self, ge, n_e, cosine_bins):
         # make a histogram
