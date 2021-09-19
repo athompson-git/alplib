@@ -216,7 +216,8 @@ class ChargedMeson3BodyDecay:
         self.scatter_weight = []
     
     def lifetime(self, gmu):
-        return W_gg(gamma_loop(gmu, M_MU, self.ma))
+        print(gamma_loop(gmu, M_MU, self.ma))
+        return 1/W_gg(gamma_loop(gmu, M_MU, self.ma), self.ma)
 
     def dGammadEa(self, Ea):
         m212 = self.mm**2 + self.ma**2 - 2*self.mm*Ea
@@ -413,8 +414,7 @@ class ChargedMeson3BodyDecay:
     
     def decay_gamma_cosines(self, cosine_bins):
         centers = (cosine_bins[1:] + cosine_bins[:-1])/2
-        cosines = np.ones_like(self.decay_weight)  # assume all ALPs decay forward
-        h, hbins = np.histogram(cosines, weights=self.decay_weight, bins=cosine_bins)
+        h, hbins = np.histogram(self.cosines, weights=self.decay_weight, bins=cosine_bins)
         return h, centers
 
 

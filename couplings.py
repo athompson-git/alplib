@@ -64,4 +64,4 @@ def gamma_loop(gf, mf, ma):
     tau = 4*power(mf/ma, 2)
     bf = 1 - tau*power(arcsin(1/sqrt(tau)), 2) if tau >= 1 \
         else 1 - tau*(pi/2 + 1j*log((1+sqrt(1-tau))/(1-sqrt(1-tau))))*(pi/2 - 1j*log((1+sqrt(1-tau))/(1-sqrt(1-tau))))
-    return ALPHA * gf * bf / pi
+    return abs(ALPHA * (2*gf/mf) * bf / pi)
