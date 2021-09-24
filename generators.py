@@ -248,22 +248,22 @@ class IsotropicAxionFromPrimakoff:
 
 
     def branching_ratio(self, energy, coupling=1.0):
-        xs = primakoff_sigma(energy, self.target_z, 2*self.target_z, self.axion_mass, coupling)
+        xs = primakoff_sigma(energy, coupling, self.axion_mass, self.target_z)
         #xs = iprimakoff_sigma(energy, coupling, self.axion_mass, self.target_z, 1e-10/METER_BY_MEV)/2
-        return xs / (xs + (self.target_photon_cross / (100 * METER_BY_MEV) ** 2))
+        return xs / ((self.target_photon_cross / (100 * METER_BY_MEV) ** 2))
 
     # Convolute axion production and decay rates with a photon flux
     def simulate_single(self, energy, rate):
         if energy <= self.axion_mass:
             return
-        br = mpmathify(self.branching_ratio(energy, self.axion_coupling))
-        axion_p = mp.sqrt(energy ** 2 - self.axion_mass ** 2)
-        axion_v = mpmathify(axion_p / energy)
+        br = (self.branching_ratio(energy, self.axion_coupling))
+        axion_p = np.sqrt(energy ** 2 - self.axion_mass ** 2)
+        axion_v = (axion_p / energy)
 
-        axion_boost = mpmathify(energy / self.axion_mass)
-        tau = mpmathify(64 * pi / (self.axion_coupling ** 2 * self.axion_mass ** 3) * axion_boost)
-        surv_prob =  mp.exp(-self.detector_distance / METER_BY_MEV / axion_v / tau)
-        decay_in_detector = fsub(1,mp.exp(-self.detector_length / METER_BY_MEV / axion_v / tau))
+        axion_boost = energy / self.axion_mass
+        tau = (64 * pi / (self.axion_coupling ** 2 * self.axion_mass ** 3) * axion_boost)
+        surv_prob =  np.exp(-self.detector_distance / METER_BY_MEV / axion_v / tau)
+        decay_in_detector = 1 - np.exp(-self.detector_length / METER_BY_MEV / axion_v / tau)
 
         self.axion_velocity.append(axion_v)
         self.axion_energy.append(energy)
