@@ -144,12 +144,13 @@ class FluxComptonIsotropic(AxionFlux):
     Takes in a flux of el
     """
     def __init__(self, photon_flux=[1,1], target=Material("W"), detector=Material("Ar"), det_dist=4.,
-                    det_length=0.2, det_area=0.04, axion_mass=0.1, axion_coupling=1e-3, nsamples=100):
+                    det_length=0.2, det_area=0.04, axion_mass=0.1, axion_coupling=1e-3, nsamples=100, is_isotropic=True):
         super().__init__(axion_mass, target, detector, det_dist, det_length, det_area)
         self.photon_flux = photon_flux
         self.ge = axion_coupling
         self.nsamples = nsamples
         self.target_photon_xs = AbsCrossSection(target)
+        self.is_isotropic = is_isotropic
     
     def decay_width(self, ge, ma):
         return W_ee(ge, ma)
@@ -184,9 +185,11 @@ class FluxComptonIsotropic(AxionFlux):
             super().propagate(W_ee(new_coupling, self.ma), rescale_factor=power(new_coupling/self.ge, 2))
         else:
             super().propagate(W_ee(self.ge, self.ma))
-        geom_accept = self.det_area / (4*pi*self.det_dist**2)
-        self.decay_axion_weight *= geom_accept
-        self.scatter_axion_weight *= geom_accept
+        
+        if self.is_isotropic:
+            geom_accept = self.det_area / (4*pi*self.det_dist**2)
+            self.decay_axion_weight *= geom_accept
+            self.scatter_axion_weight *= geom_accept
 
 
 
@@ -205,7 +208,7 @@ class FluxBremIsotropic(AxionFlux):
     """
     def __init__(self, electron_flux=[1.,0.], positron_flux=[1.,0.], target=Material("W"), detector=Material("Ar"),
                     target_density=19.3, target_radiation_length=6.76, target_length=10.0, det_dist=4., det_length=0.2,
-                    det_area=0.04, axion_mass=0.1, axion_coupling=1e-3, nsamples=100):
+                    det_area=0.04, axion_mass=0.1, axion_coupling=1e-3, nsamples=100, is_isotropic=True):
         super().__init__(axion_mass, target, detector, det_dist, det_length, det_area)
         # TODO: Replace A = 2*Z with real numbers of nucleons
         self.electron_flux = electron_flux
@@ -216,6 +219,7 @@ class FluxBremIsotropic(AxionFlux):
         self.ntargets_by_area = target_length * target_density * AVOGADRO / (2*target.z[0])  # N_T / cm^2
         self.ntarget_area_density = target_radiation_length * AVOGADRO / (2*target.z[0])
         self.nsamples = nsamples
+        self.is_isotropic = is_isotropic
     
     def decay_width(self):
         return W_ee(self.ge, self.ma)
@@ -260,9 +264,11 @@ class FluxBremIsotropic(AxionFlux):
             super().propagate(W_ee(new_coupling, self.ma), rescale_factor=power(new_coupling/self.ge, 2))
         else:
             super().propagate(W_ee(self.ge, self.ma))
-        geom_accept = self.det_area / (4*pi*self.det_dist**2)
-        self.decay_axion_weight *= geom_accept
-        self.scatter_axion_weight *= geom_accept
+        
+        if self.is_isotropic:
+            geom_accept = self.det_area / (4*pi*self.det_dist**2)
+            self.decay_axion_weight *= geom_accept
+            self.scatter_axion_weight *= geom_accept
 
 
 
@@ -272,19 +278,18 @@ class FluxResonanceIsotropic(AxionFlux):
     Generator for e+ e- resonant ALP production flux
     Takes in a flux of positrons
     """
-    def __init__(self, positron_flux=[1.,0.], target=Material("W"), detector=Material("Ar"), target_density=19.3, target_length=10.0,
+    def __init__(self, positron_flux=[1.,0.], target=Material("W"), detector=Material("Ar"), target_length=10.0,
                  target_radiation_length=6.76, det_dist=4., det_length=0.2, det_area=0.04,
-                 axion_mass=0.1, axion_coupling=1e-3, nsamples=100):
+                 axion_mass=0.1, axion_coupling=1e-3, nsamples=100, is_isotropic=True):
         # TODO: make flux take in a Detector class and a Target class (possibly Material class?)
         # Replace A = 2*Z with real numbers of nucleons
         super().__init__(axion_mass, target, detector, det_dist, det_length, det_area, nsamples)
         self.positron_flux = positron_flux  # differential positron energy flux dR / dE+ / s
         self.positron_flux_bin_widths = positron_flux[1:,0] - positron_flux[:-1,0]
         self.ge = axion_coupling
-        self.target_density = target_density  # g/cm3
         self.target_radius = target_length  # cm
-        self.ntargets_by_area = target_length * target_density * AVOGADRO / (2*target.z[0])  # N_T / cm^2
-        self.ntarget_area_density = target_radiation_length * AVOGADRO / (2*target.z[0])
+        self.ntarget_area_density = target_radiation_length * AVOGADRO / (2*target.z[0])  # N_T / cm^2
+        self.is_isotropic = is_isotropic
     
     def decay_width(self):
         return W_ee(self.ge, self.ma)
@@ -301,7 +306,7 @@ class FluxResonanceIsotropic(AxionFlux):
         self.scatter_axion_weight = []
         self.decay_axion_weight = []
 
-        resonant_energy = self.ma**2 / (2 * M_E)
+        resonant_energy = -M_E + self.ma**2 / (2 * M_E)
         if resonant_energy + M_E < self.ma:
             return
         
@@ -323,9 +328,11 @@ class FluxResonanceIsotropic(AxionFlux):
             super().propagate(W_ee(new_coupling, self.ma), rescale_factor=power(new_coupling/self.ge, 2))
         else:
             super().propagate(W_ee(self.ge, self.ma))
-        geom_accept = self.det_area / (4*pi*self.det_dist**2)
-        self.decay_axion_weight *= geom_accept
-        self.scatter_axion_weight *= geom_accept
+        
+        if self.is_isotropic:
+            geom_accept = self.det_area / (4*pi*self.det_dist**2)
+            self.decay_axion_weight *= geom_accept
+            self.scatter_axion_weight *= geom_accept
 
 
 
@@ -338,7 +345,7 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
     """
     def __init__(self, positron_flux=[1.,0.], target=Material("W"), detector=Material("Ar"),
                  target_radiation_length=6.76, det_dist=4., det_length=0.2, det_area=0.04,
-                 axion_mass=0.1, axion_coupling=1e-3, nsamples=100):
+                 axion_mass=0.1, axion_coupling=1e-3, nsamples=100, is_isotropic=True):
         # TODO: make flux take in a Detector class and a Target class (possibly Material class?)
         # Replace A = 2*Z with real numbers of nucleons
         super().__init__(axion_mass, target, detector, det_dist, det_length, det_area, nsamples)
@@ -346,6 +353,7 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
         self.positron_flux_bin_widths = positron_flux[1:,0] - positron_flux[:-1,0]
         self.ge = axion_coupling
         self.ntarget_area_density = target_radiation_length * AVOGADRO / (2*target.z[0])
+        self.is_isotropic = is_isotropic
     
     def decay_width(self):
         return W_ee(self.ge, self.ma)
@@ -392,9 +400,11 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
             super().propagate(W_ee(new_coupling, self.ma), rescale_factor=power(new_coupling/self.ge, 2))
         else:
             super().propagate(W_ee(self.ge, self.ma))
-        geom_accept = self.det_area / (4*pi*self.det_dist**2)
-        self.decay_axion_weight *= geom_accept
-        self.scatter_axion_weight *= geom_accept
+        
+        if self.is_isotropic:
+            geom_accept = self.det_area / (4*pi*self.det_dist**2)
+            self.decay_axion_weight *= geom_accept
+            self.scatter_axion_weight *= geom_accept
 
 
 
