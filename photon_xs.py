@@ -27,10 +27,8 @@ class AbsCrossSection:
 
         if self.mat_name == "NaI":
             self.xs_dim = 149.89 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
-            self.pe_data = np.genfromtxt("data/photon_absorption/photon_abs_NaI.txt", skip_header=3)
         elif self.mat_name == "CsI":
             self.xs_dim = 259.81 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
-            self.pe_data = np.genfromtxt("data/photon_absorption/photon_abs_CsI.txt", skip_header=3)
         
         self.cleanPEData()
     
@@ -56,6 +54,11 @@ class PairProdutionCrossSection:
         self.file_extension = ".txt"
         fpath = pkg_resources.resource_filename(__name__, self.path_prefix + self.mat_name + self.file_extension)
         self.xs_data = np.genfromtxt(fpath, skip_header=3)
+
+        if self.mat_name == "NaI":
+            self.xs_dim = 149.89 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
+        elif self.mat_name == "CsI":
+            self.xs_dim = 259.81 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
         
         self.cleanPEData()
     
