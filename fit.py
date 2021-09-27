@@ -9,7 +9,7 @@ from scipy.signal import savgol_filter
 
 
 
-def TwoSidedSearch(generator, observations, param_grid, background=None, cl_tolerance=0.05, cl=0.90, ddof=1):
+def TwoSidedGridSearch(generator, observations, param_grid, background=None, target_cl=0.90, ddof=0, verbose=False):
     # This is a brute-force grid search for the upper and lower limit CLs.
     lower_cl = param_grid[0]
     upper_cl = param_grid[-1]
@@ -20,43 +20,32 @@ def TwoSidedSearch(generator, observations, param_grid, background=None, cl_tole
         else:
             return np.sum(generator(param))
 
-    ndof = observations.shape[0] - 1 - ddof
-    stop_value = chi2.ppf(cl, ndof) \
+    stop_value = chi2.ppf(target_cl, observations.shape[0]) - observations.shape[0] \
         if background is not None else 2.3
-    tolerance = abs(chi2.ppf(cl+cl_tolerance, ndof) - chi2.ppf(cl-cl_tolerance, ndof)) \
-        if background is not None else 0.4
 
     # lower bound
-    print("LOWER BOUND")
+    if verbose:
+        print("getting LOWER BOUND...")
     for i, x in enumerate(param_grid):
         stat = statistic(x)
-        print("chi2 = ", stat)
         if stat > stop_value:
-            if abs(stat - stop_value) > tolerance:
-                # Refine
-                lower_cl = binary_search(statistic, stop_value, tolerance, param_grid[i-1], param_grid[i])
+            lower_cl = x
+            if verbose:
+                print("chi2 = ", stat)
                 print("found lower cl = ", lower_cl)
-                break
-            else:
-                lower_cl = x
-                print("found lower cl = ", lower_cl)
-                break
+            break
     
     # upper bound
-    print("UPPER BOUND")
+    if verbose:
+        print("getting UPPER BOUND...")
     for i, x in enumerate(param_grid[::-1]):
         stat = statistic(x)
-        print("chi2 = ", stat)
         if stat > stop_value:
-            if abs(stat - stop_value) > tolerance:
-                # Refine
-                upper_cl = binary_search(statistic, stop_value, tolerance, param_grid[i], param_grid[i+1], is_increasing=False)
+            upper_cl = x
+            if verbose:
+                print("chi2 = ", stat)
                 print("found upper cl = ", upper_cl)
-                break
-            else:
-                upper_cl = x
-                print("found upper cl = ", upper_cl)
-                break
+            break
 
     return lower_cl, upper_cl
 
@@ -122,99 +111,6 @@ def cleanLimitData(masses, lower_limits, upper_limits):
         joined_limits = np.append(joined_limits[0], joined_limits)
         return joined_masses, joined_limits
 
-
-
-
-def peak_search(test_func, level, lower_edge, upper_edge):
-    x_lower = lower_edge
-    x_upper = upper_edge
-    x_list = []
-    f_list = []
-
-    x_list.append(x_lower)
-    f_list.append(test_func(x_list[0]))
-
-    x = (x_upper - x_lower)/2
-    f = test_func(x)
-    x_list.append(x)
-    f_list.append(f)
-
-    while f < level:
-        if f_list[-1] > f_list[-2]:
-            x = (x_upper - x)/2
-        else:
-            x = (x_list[-1] - x_list[-2])
-        
-        f = test_func(x)
-        print("f, x = ", f, x)
-
-        x_list.append(x)
-        f_list.append(f)
-
-    return np.array(x_list), np.array(f_list)
-
-
-
-
-def MiddleOutCLSearch(event_generator, observations, lower_edge, upper_edge, background=None,
-                        cl=0.9, file_out=None, tolerance=0.05, ddof=1):
-    """
-    TODO: deprecate unless I think of a use for this one.
-    """
-    def statistic(param):
-        if background is not None:
-            return chisquare(event_generator(param) + background, observations, ddof)[0]
-        else:
-            return np.sum(event_generator(param))
-
-    ndof = observations.shape[0] - 1 - ddof
-    stop_value = chi2.ppf(cl, ndof) if background is not None else 2.3
-
-    upper_cl = float("NaN")
-    lower_cl = float("NaN")
-    middle = float("NaN")
-
-    chi2_lower = statistic(lower_edge)
-    chi2_upper = statistic(upper_edge)
-    
-    # First find somewhere in the middle of the Chi2 dist., inside of CL
-    param_list = peak_search(statistic, stop_value, lower_edge, upper_edge)[0]
-
-    # The last entry in peak_search is the parameter value inside the CL level of the Chi2
-    # Constrain the CL level between the parameters to the left and right of the middle value
-    middle = param_list[-1]
-    upper_edge = min(param_list[param_list > middle])
-    lower_edge = max(param_list[param_list < middle])
-
-    # Lower CL binary search
-    x_upper = middle
-    x_lower = lower_edge
-    x = (x_upper - x_lower)/2
-    while abs(chi2_lower-stop_value) > tolerance:
-        chi2_lower = statistic(x)
-        if chi2_lower < stop_value:  # ascending
-            x_lower = x
-            x = (x_upper - x_lower)/2
-        else:
-            x_upper = x
-            x = (x_upper - x_lower)/2
-    lower_cl = x
-
-    # Upper CL binary search
-    x_lower = middle
-    x_lower = upper_edge
-    x = (x_upper - x_lower)/2
-    while abs(chi2_upper-stop_value) > tolerance:
-        chi2_upper = statistic(x)
-        if chi2_upper > stop_value:  # descending
-            x_lower = x
-            x = (x_upper - x_lower)/2
-        else:
-            x_upper = x
-            x = (x_upper - x_lower)/2
-    upper_cl = x
-
-    return lower_cl, upper_cl
 
 
 
@@ -319,7 +215,7 @@ class ChiSquareRandomizedSearch:
             if (upper_edge - lower_edge)/(self.range[1] - self.range[0]) < self.tol:
                 if verbose:
                     print("Search window too narrow before finding target CL; exiting")
-                return (upper_edge + lower_edge)/2, (upper_edge + lower_edge)/2
+                return None, None #(upper_edge + lower_edge)/2, (upper_edge + lower_edge)/2
             if verbose:
                 print("Checking in range ", lower_edge, upper_edge)
 
@@ -369,12 +265,16 @@ class ChiSquareRandomizedSearch:
                                             tolerance=self.tol, is_increasing=True, verbose=verbose)
             self.param_list.append(self.lower_cl)
             self.chisq_list.append(self.test_stat(self.lower_cl))
+        
         if self.upper_cl is None:
             self.upper_cl = binary_search(self.test_stat, self.target_chi2, theta_mid_upper, theta_upper,
                                             tolerance=self.tol, is_increasing=False, verbose=verbose)
             self.param_list.append(self.upper_cl)
             self.chisq_list.append(self.test_stat(self.upper_cl))
-        print("found upper CL and lower CL at chi2 = ", self.chisq_list[-1], self.chisq_list[-2])
+        
+        if verbose:
+            print("found upper CL and lower CL at chi2 = ", self.chisq_list[-1], self.chisq_list[-2])
+        
         return self.lower_cl, self.upper_cl
     
     def get_sorted_chisq_dist(self):
