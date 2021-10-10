@@ -47,6 +47,9 @@ def TwoSidedGridSearch(generator, observations, param_grid, background=None, tar
                 print("found upper cl = ", upper_cl)
             break
 
+    if lower_cl == param_grid[0] and upper_cl == param_grid[-1]:
+        lower_cl = None
+        upper_cl = None
     return lower_cl, upper_cl
 
 
