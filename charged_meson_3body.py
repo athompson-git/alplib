@@ -1,11 +1,13 @@
 # Classes and constants for axion production and detection from 3-body decay of charged mesons
 
+from alplib.materials import Efficiency
 from .constants import *
 from .fmath import *
 from .prod_xs import *
 from .det_xs import *
 from .decay import *
 from .couplings import *
+from .efficiency import Efficiency
 
 # Proton total cross section
 def sigmap(p):
@@ -394,7 +396,6 @@ class ChargedMeson3BodyDecay:
 
     
     def scatter_compton(self, ge, n_e, cosine_bins):
-        # make a histogram
         binned_events = np.histogram([0.0], weights=[0.0], bins=cosine_bins)[0]
         centers = (cosine_bins[1:] + cosine_bins[:-1])/2
         for i in range(self.scatter_weight.shape[0]):
@@ -405,14 +406,13 @@ class ChargedMeson3BodyDecay:
             binned_events += h
         return binned_events, centers
     
-    def scatter_dark_primakoff(self, gZN, gaGZ, mZp, n_e, cosine_bins):
-        # make a histogram
+    def scatter_dark_primakoff(self, gZN, gaGZ, mZp, n_e, cosine_bins, evis_bins=None, eff=Efficiency()):        
         binned_events = np.zeros(cosine_bins.shape[0]-1)
         centers = (cosine_bins[1:] + cosine_bins[:-1])/2
         for i in range(self.scatter_weight.shape[0]):
             rcos = np.random.uniform(-1, 1, self.nsamples)
             xs = 4*pi*dark_iprim_dsigma_dcostheta(rcos, self.energies[i], gZN, gaGZ, self.ma, mZp)/self.nsamples
-            wgts = 4.75 * self.scatter_weight[i]*n_e*power(METER_BY_MEV*100, 2)*xs  # ad hoc coherency factor 4.75
+            wgts = eff(self.energies[i]) * 4.75 * self.scatter_weight[i]*n_e*power(METER_BY_MEV*100, 2)*xs  # ad hoc coherency factor 4.75
             h, hbins = np.histogram(rcos, weights=wgts, bins=cosine_bins)
             binned_events += h
         return binned_events, centers
