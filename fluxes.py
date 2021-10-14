@@ -431,8 +431,9 @@ class ElectronEventGenerator:
         # TODO: remove this ad hoc XS and replace with real calc
         self.axion_energy = np.array(self.flux.axion_energy)
         self.pair_weights = days_exposure * S_PER_DAY * (ntargets / self.flux.det_area) \
-            * (2 * ge**2 / ALPHA)*self.pair_xs.sigma_mev(sqrt(self.axion_energy**2 - ma**2)) \
-                * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.axion_energy - threshold, 1.0)
+            * (2 * ge**2 / ALPHA)*self.pair_xs.sigma_mev(self.axion_energy**2) \
+                * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.axion_energy - threshold, 1.0) \
+                    * heaviside(self.axion_energy - 2*M_E, 0.0)
         res = np.sum(self.pair_weights)
         return res
 
