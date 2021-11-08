@@ -89,6 +89,9 @@ class FluxPrimakoffIsotropic(AxionFlux):
 
     def decay_width(self, gagamma, ma):
         return W_gg(gagamma, ma)
+    
+    def photon_flux_dN_dE(self, energy):
+        return np.interp(energy, self.photon_flux[:,0], self.photon_flux[:,1], left=0.0, right=0.0)
 
     def simulate_single(self, photon):
         gamma_energy = photon[0]

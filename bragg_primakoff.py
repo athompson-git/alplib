@@ -4,6 +4,7 @@ from itertools import product
 from .constants import *
 from .fmath import *
 from .det_xs import iprimakoff_sigma
+from .materials import Material
 from .crystal import Crystal
 from .borrmann import Borrmann
 
@@ -25,6 +26,8 @@ class BraggPrimakoff:
         self.va = crys.cell_volume
         self.ntargets = crys.ntargets
         self.volume = crys.volume*1e24  # convert cm3 to A3
+
+        self.borrmann = Borrmann(Material(crys.mat_name))
 
         # Primitive basis vectors
         self.a0 = np.array([0,0,0])
@@ -103,20 +106,28 @@ class BraggPrimakoff:
         
         return prefactor * rate
 
-    def BraggPrimakoffAvgPhi(self, theta_z, E1=2.0, E2=2.5, gagamma=1e-10):
+    def BraggPrimakoffAvgPhi(self, theta_z, E1=2.0, E2=2.5, gagamma=1e-10, use_borrmann=False, use_att=False):
         # Bragg-Primakoff event rate after averaging over polar angle
         prefactor = (gagamma / 1e6)**2 * HBARC_KEV_ANG**2 * (self.volume / self.va**2) / 4  # 1e6 to convert to keV^-1
         mList = self.GetReciprocalLattice()
         def Rate(phi):
             rate = 0.0
             for m in mList:
+                ea = abs(self.Ea(theta_z, phi, m))
                 sineThetaBy2 = np.dot(self.vecU(theta_z, phi), self.vecG(m)) / np.dot(self.vecG(m),self.vecG(m))
                 sineSquaredTheta = 4 * sineThetaBy2**2 * (1 - sineThetaBy2**2)
-                formFactorSquared = self.FA(sqrt(np.dot(self.vecG(m), self.vecG(m))), self.Ea(theta_z, phi, m))
-                rate += np.sum(heaviside(self.Ea(theta_z, phi, m), 0.0) \
-                    * self.SolarFlux(self.Ea(theta_z, phi, m), gagamma) * sineSquaredTheta \
+                formFactorSquared = self.FA(sqrt(np.dot(self.vecG(m), self.vecG(m))), ea)
+                l_factor = power(self.volume, 1/3)
+                if use_borrmann:
+                    l_factor = self.borrmann.anomalous_abs(abs(self.Ea(theta_z, phi, m)), m[0], m[1], m[2])
+                elif use_att:
+                    l_factor = self.borrmann.n * self.borrmann.abs_xs.sigma_cm2(1e-3*abs(self.Ea(theta_z, phi, m)))
+                rate += np.sum(heaviside(ea, 0.0) \
+                    * self.SolarFlux(ea, gagamma) * sineSquaredTheta \
                     * formFactorSquared * self.S2Expanded(m) \
-                    * self.FW(self.Ea(theta_z, phi, m), E1, E2) * (1 / np.dot(self.vecG(m), self.vecG(m))))
+                    * self.FW(ea, E1, E2) * (1 / np.dot(self.vecG(m), self.vecG(m)))) \
+                    * l_factor / power(self.volume, 1/3)
+
             return rate
         
         return prefactor * 2*pi*np.sum(Rate(self.phi_list))/self.nsamples  # fast MC-based integration
@@ -153,14 +164,15 @@ class BraggPrimakoff:
         
         return prefactor * 2*pi*np.sum(Rate(self.phi_list))/self.nsamples  # fast MC-based integration
 
-    def AtomicPrimakoffRate(self, gagamma=1e-10, ma=1e-4):
+    def AtomicPrimakoffRate(self, E1=2.0, E2=2.5, gagamma=1e-10, ma=1e-4):
         # Solar ALP scattering rate ignoring crystal structure (isolated atomic scattering)
         def AtomicPrimakoffDifferentialRate(Ea, gagamma=1e-10, ma=1e-4):
             return self.ntargets * self.SolarFlux(Ea, gagamma) * (KEV_CM**2) \
                 * iprimakoff_sigma(Ea/1e3, gagamma*1e-3, ma, self.z, self.r0)
         
-        mc_volume = (self.e_list[-1] - self.e_list[0])/self.nsamples
-        return mc_volume*np.sum(AtomicPrimakoffDifferentialRate(self.e_list, gagamma, ma))
+        e_list = np.linspace(E1, E2, self.nsamples)
+        mc_volume = (e_list[-1] - e_list[0])/self.nsamples
+        return mc_volume*np.sum(AtomicPrimakoffDifferentialRate(e_list, gagamma, ma))
 
 
 

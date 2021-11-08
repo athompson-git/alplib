@@ -9,7 +9,8 @@ from scipy.signal import savgol_filter
 
 
 
-def TwoSidedGridSearch(generator, observations, param_grid, background=None, target_cl=0.90, ddof=0, verbose=False):
+def TwoSidedGridSearch(generator, observations, param_grid, background=None, target_cl=0.90,
+                        ddof=0, verbose=False, delta_chi2=False):
     # This is a brute-force grid search for the upper and lower limit CLs.
     lower_cl = param_grid[0]
     upper_cl = param_grid[-1]
@@ -17,11 +18,15 @@ def TwoSidedGridSearch(generator, observations, param_grid, background=None, tar
     def statistic(param):
         if background is not None:
             return chisquare(generator(param) + background, observations, ddof)[0]
+        elif background is not None and delta_chi2 == True:
+            return np.sum(power(generator(param) + background - observations, 2)/background)
         else:
             return np.sum(generator(param))
 
     stop_value = chi2.ppf(target_cl, observations.shape[0]) - observations.shape[0] \
         if background is not None else 2.3
+    if delta_chi2:
+        stop_value = 6.18
 
     # lower bound
     if verbose:

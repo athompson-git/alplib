@@ -8,6 +8,8 @@ from .det_xs import *
 from .decay import *
 from .couplings import *
 from .efficiency import Efficiency
+from .cross_section_mc import *
+from .matrix_element import M2DarkPrimakoff
 
 # Proton total cross section
 def sigmap(p):
@@ -58,7 +60,7 @@ def charged_meson_flux_mc(meson_type, p_min, p_max, theta_min, theta_max,
     p_list = np.random.uniform(p_min, p_max, n_samples)
     theta_list = np.random.uniform(theta_min, theta_max, n_samples)
 
-    xs_wgt = meson_production_d2SdpdOmega(p_list, theta_list, e_proton, meson_type=meson_type)*sin(theta_list)
+    xs_wgt = meson_production_d2SdpdOmega(p_list, theta_list, e_proton, meson_type=meson_type) * sin(theta_list)
     probability_decay = p_decay_lifetime(p_list, meson_mass, meson_lifetime, 50)
     pi_plus_wgts = probability_decay * (2*pi*(theta_max-theta_min) * (p_max-p_min)) * n_pot * xs_wgt / sigmap_total / n_samples
     return np.array([p_list*1000.0, theta_list, pi_plus_wgts]).transpose()
@@ -68,7 +70,7 @@ def charged_meson_flux_mc(meson_type, p_min, p_max, theta_min, theta_max,
 
 # Charged pion production double-differential cross section on Be target
 def meson_production_d2SdpdOmega(p, theta, p_proton, meson_type="pi_plus"):
-    pB = p_proton
+    pB = p_proton + M_P*1e-3
     mt = M_P
     # Sanford-Wang Parameterization
     if meson_type == "pi_plus":
@@ -197,11 +199,12 @@ class ChargedPionFluxMiniBooNE:
 # Convolve flux with axion branching ratio and generate ALP flux
 class ChargedMeson3BodyDecay:
     def __init__(self, meson_flux, axion_mass=0.1, coupling=1.0, n_samples=50,
-                 meson_mass=M_PI, ckm=V_UD, fM=F_PI, boson_type="P", energy_cut=140.0):
+                 meson_mass=M_PI, ckm=V_UD, fM=F_PI, m_lepton=M_MU, boson_type="P", energy_cut=140.0):
         self.meson_flux = meson_flux
         self.mm = meson_mass
         self.ckm = ckm
         self.fM = fM
+        self.m_lepton = m_lepton
         self.rep = boson_type
         self.ma = axion_mass
         self.gmu = coupling
@@ -222,7 +225,7 @@ class ChargedMeson3BodyDecay:
 
     def dGammadEa(self, Ea):
         m212 = self.mm**2 + self.ma**2 - 2*self.mm*Ea
-        e2star = (m212 - M_MU**2)/(2*sqrt(m212))
+        e2star = (m212 - self.m_lepton**2)/(2*sqrt(m212))
         e3star = (self.mm**2 - m212 - self.ma**2)/(2*sqrt(m212))
 
         if self.ma > e3star:
@@ -232,39 +235,39 @@ class ChargedMeson3BodyDecay:
         m223Min = (e2star + e3star)**2 - (sqrt(e2star**2) + sqrt(e3star**2 - self.ma**2))**2
     
         def MatrixElement2P(m223):
-            ev = (m212 + m223 - M_MU**2 - self.ma**2)/(2*self.mm)
-            emu = (self.mm**2 - m223 + M_MU**2)/(2*self.mm)
+            ev = (m212 + m223 - self.m_lepton**2 - self.ma**2)/(2*self.mm)
+            emu = (self.mm**2 - m223 + self.m_lepton**2)/(2*self.mm)
             q2 = self.mm**2 - 2*self.mm*ev
 
-            prefactor = heaviside(e3star-self.ma,0.0)*(self.gmu*G_F*self.fM*self.ckm/(q2 - M_MU**2))**2
-            return prefactor*((2*self.mm*emu*q2 * (q2 - M_MU**2) - (q2**2 - (M_MU*self.mm)**2)*(q2 + M_MU**2 - self.ma**2)) - (2*q2*M_MU**2 * (self.mm**2 - q2)))
+            prefactor = heaviside(e3star-self.ma,0.0)*(self.gmu*G_F*self.fM*self.ckm/(q2 - self.m_lepton**2))**2
+            return prefactor*((2*self.mm*emu*q2 * (q2 - self.m_lepton**2) - (q2**2 - (self.m_lepton*self.mm)**2)*(q2 + self.m_lepton**2 - self.ma**2)) - (2*q2*self.m_lepton**2 * (self.mm**2 - q2)))
         
         def MatrixElement2S(m223):
-            ev = (m212 + m223 - M_MU**2 - self.ma**2)/(2*self.mm)
-            emu = (self.mm**2 - m223 + M_MU**2)/(2*self.mm)
+            ev = (m212 + m223 - self.m_lepton**2 - self.ma**2)/(2*self.mm)
+            emu = (self.mm**2 - m223 + self.m_lepton**2)/(2*self.mm)
             q2 = self.mm**2 - 2*self.mm*ev
 
-            prefactor = heaviside(e3star-self.ma,0.0)*(self.gmu*G_F*self.fM*self.ckm/(q2 - M_MU**2))**2
-            return prefactor*((2*self.mm*emu*q2 * (q2 - M_MU**2) - (q2**2 - (M_MU*self.mm)**2)*(q2 + M_MU**2 - self.ma**2)) + (2*q2*M_MU**2 * (self.mm**2 - q2)))
+            prefactor = heaviside(e3star-self.ma,0.0)*(self.gmu*G_F*self.fM*self.ckm/(q2 - self.m_lepton**2))**2
+            return prefactor*((2*self.mm*emu*q2 * (q2 - self.m_lepton**2) - (q2**2 - (self.m_lepton*self.mm)**2)*(q2 + self.m_lepton**2 - self.ma**2)) + (2*q2*self.m_lepton**2 * (self.mm**2 - q2)))
 
         def MatrixElement2V(m223):
-            q2 = self.mm**2 - 2*self.mm*(m212 + m223 - M_MU**2 - self.ma**2)/(2*self.mm)
+            q2 = self.mm**2 - 2*self.mm*(m212 + m223 - self.m_lepton**2 - self.ma**2)/(2*self.mm)
 
-            prefactor = heaviside(e3star-self.ma,0.0)*32*power(G_F*self.fM*self.ckm/(q2 - M_MU**2)/self.ma, 2)
+            prefactor = heaviside(e3star-self.ma,0.0)*8*power(G_F*self.fM*self.ckm/(q2 - self.m_lepton**2)/self.ma, 2)
 
-            lq = (m212 - M_MU**2)/2
+            lq = (m212 - self.m_lepton**2)/2
             lp = (self.mm**2 - m212 - m223)/2
-            kq = (m212 + m223 - M_MU**2 - self.ma**2)/2
+            kq = (m212 + m223 - self.m_lepton**2 - self.ma**2)/2
             pq = (m223 - self.ma**2)/2
-            kl = (self.mm**2 + M_MU**2 - m223)/2
+            kl = (self.mm**2 + self.m_lepton**2 - m223)/2
             kp = (self.mm**2 + self.ma**2 - m212)/2
 
-            cr = 2*self.gmu
-            cl = 0
+            cr = self.gmu
+            cl = self.gmu
 
             # Dmu(self.mm/kl)*
-            return -prefactor * ((power(cr*self.mm*M_MU,2) - power(cl*q2,2)) * (lq*self.ma**2 + 2*lp*pq) \
-                - 2*cr*M_MU**2 * kq * (cr*self.ma**2 * kl + 2*cr*kp*lp - 3*cl*q2*self.ma**2))
+            return -prefactor * ((power(cr*self.mm*self.m_lepton,2) - power(cl*q2,2)) * (lq*self.ma**2 + 2*lp*pq) \
+                - 2*cr*self.m_lepton**2 * kq * (cr*self.ma**2 * kl + 2*cr*kp*lp - 3*cl*q2*self.ma**2))
         
         if self.rep == "P":
             return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2P, m223Min, m223Max)[0]
@@ -281,16 +284,16 @@ class ChargedMeson3BodyDecay:
             cl = self.gmu
             q2 = self.mm**2 - 2*self.mm*Enu
             EV = self.mm - Enu - Emu
-            prefactor = self.gamma_sm() * self.mm**2 / power(2*pi*M_MU*(self.mm*2 - M_MU**2)*(q2 - M_MU**2), 2)
-            return prefactor * (4*power(cr*M_MU*self.mm, 2)*Emu*Enu - 12*cr*cl*M_MU**2 * self.mm*q2*Enu \
-                + (power(cl*q2, 2) - power(cr*M_MU*self.mm, 2))*(self.mm**2 + self.ma**2 - M_MU**2 - 2*self.mm*EV) \
-                    + power(self.ma, -2)*(self.mm**2 - self.ma**2 - M_MU**2 - 2*self.mm*Enu)*(4*power(cr*M_MU*self.mm, 2)*EV*Enu \
-                        + (power(cl*q2, 2) - power(cr*M_MU*self.mm, 2))*(self.mm**2 - self.ma**2 + M_MU**2 - 2*self.mm*Emu)))
+            prefactor = self.gamma_sm() * self.mm**2 / power(2*pi*self.m_lepton*(self.mm*2 - self.m_lepton**2)*(q2 - self.m_lepton**2), 2)
+            return prefactor * (4*power(cr*self.m_lepton*self.mm, 2)*Emu*Enu - 12*cr*cl*self.m_lepton**2 * self.mm*q2*Enu \
+                + (power(cl*q2, 2) - power(cr*self.m_lepton*self.mm, 2))*(self.mm**2 + self.ma**2 - self.m_lepton**2 - 2*self.mm*EV) \
+                    + power(self.ma, -2)*(self.mm**2 - self.ma**2 - self.m_lepton**2 - 2*self.mm*Enu)*(4*power(cr*self.m_lepton*self.mm, 2)*EV*Enu \
+                        + (power(cl*q2, 2) - power(cr*self.m_lepton*self.mm, 2))*(self.mm**2 - self.ma**2 + self.m_lepton**2 - 2*self.mm*Emu)))
         
-        if Emu < M_MU:
+        if Emu < self.m_lepton:
             return 0.0
-        Enu_max = (self.mm**2 + M_MU**2 - self.ma**2 - 2*self.mm*Emu)/(2*(self.mm - Emu - sqrt(Emu**2 - M_MU**2)))
-        Enu_min = (self.mm**2 + M_MU**2 - self.ma**2 - 2*self.mm*Emu)/(2*(self.mm - Emu + sqrt(Emu**2 - M_MU**2)))
+        Enu_max = (self.mm**2 + self.m_lepton**2 - self.ma**2 - 2*self.mm*Emu)/(2*(self.mm - Emu - sqrt(Emu**2 - self.m_lepton**2)))
+        Enu_min = (self.mm**2 + self.m_lepton**2 - self.ma**2 - 2*self.mm*Emu)/(2*(self.mm - Emu + sqrt(Emu**2 - self.m_lepton**2)))
         return quad(dGammadEnudEmuV, Enu_min, Enu_max)[0]
 
     def BrV(self):
@@ -299,32 +302,32 @@ class ChargedMeson3BodyDecay:
             cl = self.gmu
             q2 = self.mm**2 - 2*self.mm*Enu
             EV = self.mm - Enu - Emu
-            prefactor = heaviside(Emu-M_MU,0.0)*self.mm**2 / power(2*pi*M_MU*(self.mm*2 - M_MU**2)*(q2 - M_MU**2), 2)
-            return prefactor * (4*power(cr*M_MU*self.mm, 2)*Emu*Enu - 12*cr*cl*M_MU**2 * self.mm*q2*Enu \
-                + (power(cl*q2, 2) - power(cr*M_MU*self.mm, 2))*(self.mm**2 + self.ma**2 - M_MU**2 - 2*self.mm*EV) \
-                    + power(self.ma, -2)*(self.mm**2 - self.ma**2 - M_MU**2 - 2*self.mm*Enu)*(4*power(cr*M_MU*self.mm, 2)*EV*Enu \
-                        + (power(cl*q2, 2) - power(cr*M_MU*self.mm, 2))*(self.mm**2 - self.ma**2 + M_MU**2 - 2*self.mm*Emu)))
+            prefactor = heaviside(Emu-self.m_lepton,0.0)*self.mm**2 / power(2*pi*self.m_lepton*(self.mm*2 - self.m_lepton**2)*(q2 - self.m_lepton**2), 2)
+            return prefactor * (4*power(cr*self.m_lepton*self.mm, 2)*Emu*Enu - 12*cr*cl*self.m_lepton**2 * self.mm*q2*Enu \
+                + (power(cl*q2, 2) - power(cr*self.m_lepton*self.mm, 2))*(self.mm**2 + self.ma**2 - self.m_lepton**2 - 2*self.mm*EV) \
+                    + power(self.ma, -2)*(self.mm**2 - self.ma**2 - self.m_lepton**2 - 2*self.mm*Enu)*(4*power(cr*self.m_lepton*self.mm, 2)*EV*Enu \
+                        + (power(cl*q2, 2) - power(cr*self.m_lepton*self.mm, 2))*(self.mm**2 - self.ma**2 + self.m_lepton**2 - 2*self.mm*Emu)))
         
         def Enu_max(Emu): 
-            return (self.mm**2 + M_MU**2 - self.ma**2 - 2*self.mm*Emu)/(2*(self.mm - Emu - sqrt(Emu**2 - M_MU**2)))
+            return (self.mm**2 + self.m_lepton**2 - self.ma**2 - 2*self.mm*Emu)/(2*(self.mm - Emu - sqrt(Emu**2 - self.m_lepton**2)))
         def Enu_min(Emu):
-            return (self.mm**2 + M_MU**2 - self.ma**2 - 2*self.mm*Emu)/(2*(self.mm - Emu + sqrt(Emu**2 - M_MU**2)))
-        return dblquad(dGammadEnudEmuV, M_MU, (self.mm**2 + M_MU**2 - self.ma**2)/(2*self.mm), Enu_min, Enu_max)[0]
+            return (self.mm**2 + self.m_lepton**2 - self.ma**2 - 2*self.mm*Emu)/(2*(self.mm - Emu + sqrt(Emu**2 - self.m_lepton**2)))
+        return dblquad(dGammadEnudEmuV, self.m_lepton, (self.mm**2 + self.m_lepton**2 - self.ma**2)/(2*self.mm), Enu_min, Enu_max)[0]
     
     def total_br_V(self):
-        return quad(self.dGammadEmuV, M_MU, (self.mm**2 + M_MU**2 - self.ma**2)/(2*self.mm))[0] / self.gamma_sm()
+        return quad(self.dGammadEmuV, self.m_lepton, (self.mm**2 + self.m_lepton**2 - self.ma**2)/(2*self.mm))[0] / self.gamma_sm()
 
     def gamma_sm(self):
-        return (G_F*self.fM*M_MU*self.ckm)**2 * self.mm * (1-(M_MU/self.mm)**2)**2 / (4*pi)
+        return (G_F*self.fM*self.m_lepton*self.ckm)**2 * self.mm * (1-(self.m_lepton/self.mm)**2)**2 / (4*pi)
 
     def total_br(self):
-        EaMax = (self.mm**2 + self.ma**2 - M_MU**2)/(2*self.mm)
+        EaMax = (self.mm**2 + self.ma**2 - self.m_lepton**2)/(2*self.mm)
         EaMin = self.ma
         return quad(self.dGammadEa, EaMin, EaMax)[0] / self.gamma_sm()
     
     def simulate_single(self, meson_p, meson_theta, pion_wgt):
         ea_min = self.ma
-        ea_max = (self.mm**2 + self.ma**2 - M_MU**2)/(2*self.mm)
+        ea_max = (self.mm**2 + self.ma**2 - self.m_lepton**2)/(2*self.mm)
 
         # Draw random variate energies and angles in the pion rest frame
         energies = np.random.uniform(ea_min, ea_max, self.nsamples)
@@ -350,6 +353,14 @@ class ChargedMeson3BodyDecay:
 
         weights = np.array([pion_wgt*mc_vol*self.dGammadEa(ea)/self.gamma_sm()/self.nsamples \
             for ea in energies])
+        
+        dg = np.array([self.dGammadEa(ea) for ea in energies])
+        
+        if np.any(weights < 0.0):
+            print("Negatives:")
+            print(np.sum(dg < 0.0))
+            print(np.sum(pion_wgt < 0.0))
+            print(np.sum(self.gamma_sm() < 0.0))
 
         for i in range(self.nsamples):
             solid_angle_acceptance = heaviside(cos_theta_lab[i] - self.det_sa, 0.0)
@@ -366,7 +377,7 @@ class ChargedMeson3BodyDecay:
         self.scatter_weight = []
         self.decay_weight = []
 
-        if self.ma > self.mm - M_MU:
+        if self.ma > self.mm - self.m_lepton:
             # Kinematically forbidden beyond Meson mass - muon mass difference
             return
 
@@ -393,20 +404,8 @@ class ChargedMeson3BodyDecay:
             # Do not decay
             self.decay_weight = np.asarray(wgt*0.0, dtype=np.float64)
             self.scatter_weight = np.asarray(wgt, dtype=np.float64)
-
     
-    def scatter_compton(self, ge, n_e, cosine_bins):
-        binned_events = np.histogram([0.0], weights=[0.0], bins=cosine_bins)[0]
-        centers = (cosine_bins[1:] + cosine_bins[:-1])/2
-        for i in range(self.scatter_weight.shape[0]):
-            rcos = np.random.uniform(-1, 1, self.nsamples)
-            rthetas = arccos(rcos)
-            wgts = 4*pi*icompton_dsigma_domega(rthetas, self.energies[i], self.ma, ge)/self.nsamples
-            h, hbins = np.histogram(rcos, weights=self.scatter_weight[i]*n_e*power(METER_BY_MEV*100, 2)*wgts, bins=cosine_bins)
-            binned_events += h
-        return binned_events, centers
-    
-    def scatter_dark_primakoff(self, gZN, gaGZ, mZp, n_e, cosine_bins, evis_bins=None, eff=Efficiency()):        
+    def scatter_dark_primakoff(self, gZN, gaGZ, mZp, n_e, cosine_bins, evis_bins=None, eff=Efficiency()):
         binned_events = np.zeros(cosine_bins.shape[0]-1)
         centers = (cosine_bins[1:] + cosine_bins[:-1])/2
         for i in range(self.scatter_weight.shape[0]):
@@ -417,6 +416,27 @@ class ChargedMeson3BodyDecay:
             binned_events += h
         return binned_events, centers
     
+    def evis_dark_primakoff(self, gZN, gaGZ, mZp, n_e, evis_bins, eff=Efficiency()):
+        binned_events = np.zeros(evis_bins.shape[0]-1)
+        centers = (evis_bins[1:] + evis_bins[:-1])/2
+        # Simulate using the MatrixElement method
+        m2_dp = M2DarkPrimakoff(self.ma, 37e3, mZp)
+
+        # Declare initial vectors
+        pa_mu = LorentzVector(0.0, 0.0, 0.0, 0.0)
+        PM_mu = LorentzVector(0.0, 0.0, 0.0, 0.0)
+        mc = Scatter2to2MC(m2_dp, pa_mu, PM_mu, n_samples=1)
+        
+        for i in range(self.nsamples):
+            Ea0 = self.energies[i]
+            mc.lv_p1 = LorentzVector(Ea0, 0.0, 0.0, np.sqrt(Ea0**2 - self.ma**2))
+            mc.lv_p2 = LorentzVector(37e3, 0.0, 0.0, 0.0)
+            mc.scatter_sim()
+            wgts = power(gZN * gaGZ, 2)*eff(self.energies[i]) * 4.75 * self.scatter_weight[i]*n_e*power(METER_BY_MEV*100, 2)*mc.get_e3_lab_weights()
+            h, hbins = np.histogram([Ea0], weights=wgts, bins=evis_bins)
+            binned_events += h
+        return binned_events, centers
+
     def decay_gamma_cosines(self, cosine_bins):
         centers = (cosine_bins[1:] + cosine_bins[:-1])/2
         h, hbins = np.histogram(self.cosines, weights=self.decay_weight, bins=cosine_bins)
