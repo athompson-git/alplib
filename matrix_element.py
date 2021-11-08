@@ -61,15 +61,15 @@ class M2DMUpscatter(MatrixElement2):
     def __init__(self, mchi1, mchi2, mV, mN):
         super().__init__(mchi1, mN, mchi2, mN)
         self.mV = mV
-        self.m1 = mchi1
-        self.m2 = mchi2
+        self.mchi1 = mchi1
+        self.mchi2 = mchi2
         self.mN = mN
     
     def __call__(self, s, t, coupling_product=1.0):
         prefactor = ALPHA * coupling_product**2
         propagator = power(t - self.mV**2, 2)
-        numerator = 8*(2*power(self.mN,4) + 4*self.mN**2 * (self.m1 * self.m2 - s) \
-            + 2*(self.m1**2 - s)*(self.m2**2-s) - t*(self.m1-self.m2)**2 + 2*s*t + t**2)
+        numerator = 8*(2*power(self.mN,4) + 4*self.mN**2 * (self.mchi1 * self.mchi2 - s) \
+            + 2*(self.mchi1**2 - s)*(self.mchi2**2-s) - t*(self.mchi1-self.mchi2)**2 + 2*s*t + t**2)
         return prefactor * numerator / propagator
 
 
