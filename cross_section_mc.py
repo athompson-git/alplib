@@ -55,7 +55,7 @@ class Vector3:
 
 
 class LorentzVector:
-    def __init__(self, p0, p1, p2, p3):
+    def __init__(self, p0=0.0, p1=0.0, p2=0.0, p3=0.0):
         self.p0 = p0
         self.p1 = p1
         self.p2 = p2
@@ -227,8 +227,8 @@ class Decay2Body:
         # Draw random variates on the 2-sphere
         phi1_rnd = 2*pi*np.random.ranf(self.n_samples)
         theta1_rnd = arccos(1 - 2*np.random.ranf(self.n_samples))
-        phi2_rnd = np.pi + phi1_rnd
-        theta2_rnd = np.pi - theta1_rnd
+        #phi2_rnd = np.pi + phi1_rnd
+        #theta2_rnd = np.pi - theta1_rnd
 
         v_in = self.lv_p.get_3velocity()
 
@@ -236,10 +236,14 @@ class Decay2Body:
                             p_cm*cos(phi1_rnd[i])*sin(theta1_rnd[i]),
                             p_cm*sin(phi1_rnd[i])*sin(theta1_rnd[i]),
                             p_cm*cos(theta1_rnd[i])) for i in range(self.n_samples)]
+        #self.p2_cm_4vectors = [LorentzVector(e2_cm,
+        #                    p_cm*cos(phi2_rnd[i])*sin(theta2_rnd[i]),
+        #                    p_cm*sin(phi2_rnd[i])*sin(theta2_rnd[i]),
+        #                    p_cm*cos(theta2_rnd[i])) for i in range(self.n_samples)]
         self.p2_cm_4vectors = [LorentzVector(e2_cm,
-                            p_cm*cos(phi2_rnd[i])*sin(theta2_rnd[i]),
-                            p_cm*sin(phi2_rnd[i])*sin(theta2_rnd[i]),
-                            p_cm*cos(theta2_rnd[i])) for i in range(self.n_samples)]
+                            -p_cm*cos(phi1_rnd[i])*sin(theta1_rnd[i]),
+                            -p_cm*sin(phi1_rnd[i])*sin(theta1_rnd[i]),
+                            -p_cm*cos(theta1_rnd[i])) for i in range(self.n_samples)]
         self.p1_lab_4vectors = [lorentz_boost(p1, v_in) for p1 in self.p1_cm_4vectors]
         self.p2_lab_4vectors = [lorentz_boost(p2, v_in) for p2 in self.p2_cm_4vectors]
         self.weights = decay_width * np.ones(self.n_samples)

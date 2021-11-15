@@ -20,7 +20,8 @@ def sigmap(p):
     n = 0.003
     return A + B*power(p,n) + C*log(p)*log(p) + D*log(p)
 
-sigmap_total = sigmap(7.944)  # GeV^-2
+
+
 
 # pi+ decay probability
 def pi_decay(p_pi):
@@ -44,7 +45,7 @@ def kaon_decay(p):
 
 
 def charged_meson_flux_mc(meson_type, p_min, p_max, theta_min, theta_max,
-                            n_samples=1000, e_proton=8.0, n_pot=18.75e20):
+                            n_samples=1000, p_proton=8.89, n_pot=18.75e20):
     # Charged meson monte carlo flux simulation
     # Based on the Sanford-Wang and Feynman scaling parameterized proton prodution cross sections
 
@@ -60,9 +61,9 @@ def charged_meson_flux_mc(meson_type, p_min, p_max, theta_min, theta_max,
     p_list = np.random.uniform(p_min, p_max, n_samples)
     theta_list = np.random.uniform(theta_min, theta_max, n_samples)
 
-    xs_wgt = meson_production_d2SdpdOmega(p_list, theta_list, e_proton, meson_type=meson_type) * sin(theta_list)
-    probability_decay = p_decay_lifetime(p_list, meson_mass, meson_lifetime, 50)
-    pi_plus_wgts = probability_decay * (2*pi*(theta_max-theta_min) * (p_max-p_min)) * n_pot * xs_wgt / sigmap_total / n_samples
+    xs_wgt = meson_production_d2SdpdOmega(p_list, theta_list, p_proton, meson_type=meson_type) * sin(theta_list)
+    probability_decay = p_decay(p_list, meson_mass, meson_lifetime, 50)
+    pi_plus_wgts = probability_decay * (2*pi*(theta_max-theta_min) * (p_max-p_min)) * n_pot * xs_wgt / n_samples / sigmap(p_proton)
     return np.array([p_list*1000.0, theta_list, pi_plus_wgts]).transpose()
 
 
@@ -70,7 +71,7 @@ def charged_meson_flux_mc(meson_type, p_min, p_max, theta_min, theta_max,
 
 # Charged pion production double-differential cross section on Be target
 def meson_production_d2SdpdOmega(p, theta, p_proton, meson_type="pi_plus"):
-    pB = p_proton + M_P*1e-3
+    pB = p_proton
     mt = M_P
     # Sanford-Wang Parameterization
     if meson_type == "pi_plus":
@@ -83,6 +84,7 @@ def meson_production_d2SdpdOmega(p, theta, p_proton, meson_type="pi_plus"):
         c7 = 0.0868
         c8 = 9.686
         c9 = 1.0
+        #c1, c2, c3, c4, c5, c6, c7, c8, c9 = 1.20245,1.08, 2.15, 2.31,1.98,5.73,0.137,24.1, 1.0
         prefactor = c1 * power(p, c2) * (1 - p/(pB - c9))
         exponential = exp(-c3*power(p,c4)/power(pB,c5) - c6*theta*(p-c7*pB*power(cos(theta),c8)))
         return prefactor * exponential
@@ -212,10 +214,12 @@ class ChargedMeson3BodyDecay:
         self.dump_dist = 50
         self.det_length = 12
         self.det_sa = cos(arctan(self.det_length/(self.det_dist-self.dump_dist)/2))
+        self.solid_angles = []
         self.energy_cut = energy_cut
         self.nsamples = n_samples
         self.energies = []
         self.cosines = []
+        self.decay_pos = []
         self.weights = []
         self.decay_weight = []
         self.scatter_weight = []
@@ -277,45 +281,6 @@ class ChargedMeson3BodyDecay:
 
         if self.rep == "V":
             return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2V, m223Min, m223Max)[0]
-    
-    def dGammadEmuV(self, Emu):
-        def dGammadEnudEmuV(Enu):
-            cr = self.gmu
-            cl = self.gmu
-            q2 = self.mm**2 - 2*self.mm*Enu
-            EV = self.mm - Enu - Emu
-            prefactor = self.gamma_sm() * self.mm**2 / power(2*pi*self.m_lepton*(self.mm*2 - self.m_lepton**2)*(q2 - self.m_lepton**2), 2)
-            return prefactor * (4*power(cr*self.m_lepton*self.mm, 2)*Emu*Enu - 12*cr*cl*self.m_lepton**2 * self.mm*q2*Enu \
-                + (power(cl*q2, 2) - power(cr*self.m_lepton*self.mm, 2))*(self.mm**2 + self.ma**2 - self.m_lepton**2 - 2*self.mm*EV) \
-                    + power(self.ma, -2)*(self.mm**2 - self.ma**2 - self.m_lepton**2 - 2*self.mm*Enu)*(4*power(cr*self.m_lepton*self.mm, 2)*EV*Enu \
-                        + (power(cl*q2, 2) - power(cr*self.m_lepton*self.mm, 2))*(self.mm**2 - self.ma**2 + self.m_lepton**2 - 2*self.mm*Emu)))
-        
-        if Emu < self.m_lepton:
-            return 0.0
-        Enu_max = (self.mm**2 + self.m_lepton**2 - self.ma**2 - 2*self.mm*Emu)/(2*(self.mm - Emu - sqrt(Emu**2 - self.m_lepton**2)))
-        Enu_min = (self.mm**2 + self.m_lepton**2 - self.ma**2 - 2*self.mm*Emu)/(2*(self.mm - Emu + sqrt(Emu**2 - self.m_lepton**2)))
-        return quad(dGammadEnudEmuV, Enu_min, Enu_max)[0]
-
-    def BrV(self):
-        def dGammadEnudEmuV(Enu, Emu):
-            cr = 0.0
-            cl = self.gmu
-            q2 = self.mm**2 - 2*self.mm*Enu
-            EV = self.mm - Enu - Emu
-            prefactor = heaviside(Emu-self.m_lepton,0.0)*self.mm**2 / power(2*pi*self.m_lepton*(self.mm*2 - self.m_lepton**2)*(q2 - self.m_lepton**2), 2)
-            return prefactor * (4*power(cr*self.m_lepton*self.mm, 2)*Emu*Enu - 12*cr*cl*self.m_lepton**2 * self.mm*q2*Enu \
-                + (power(cl*q2, 2) - power(cr*self.m_lepton*self.mm, 2))*(self.mm**2 + self.ma**2 - self.m_lepton**2 - 2*self.mm*EV) \
-                    + power(self.ma, -2)*(self.mm**2 - self.ma**2 - self.m_lepton**2 - 2*self.mm*Enu)*(4*power(cr*self.m_lepton*self.mm, 2)*EV*Enu \
-                        + (power(cl*q2, 2) - power(cr*self.m_lepton*self.mm, 2))*(self.mm**2 - self.ma**2 + self.m_lepton**2 - 2*self.mm*Emu)))
-        
-        def Enu_max(Emu): 
-            return (self.mm**2 + self.m_lepton**2 - self.ma**2 - 2*self.mm*Emu)/(2*(self.mm - Emu - sqrt(Emu**2 - self.m_lepton**2)))
-        def Enu_min(Emu):
-            return (self.mm**2 + self.m_lepton**2 - self.ma**2 - 2*self.mm*Emu)/(2*(self.mm - Emu + sqrt(Emu**2 - self.m_lepton**2)))
-        return dblquad(dGammadEnudEmuV, self.m_lepton, (self.mm**2 + self.m_lepton**2 - self.ma**2)/(2*self.mm), Enu_min, Enu_max)[0]
-    
-    def total_br_V(self):
-        return quad(self.dGammadEmuV, self.m_lepton, (self.mm**2 + self.m_lepton**2 - self.ma**2)/(2*self.mm))[0] / self.gamma_sm()
 
     def gamma_sm(self):
         return (G_F*self.fM*self.m_lepton*self.ckm)**2 * self.mm * (1-(self.m_lepton/self.mm)**2)**2 / (4*pi)
@@ -325,7 +290,7 @@ class ChargedMeson3BodyDecay:
         EaMin = self.ma
         return quad(self.dGammadEa, EaMin, EaMax)[0] / self.gamma_sm()
     
-    def simulate_single(self, meson_p, meson_theta, pion_wgt):
+    def simulate_single(self, meson_p, pion_wgt, cut_on_solid_angle=True, solid_angle_cosine=0.0):
         ea_min = self.ma
         ea_max = (self.mm**2 + self.ma**2 - self.m_lepton**2)/(2*self.mm)
 
@@ -334,10 +299,6 @@ class ChargedMeson3BodyDecay:
         momenta = sqrt(energies**2 - self.ma**2)
         cosines = np.random.uniform(-1, 1, self.nsamples)
         pz = momenta*cosines
-
-        # Draw weights from the PDF
-        # isotropic in rest frame, angular MC volume factors cancel
-        weights = np.array([pion_wgt*self.dGammadEa(ea) / self.gamma_sm() / self.nsamples for ea in energies])
 
         # Boost to lab frame
         beta = meson_p / sqrt(meson_p**2 + self.mm**2)
@@ -351,38 +312,51 @@ class ChargedMeson3BodyDecay:
         # Monte Carlo volume, making sure to use the lab frame energy range
         mc_vol = (max(e_lab) - min(e_lab))
 
+        # Draw weights from the PDF
+        # isotropic in rest frame, angular MC volume factors cancel
         weights = np.array([pion_wgt*mc_vol*self.dGammadEa(ea)/self.gamma_sm()/self.nsamples \
             for ea in energies])
-        
-        dg = np.array([self.dGammadEa(ea) for ea in energies])
-        
-        if np.any(weights < 0.0):
-            print("Negatives:")
-            print(np.sum(dg < 0.0))
-            print(np.sum(pion_wgt < 0.0))
-            print(np.sum(self.gamma_sm() < 0.0))
 
         for i in range(self.nsamples):
-            solid_angle_acceptance = heaviside(cos_theta_lab[i] - self.det_sa, 0.0)
-            if solid_angle_acceptance == 0.0:
+            solid_angle_acceptance = heaviside(cos_theta_lab[i] - solid_angle_cosine, 0.0)
+            if solid_angle_acceptance == 0.0 and cut_on_solid_angle:
                 continue
             self.energies.append(e_lab[i])
             self.cosines.append(cos_theta_lab[i])
             self.weights.append(weights[i]*jacobian[i]*heaviside(e_lab[i]-self.energy_cut,1.0))
+            self.solid_angles.append(solid_angle_cosine)
     
-    def simulate(self):
+    def simulate(self, cut_on_solid_angle=True):
         self.energies = []
         self.cosines = []
         self.weights = []
         self.scatter_weight = []
         self.decay_weight = []
+        self.decay_pos = []
+        self.solid_angles = []
 
         if self.ma > self.mm - self.m_lepton:
             # Kinematically forbidden beyond Meson mass - muon mass difference
             return
 
         for i, p in enumerate(self.meson_flux):
-            self.simulate_single(p[0], p[1], p[2])
+            # Simulate decay positions between target and dump
+            # The quantile is truncated at the dump position via umax
+            decay_l = METER_BY_MEV * p[0] / self.gamma_sm() / self.mm
+            umax = exp(-2*self.dump_dist/decay_l) * power(exp(self.dump_dist/decay_l) - 1, 2) \
+                if decay_l > 1.0 else 1.0
+            try:
+                u = np.random.uniform(0.0, min(umax, 1.0))
+            except:
+                print("umax = ", umax, " decay l = ", decay_l, p[0])
+            x = decay_quantile(u, p[0], self.mm, self.gamma_sm())
+            
+            # Append decay positions and solid angle cosines for the geometric acceptance of each meson decay
+            self.decay_pos.append(x)
+            solid_angle_cosine = cos(arctan(self.det_length/(self.det_dist-x)/2))
+
+            # Simulate decays for each charged meson
+            self.simulate_single(p[0], p[2], cut_on_solid_angle, solid_angle_cosine)
         
 
     def propagate(self, gagamma=None):  # propagate to detector

@@ -50,30 +50,55 @@ def Tau_lab(width, va):
 
 
 
-def p_survive(width, va, l):
-    # Probability that the ALP will survive a distance l from production site
-    # TODO: try numba: @vectorize
-    pass
-
-
-
-
-def p_decay(width, va, l, dl):
-    # Probability that the ALP will decay within a region (l, l + dl)
-    # TODO: try numba: @vectorize
-    pass
-
-
-
-
-def p_decay_lifetime(p, m, tau, l):
+def p_survive(p, m, tau, l):
+    # Probability that a particle will survive a distance l from production site
     # momentum in lab frame p
     # lifetime tau in seconds
     # mass of decaying particle m
-    # distance from source l
+    # distance from source l in meters
+    energy = sqrt(p**2 + m**2)
+    boost = energy / m
+    v = p / energy
+    prob = exp(-l/(METER_BY_MEV*v*boost*tau/HBAR))
+    return prob
+
+
+
+
+def p_decay(p, m, tau, l):
+    # Probability that a particle will decay before reaching a distance l
+    # momentum in lab frame p
+    # lifetime tau in seconds
+    # mass of decaying particle m
+    # distance from source l in meters
     energy = sqrt(p**2 + m**2)
     boost = energy / m
     v = p / energy
     prob = exp(-l/(METER_BY_MEV*v*boost*tau/HBAR))
     return (1 - prob)
 
+
+
+
+def p_decay_in_region(p, m, tau, l, dl):
+    # Probability that the particle will decay within a region (l, l + dl)
+    # momentum in lab frame p
+    # lifetime tau in seconds
+    # mass of decaying particle m
+    # l and dl in meters
+    energy = sqrt(p**2 + m**2)
+    boost = energy / m
+    v = p / energy
+    prob = exp(-l/(METER_BY_MEV*v*boost*tau/HBAR)) * (1 - exp(-dl/(METER_BY_MEV*v*boost*tau/HBAR)))
+    return prob
+
+
+
+
+def decay_quantile(u, p, m, width_gamma):
+    # Quantile/PPF function to generate decay positions for a given lifetime and momentum.
+    # momentum in lab frame p
+    # decay width width_gamma in MeV
+    # mass of decaying particle m
+    # l and dl in meters
+    return (METER_BY_MEV * p / width_gamma / m) * log((sqrt(u) + 1)/(1 - u))
