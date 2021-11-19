@@ -4,6 +4,7 @@ Matrix element class
 
 from .fmath import *
 from .constants import *
+from .form_factors import *
 
 
 
@@ -64,9 +65,10 @@ class M2DMUpscatter(MatrixElement2):
         self.mchi1 = mchi1
         self.mchi2 = mchi2
         self.mN = mN
+        self.ff = ProtonFF()
     
     def __call__(self, s, t, coupling_product=1.0):
-        prefactor = ALPHA * coupling_product**2
+        prefactor = ALPHA * self.ff(t) * coupling_product**2
         propagator = power(t - self.mV**2, 2)
         numerator = 8*(2*power(self.mN,4) + 4*self.mN**2 * (self.mchi1 * self.mchi2 - s) \
             + 2*(self.mchi1**2 - s)*(self.mchi2**2-s) - t*(self.mchi1-self.mchi2)**2 + 2*s*t + t**2)

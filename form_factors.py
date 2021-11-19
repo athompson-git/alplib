@@ -83,6 +83,20 @@ class NuclearHelmFF:
 
 
 
+class ProtonFF:
+    """
+    Square of the proton form factor F1
+    """
+    def __init__(self):
+        pass
+
+    def __call__(self, t):
+        g_e = power(1 - t/0.71e6, -2)
+        return power((g_e - t/(4*M_P**2))/(1 - t/(4*M_P**2)), 2)
+
+
+
+
 def _screening(e, ma):
     if ma == 0:
         return 0
