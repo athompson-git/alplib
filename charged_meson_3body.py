@@ -48,6 +48,7 @@ def charged_meson_flux_mc(meson_type, p_min, p_max, theta_min, theta_max,
                             n_samples=1000, p_proton=8.89, n_pot=18.75e20):
     # Charged meson monte carlo flux simulation
     # Based on the Sanford-Wang and Feynman scaling parameterized proton prodution cross sections
+    # momentum from [p_min, p_max] in GeV
 
     if meson_type not in ["pi_plus", "pi_minus", "k_plus", "K0S"]:
         raise Exception("meson_type not in list of available fluxes")
@@ -62,7 +63,7 @@ def charged_meson_flux_mc(meson_type, p_min, p_max, theta_min, theta_max,
     theta_list = np.random.uniform(theta_min, theta_max, n_samples)
 
     xs_wgt = meson_production_d2SdpdOmega(p_list, theta_list, p_proton, meson_type=meson_type) * sin(theta_list)
-    probability_decay = p_decay(p_list, meson_mass, meson_lifetime, 50)
+    probability_decay = p_decay(p_list*1e3, meson_mass, meson_lifetime, 50)
     pi_plus_wgts = probability_decay * (2*pi*(theta_max-theta_min) * (p_max-p_min)) * n_pot * xs_wgt / n_samples / sigmap(p_proton)
     return np.array([p_list*1000.0, theta_list, pi_plus_wgts]).transpose()
 
@@ -210,6 +211,8 @@ class ChargedMeson3BodyDecay:
         self.rep = boson_type
         self.ma = axion_mass
         self.gmu = coupling
+        self.EaMax = (self.mm**2 + self.ma**2 - self.m_lepton**2)/(2*self.mm)
+        self.EaMin = self.ma
         self.det_dist = 541
         self.dump_dist = 50
         self.det_length = 12
