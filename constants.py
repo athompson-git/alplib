@@ -63,6 +63,11 @@ KLONG_LIFETIME = 5.116e-8 * sec
 PION_LIFETIME = 2.6e-8 * sec
 PI0_LIFETIME = 8.5e-17 * sec
 
+# Total Widths in MeV
+PION_WIDTH = 2.524e-14 * MeV
+PI0_WIDTH = 1.0
+KAON_WIDTH = 5.317e-14 * MeV
+
 
 # Crystal constants
 Z_GE = 32
