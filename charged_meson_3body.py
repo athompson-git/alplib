@@ -65,7 +65,7 @@ def charged_meson_flux_mc(meson_type, p_min, p_max, theta_min, theta_max,
     xs_wgt = meson_production_d2SdpdOmega(p_list, theta_list, p_proton, meson_type=meson_type) * sin(theta_list)
     probability_decay = p_decay(p_list*1e3, meson_mass, meson_lifetime, 50)
     pi_plus_wgts = probability_decay * (2*pi*(theta_max-theta_min) * (p_max-p_min)) * n_pot * xs_wgt / n_samples / sigmap(p_proton)
-    return np.array([p_list*1000.0, theta_list, pi_plus_wgts]).transpose()
+    return np.array([p_list*1000.0, theta_list, 4*pi_plus_wgts]).transpose()
 
 
 
@@ -201,12 +201,21 @@ class ChargedPionFluxMiniBooNE:
 
 # Convolve flux with axion branching ratio and generate ALP flux
 class ChargedMeson3BodyDecay:
-    def __init__(self, meson_flux, axion_mass=0.1, coupling=1.0, n_samples=50,
-                 meson_mass=M_PI, ckm=V_UD, fM=F_PI, m_lepton=M_MU, boson_type="P", energy_cut=140.0):
+    def __init__(self, meson_flux, axion_mass=0.1, coupling=1.0, n_samples=50, meson_type="pion",
+                 m_lepton=M_MU, boson_type="P", energy_cut=140.0):
         self.meson_flux = meson_flux
-        self.mm = meson_mass
-        self.ckm = ckm
-        self.fM = fM
+        if meson_type == "pion":
+            self.mm = M_PI
+            self.ckm = V_UD
+            self.fM = F_PI
+            self.total_width = PION_WIDTH
+        elif meson_type == "kaon":
+            self.mm = M_K
+            self.ckm = V_US
+            self.fM = F_K
+            self.total_width = KAON_WIDTH
+        else:
+            raise Exception("Meson type not understood!", meson_type)
         self.m_lepton = m_lepton
         self.rep = boson_type
         self.ma = axion_mass
@@ -286,7 +295,7 @@ class ChargedMeson3BodyDecay:
             return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2V, m223Min, m223Max)[0]
 
     def gamma_sm(self):
-        return (G_F*self.fM*self.m_lepton*self.ckm)**2 * self.mm * (1-(self.m_lepton/self.mm)**2)**2 / (4*pi)
+        return self.total_width #(G_F*self.fM*self.m_lepton*self.ckm)**2 * self.mm * (1-(self.m_lepton/self.mm)**2)**2 / (8*pi)
 
     def total_br(self):
         EaMax = (self.mm**2 + self.ma**2 - self.m_lepton**2)/(2*self.mm)
@@ -311,14 +320,23 @@ class ChargedMeson3BodyDecay:
         cos_theta_lab = pz_lab / sqrt(e_lab**2 - self.ma**2)
 
         # Jacobian for transforming d2Gamma/(dEa * dOmega) to lab frame:
-        jacobian = sqrt(e_lab**2 - self.ma**2) / momenta
+        #jacobian = sqrt(e_lab**2 - self.ma**2) / momenta
         # Monte Carlo volume, making sure to use the lab frame energy range
-        mc_vol = (max(e_lab) - min(e_lab))
+        mc_vol = self.EaMax - self.EaMin
+        #mc_vol_lab = -boost*(self.EaMax - sqrt(self.EaMax**2 - self.ma**2)*beta) + boost*(self.EaMin + sqrt(self.EaMin**2 - self.ma**2)*beta)
+
+        # MC jacobian for change of variables:
+        #jacobian = jacobian * boost * (1 - beta * cos_theta_lab * e_lab / sqrt(e_lab**2 - self.ma**2))
 
         # Draw weights from the PDF
         # isotropic in rest frame, angular MC volume factors cancel
         weights = np.array([pion_wgt*mc_vol*self.dGammadEa(ea)/self.gamma_sm()/self.nsamples \
             for ea in energies])
+        #weights_lab = np.array([pion_wgt*mc_vol_lab*self.dGammadEa(ea)/self.gamma_sm()/self.nsamples \
+         #   for ea in energies])*jacobian
+        
+        #print("REST FRAME: sum of w = ", np.sum(weights)/pion_wgt)
+        #print("LAB FRAME: sum of w = ", np.sum(weights_lab)/pion_wgt)
 
         for i in range(self.nsamples):
             solid_angle_acceptance = heaviside(cos_theta_lab[i] - solid_angle_cosine, 0.0)
@@ -326,7 +344,7 @@ class ChargedMeson3BodyDecay:
                 continue
             self.energies.append(e_lab[i])
             self.cosines.append(cos_theta_lab[i])
-            self.weights.append(weights[i]*jacobian[i]*heaviside(e_lab[i]-self.energy_cut,1.0))
+            self.weights.append(weights[i]*heaviside(e_lab[i]-self.energy_cut,1.0))
             self.solid_angles.append(solid_angle_cosine)
     
     def simulate(self, cut_on_solid_angle=True):

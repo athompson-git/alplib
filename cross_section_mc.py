@@ -2,7 +2,6 @@
 Cross section class and MC
 """
 
-from typing import no_type_check
 import numpy as np
 
 from alplib.constants import *
@@ -227,8 +226,6 @@ class Decay2Body:
         # Draw random variates on the 2-sphere
         phi1_rnd = 2*pi*np.random.ranf(self.n_samples)
         theta1_rnd = arccos(1 - 2*np.random.ranf(self.n_samples))
-        #phi2_rnd = np.pi + phi1_rnd
-        #theta2_rnd = np.pi - theta1_rnd
 
         v_in = self.lv_p.get_3velocity()
 
@@ -236,10 +233,6 @@ class Decay2Body:
                             p_cm*cos(phi1_rnd[i])*sin(theta1_rnd[i]),
                             p_cm*sin(phi1_rnd[i])*sin(theta1_rnd[i]),
                             p_cm*cos(theta1_rnd[i])) for i in range(self.n_samples)]
-        #self.p2_cm_4vectors = [LorentzVector(e2_cm,
-        #                    p_cm*cos(phi2_rnd[i])*sin(theta2_rnd[i]),
-        #                    p_cm*sin(phi2_rnd[i])*sin(theta2_rnd[i]),
-        #                    p_cm*cos(theta2_rnd[i])) for i in range(self.n_samples)]
         self.p2_cm_4vectors = [LorentzVector(e2_cm,
                             -p_cm*cos(phi1_rnd[i])*sin(theta1_rnd[i]),
                             -p_cm*sin(phi1_rnd[i])*sin(theta1_rnd[i]),
