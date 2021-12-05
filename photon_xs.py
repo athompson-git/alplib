@@ -29,6 +29,8 @@ class AbsCrossSection:
             self.xs_dim = 149.89 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
         elif self.mat_name == "CsI":
             self.xs_dim = 259.81 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
+        elif self.mat_name == "CH2":
+            self.xs_dim = 259.81 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
         
         self.cleanPEData()
     
