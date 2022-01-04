@@ -143,8 +143,8 @@ class FluxCompton(AxionFlux):
 
 class FluxComptonIsotropic(AxionFlux):
     """
-    Generator for axion-bremsstrahlung flux
-    Takes in a flux of el
+    Generator for axion flux from compton-like scattering
+    Takes in a flux of photons
     """
     def __init__(self, photon_flux=[1,1], target=Material("W"), detector=Material("Ar"), det_dist=4.,
                     det_length=0.2, det_area=0.04, axion_mass=0.1, axion_coupling=1e-3, nsamples=100, is_isotropic=True):
@@ -415,6 +415,54 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
 
 
 
+class FluxNuclearIsotropic(AxionFlux):
+    """
+    Takes in a rate (#/s) of nuclear decays for a specified nuclear transition
+    Produces the associated ALP flux from a given branching ratio
+    """
+    def __init__(self, transition_energy=1.0, decay_rate=0.0, target=Material("W"), detector=Material("Ar"),
+                 det_dist=4., det_length=0.2, det_area=0.04, is_isotropic=True,
+                 axion_mass=0.1, gagamma=1e-3, gann0=1e-3, gann1=1e-3, nsamples=100):
+        super().__init__(axion_mass, target, detector, det_dist, det_length, det_area, nsamples)
+        self.transition_energy = transition_energy
+        self.decay_rate = decay_rate
+        self.gann0 = gann0
+        self.gann1 = gann1
+        self.gagamma = gagamma
+        self.is_isotropic = is_isotropic
+
+    def br(self, j=0, delta=0.0, beta=1.0, eta=0.5):
+        energy = self.transition_energy
+        mu0 = 0.88
+        mu1 = 4.71
+        return ((j/(j+1)) / (1 + delta**2) / pi / ALPHA) \
+            * power(sqrt(energy**2 - self.ma**2)/energy, 2*j + 1) \
+                * power((self.gann0 * beta + self.gann1)/((mu0-0.5)*beta + (mu1 - eta)), 2)
+
+    def simulate(self, j=0, delta=0.0, beta=1.0, eta=0.5):
+        self.axion_energy = []
+        self.axion_flux = []
+        self.scatter_axion_weight = []
+        self.decay_axion_weight = []
+
+        self.axion_energy.append(self.transition_energy)
+        self.axion_flux.append(self.decay_rate * self.br(j, delta, beta, eta))
+
+    def propagate(self, gagamma=None):
+        if gagamma is not None:
+            rescale=power(gagamma/self.gagamma, 2)
+            super().propagate(W_gg(gagamma, self.ma), rescale)
+        else:
+            super().propagate(W_gg(self.gagamma, self.ma))
+        
+        if self.is_isotropic:
+            geom_accept = self.det_area / (4*pi*self.det_dist**2)
+            self.decay_axion_weight *= geom_accept
+            self.scatter_axion_weight *= geom_accept
+
+
+
+
 class ElectronEventGenerator:
     """
     Takes in an AxionFlux at the detector (N/s) and gives scattering / decay rates (# events)
@@ -528,3 +576,8 @@ def PrimakoffSolarFlux(Ea, gagamma):
     # Solar ALP flux
     # input Ea in keV, gagamma in GeV-1
     return (gagamma * 1e8)**2 * (5.95e14 / 1.103) * (Ea / 1.103)**3 / (exp(Ea / 1.103) - 1)
+
+
+
+def SunPosition(t):
+    pass
