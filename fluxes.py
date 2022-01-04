@@ -431,7 +431,7 @@ class FluxNuclearIsotropic(AxionFlux):
         self.gagamma = gagamma
         self.is_isotropic = is_isotropic
 
-    def br(self, j=0, delta=0.0, beta=1.0, eta=0.5):
+    def br(self, j=1, delta=0.0, beta=1.0, eta=0.5):
         energy = self.transition_energy
         mu0 = 0.88
         mu1 = 4.71
@@ -439,7 +439,7 @@ class FluxNuclearIsotropic(AxionFlux):
             * power(sqrt(energy**2 - self.ma**2)/energy, 2*j + 1) \
                 * power((self.gann0 * beta + self.gann1)/((mu0-0.5)*beta + (mu1 - eta)), 2)
 
-    def simulate(self, j=0, delta=0.0, beta=1.0, eta=0.5):
+    def simulate(self, j=1, delta=0.0, beta=1.0, eta=0.5):
         self.axion_energy = []
         self.axion_flux = []
         self.scatter_axion_weight = []
