@@ -53,6 +53,30 @@ class AxionFlux:
 
         self.decay_axion_weight = np.asarray(rescale_factor * wgt * surv_prob * decay_prob, dtype=np.float32)  # removed g^2
         self.scatter_axion_weight = np.asarray(rescale_factor * wgt * surv_prob, dtype=np.float32)  # removed g^2
+    
+    def propagate_iso_vol_int(self, geom: DetectorGeometry, decay_width, rescale_factor=1.0):
+        e_a = np.array(self.axion_energy)
+        wgt = np.array(self.axion_flux)
+
+        # Get axion Lorentz transformations and kinematics
+        p_a = sqrt(e_a**2 - self.ma**2)
+        v_a = p_a / e_a
+        boost = e_a / self.ma
+        tau = boost / decay_width if decay_width > 0.0 else np.inf * np.ones_like(boost)
+
+        surv_prob = np.array([np.exp(-self.det_dist / METER_BY_MEV / v_a[i] / tau[i]) \
+                     for i in range(len(v_a))])
+
+        vol_integrals = []
+        for i in range(len(e_a)):
+            # Integrate over the detector volume with weight function P_decay / (4*pi*l^2)
+            # where l is the distance to the source from the volume element
+            f = lambda x : (1 / METER_BY_MEV / v_a[i] / tau[i]) \
+                * np.exp(-x / METER_BY_MEV / v_a[i] / tau[i]) / (4*pi*x**2)
+            vol_integrals.append(geom.integrate(f_int=f))
+        
+        self.decay_axion_weight = np.asarray(rescale_factor * wgt * np.array(vol_integrals), dtype=np.float32)
+        self.scatter_axion_weight = np.asarray(rescale_factor * wgt * surv_prob, dtype=np.float32)
 
 
 
@@ -420,19 +444,17 @@ class FluxNuclearIsotropic(AxionFlux):
     Takes in a rate (#/s) of nuclear decays for a specified nuclear transition
     Produces the associated ALP flux from a given branching ratio
     """
-    def __init__(self, transition_energy=1.0, decay_rate=0.0, target=Material("W"), detector=Material("Ar"),
+    def __init__(self, transition_rates=np.array([[1.0, 0.0]]), target=Material("W"), detector=Material("Ar"),
                  det_dist=4., det_length=0.2, det_area=0.04, is_isotropic=True,
                  axion_mass=0.1, gagamma=1e-3, gann0=1e-3, gann1=1e-3, nsamples=100):
         super().__init__(axion_mass, target, detector, det_dist, det_length, det_area, nsamples)
-        self.transition_energy = transition_energy
-        self.decay_rate = decay_rate
+        self.rates = transition_rates
         self.gann0 = gann0
         self.gann1 = gann1
         self.gagamma = gagamma
         self.is_isotropic = is_isotropic
 
-    def br(self, j=1, delta=0.0, beta=1.0, eta=0.5):
-        energy = self.transition_energy
+    def br(self, energy, j=1, delta=0.0, beta=1.0, eta=0.5):
         mu0 = 0.88
         mu1 = 4.71
         return ((j/(j+1)) / (1 + delta**2) / pi / ALPHA) \
@@ -445,13 +467,14 @@ class FluxNuclearIsotropic(AxionFlux):
         self.scatter_axion_weight = []
         self.decay_axion_weight = []
 
-        self.axion_energy.append(self.transition_energy)
-        self.axion_flux.append(self.decay_rate * self.br(j, delta, beta, eta))
+        for i in range(self.rates.shape[0]):
+            self.axion_energy.append(self.rates[i,0])
+            self.axion_flux.append(self.rates[i,1] * self.br(self.rates[i,0], j, delta, beta, eta))
 
-    def propagate(self, gagamma=None):
-        if gagamma is not None:
-            rescale=power(gagamma/self.gagamma, 2)
-            super().propagate(W_gg(gagamma, self.ma), rescale)
+    def propagate(self, new_coupling=None):
+        if new_coupling is not None:
+            rescale=power(new_coupling/self.gagamma, 2)
+            super().propagate(W_gg(new_coupling, self.ma), rescale)
         else:
             super().propagate(W_gg(self.gagamma, self.ma))
         
@@ -459,6 +482,13 @@ class FluxNuclearIsotropic(AxionFlux):
             geom_accept = self.det_area / (4*pi*self.det_dist**2)
             self.decay_axion_weight *= geom_accept
             self.scatter_axion_weight *= geom_accept
+    
+    def propagate_iso_vol_int(self, geom: DetectorGeometry, new_coupling=None):
+        if new_coupling is not None:
+            rescale=power(new_coupling/self.gagamma, 2)
+            super().propagate_iso_vol_int(geom, W_gg(self.gagamma, self.ma), rescale)
+        else:
+            super().propagate_iso_vol_int(geom, W_gg(self.gagamma, self.ma))
 
 
 
