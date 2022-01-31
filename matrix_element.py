@@ -96,3 +96,15 @@ class M2DarkPrimakoff(MatrixElement2):
 
 
 
+class M2VectorScalarPrimakoff(MatrixElement2):
+    """
+    Zp + N -> gamma + N via massive scalar mediator
+    """
+    def __init__(self, mphi, mN, mZp):
+        super().__init__(mZp, mN, 0, mN)
+        self.mZp = mZp
+        self.mN = mN
+        self.mphi = mphi
+    
+    def __call__(self, s, t, coupling_product=1.0):
+        return coupling_product**2 * (2*self.mN**2 - t) * power((self.mZp**2 - t)/(2*(self.mphi**2 - t)),2) 
