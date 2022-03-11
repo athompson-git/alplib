@@ -6,7 +6,7 @@ import numpy as np
 
 from alplib.constants import *
 from alplib.fmath import *
-from alplib.matrix_element import MatrixElement2, MatrixElementDecay2
+from alplib.matrix_element import *
 
 
 
@@ -82,8 +82,14 @@ class LorentzVector:
     def mass2(self):
         return np.dot(self.pmu**2, self.mt)
     
+    def mass(self):
+        return np.sqrt(np.dot(self.pmu**2, self.mt))
+    
     def energy(self):
         return self.p0
+    
+    def cosine(self):
+        return self.p3 / self.momentum()
     
     def momentum(self):
         return self.momentum3.mag()
@@ -128,7 +134,7 @@ class Scatter2to2MC:
 
 
     def dsigma_dt(self, s, t):
-        return np.power(16*np.pi*(s - (self.m1 + self.m2)**2)*(s - (self.m1 - self.m2)**2), -1) * self.mtrx2(s, t)
+        return self.mtrx2(s, t)/(16*np.pi*(s - (self.m1 + self.m2)**2)*(s - (self.m1 - self.m2)**2))
 
     def dsigma_dcos_cm(self, s, t):
         pass
@@ -179,11 +185,12 @@ class Scatter2to2MC:
         self.p3_lab_3vectors = [p3_lab.get_3velocity() for p3_lab in self.p3_lab_4vectors]
     
     def get_cosine_lab_weights(self):
+        lab_cosines = np.array([self.p3_lab_4vectors[i].cosine() for i in range(self.n_samples)])
         cosine_weights = np.array([power(self.p3_lab_3vectors[i].mag()/self.p3_cm_3vectors[i].mag(), 2) * \
                         (self.p3_cm_3vectors[i]*self.p3_lab_3vectors[i])/(self.p3_cm_3vectors[i].mag()*self.p3_lab_3vectors[i].mag()) \
                          * self.dsigma_dcos_cm_wgts[i] for i in range(self.n_samples)])
 
-        return cosine_weights
+        return lab_cosines, cosine_weights
     
     def get_e3_lab_weights(self):
         # Declare momenta and energy in the CM frame
@@ -196,7 +203,9 @@ class Scatter2to2MC:
         gamma = power(1 - beta**2, -0.5)
         jacobian_lab = 1 / gamma / beta / p3_cm
 
-        return jacobian_lab * self.dsigma_dcos_cm_wgts
+        lab_energies = np.array([self.p3_lab_4vectors[i].energy() for i in range(self.n_samples)])
+
+        return lab_energies, jacobian_lab * self.dsigma_dcos_cm_wgts
 
 
 
@@ -266,6 +275,16 @@ class Decay2Body:
         self.p1_lab_4vectors = [lorentz_boost(p1, v_in) for p1 in self.p1_cm_4vectors]
         self.p2_lab_4vectors = [lorentz_boost(p2, v_in) for p2 in self.p2_cm_4vectors]
         self.weights = decay_width * np.ones(self.n_samples)
+
+
+
+
+class Decay3Body:
+    def __init__(self, mtrx2: MatrixElementDecay3, p: LorentzVector, n_samples=1000):
+        pass
+
+    def decay(self):
+        pass
 
 
 
