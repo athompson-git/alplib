@@ -4,6 +4,7 @@
 from .constants import *
 from .fmath import *
 from .photon_xs import PairProdutionCrossSection
+from .matrix_element import *
 
 import multiprocessing as multi
 from matplotlib.pyplot import hist2d
@@ -128,3 +129,27 @@ def icompton_dsigma_domega(theta, Ea, ma, ge):
 
 
 
+def pair_production_sigma(Ea, ma, ge, mat: Material, n_samples=1000):
+    m2 = M2PairProduction(ma, mat)
+    
+    tp = np.random.uniform(-10, -2, n_samples)
+    tm = np.random.uniform(-10, -2, n_samples)
+
+    mc_vol = (Ea - 2*M_E)*(2*pi)*(tp[-1] - tp[0])*(tm[-1] - tm[0])*log(10)**2
+
+    tp = 10**tp
+    tm = 10**tm
+
+    phi = pi #np.random.uniform(0.0, 2*pi, n_samples)
+    ep = np.random.uniform(M_E, Ea - M_E, n_samples)
+
+    p1 = sqrt(ep**2 - M_E**2)
+    em = Ea - ep
+    p2 = sqrt(em**2 - M_E**2)
+    va = sqrt(Ea**2 - ma**2)/Ea
+
+    m2_wgts = m2.m2(Ea, ep, tp, tm, phi, coupling_product=ge)
+
+    weights = abs(mc_vol * tp * tm * m2_wgts * (p1*p2*tp*tm/(512*pi**4)/Ea/va/mat.m[0]**2)/n_samples)
+
+    return np.sum(weights)
