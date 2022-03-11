@@ -1,11 +1,189 @@
+# ALP event generators
+
 from .constants import *
 from .fmath import *
-from .det_xs import *
+from .fluxes import *
+from .materials import *
 from .decay import *
 from .prod_xs import *
-from .fluxes import *
+from .det_xs import *
+from .photon_xs import *
+from .matrix_element import *
+from .cross_section_mc import *
 
 import multiprocessing as multi
+
+
+
+class ElectronEventGenerator:
+    """
+    Takes in an AxionFlux at the detector (N/s) and gives scattering / decay rates (# events)
+    """
+    def __init__(self, flux: AxionFlux, detector: Material):
+        self.flux = flux
+        self.det_z = detector.z[0]
+        self.axion_energy = np.zeros_like(flux.axion_energy)
+        self.decay_weights = np.zeros_like(flux.decay_axion_weight)
+        self.scatter_weights = np.zeros_like(flux.scatter_axion_weight)
+        self.pair_weights = np.zeros_like(flux.scatter_axion_weight)
+        self.efficiency = None  # TODO: add efficiency info
+        self.energy_threshold = None  # TODO: add threshold as member var
+        self.pair_xs = PairProdutionCrossSection(detector)
+
+    def pair_production(self, ge, ma, ntargets, days_exposure, threshold):
+        # TODO: remove this ad hoc XS and replace with real calc
+        self.axion_energy = np.array(self.flux.axion_energy)
+        self.pair_weights = days_exposure * S_PER_DAY * (ntargets / self.flux.det_area) \
+            * (self.det_z * 5 * ge**2)*self.pair_xs.sigma_mev(self.axion_energy**2) \
+                * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.axion_energy - threshold, 1.0) \
+                    * heaviside(self.axion_energy - 2*M_E, 0.0)
+        res = np.sum(self.pair_weights)
+        return res
+
+    def compton(self, ge, ma, ntargets, days_exposure, threshold):
+        self.axion_energy = np.array(self.flux.axion_energy)
+        self.scatter_weights = days_exposure * S_PER_DAY * (ntargets / self.flux.det_area) \
+            * icompton_sigma(self.axion_energy, ma, ge, self.det_z) \
+                * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.axion_energy - threshold, 1.0)
+        res = np.sum(self.scatter_weights)
+        return res
+    
+    def decays(self, days_exposure, threshold):
+        self.axion_energy = np.array(self.flux.axion_energy)
+        self.decay_weights = days_exposure * S_PER_DAY * self.flux.decay_axion_weight * heaviside(self.axion_energy - threshold, 1.0)
+        res = np.sum(self.decay_weights)
+        return res
+
+
+
+
+class PhotonEventGenerator:
+    """
+    Takes in an AxionFlux at the detector (N/s) and gives scattering / decay rates (# events)
+    """
+    def __init__(self, flux: AxionFlux, detector: Material):
+        self.flux = flux
+        self.det_z = detector.z[0]
+        self.axion_energy = np.zeros_like(flux.axion_energy)
+        self.decay_weights = np.zeros_like(flux.decay_axion_weight)
+        self.scatter_weights = np.zeros_like(flux.scatter_axion_weight)
+        self.pair_weights = np.zeros_like(flux.scatter_axion_weight)
+        self.efficiency = None  # TODO: add efficiency info
+        self.energy_threshold = None  # TODO: add threshold as member var
+        self.pair_xs = PairProdutionCrossSection(detector)
+    
+    def propagate_isotropic(self, new_gagamma=1.0):
+        #self.flux.propagate(W_gg(new_gagamma, self.flux.ma), rescale_factor=power(new_gagamma/self.flux.ge, 2))
+        # TODO: add detector arguments
+        #geom_accept = 1#self.det_area / (4*pi*self.det_dist**2)
+        #self.decay_axion_weight *= geom_accept
+        #self.scatter_axion_weight *= geom_accept
+        pass
+
+
+    def inverse_primakoff(self, gagamma, ma, ntargets, days_exposure, threshold):
+        self.axion_energy = np.array(self.flux.axion_energy)
+        self.scatter_weights = days_exposure * S_PER_DAY * (ntargets / self.flux.det_area) \
+            * iprimakoff_sigma(self.axion_energy, gagamma, ma, self.det_z) \
+                * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.axion_energy - threshold, 1.0)
+        res = np.sum(self.scatter_weights)
+        return res
+
+    def decays(self, days_exposure, threshold):
+        self.axion_energy = np.array(self.flux.axion_energy)
+        self.decay_weights = days_exposure * S_PER_DAY * self.flux.decay_axion_weight * heaviside(self.axion_energy - threshold, 1.0)
+        res = np.sum(self.decay_weights)
+        return res
+
+
+
+
+class DarkPrimakoffGenerator:
+    """
+    Takes in an AxionFlux at the detector (N/s) and gives scattering rates (# events)
+    """
+    def __init__(self, flux: AxionFlux, detector: Material, mediator="S", n_samples=1):
+        self.flux = flux
+        self.mx = flux.ma
+        self.det = detector
+        self.det_z = detector.z[0]
+        self.det_m = detector.m[0]
+        self.energies = flux.axion_energy
+        self.weights = flux.scatter_axion_weight
+        self.efficiency = None  # TODO: add efficiency info
+        self.energy_threshold = None  # TODO: add threshold as member var
+        self.n_samples = n_samples
+        self.mediator_type = mediator
+
+    def get_cosine_weights(self, lam, gphi, mphi, n_e=3.2e26, eff=Efficiency()):
+        # Simulate using the MatrixElement method
+        if self.mediator_type == "S":
+            m2_dp = M2VectorScalarPrimakoff(mphi, self.mx, self.det)
+        if self.mediator_type == "P":
+            m2_dp = M2VectorPseudoscalarPrimakoff(mphi, self.mx, self.det)
+        if self.mediator_type == "V":
+            m2_dp = M2DarkPrimakoff(self.mx, self.det_m, mphi)
+
+        # Declare initial vectors
+        pa_mu = LorentzVector(0.0, 0.0, 0.0, 0.0)
+        PM_mu = LorentzVector(0.0, 0.0, 0.0, 0.0)
+        mc = Scatter2to2MC(m2_dp, pa_mu, PM_mu, n_samples=self.n_samples)
+
+        cosine_list = []
+        weights_list = []
+        for i in range(len(self.energies)):
+            Ea0 = self.energies[i]
+            if Ea0 < self.mx:
+                continue
+            mc.lv_p1 = LorentzVector(Ea0, 0.0, 0.0, np.sqrt(Ea0**2 - self.mx**2))
+            mc.lv_p2 = LorentzVector(self.det_m, 0.0, 0.0, 0.0)
+            mc.scatter_sim()
+            cosines, diff_xs = mc.get_cosine_lab_weights()
+            wgts = power(gphi*lam, 2)*eff(self.energies[i])*self.weights[i]*n_e*power(METER_BY_MEV*100, 2)*diff_xs
+            weights_list.extend(wgts)
+            cosine_list.extend(cosines)
+        return np.array(weights_list), np.array(cosine_list)
+
+    def get_evis_weights(self, lam, gphi, mphi, n_e=3.2e26, eff=Efficiency()):
+        # Simulate using the MatrixElement method
+        if self.mediator_type == "S":
+            m2_dp = M2VectorScalarPrimakoff(mphi, self.mx, self.det)
+        if self.mediator_type == "P":
+            m2_dp = M2VectorPseudoscalarPrimakoff(mphi, self.mx, self.det)
+        if self.mediator_type == "V":
+            m2_dp = M2DarkPrimakoff(self.mx, self.det_m, mphi)
+
+        # Declare initial vectors
+        pa_mu = LorentzVector(0.0, 0.0, 0.0, 0.0)
+        PM_mu = LorentzVector(0.0, 0.0, 0.0, 0.0)
+        mc = Scatter2to2MC(m2_dp, pa_mu, PM_mu, n_samples=self.n_samples)
+        
+        weights_list = []
+        energy_list = []
+        for i in range(len(self.energies)):
+            Ea0 = self.energies[i]
+            mc.lv_p1 = LorentzVector(Ea0, 0.0, 0.0, np.sqrt(Ea0**2 - self.mx**2))
+            mc.lv_p2 = LorentzVector(self.det_m, 0.0, 0.0, 0.0)
+            mc.scatter_sim()
+            e3, diff_xs = mc.get_e3_lab_weights()
+            energy_list.extend(e3)
+            weights_list.extend(power(lam*gphi, 2)*eff(self.energies[i])*self.weights[i]*n_e*power(METER_BY_MEV*100, 2)*diff_xs)
+        return np.array(weights_list), np.array(energy_list)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Directional axion production from beam-produced photon distribution
