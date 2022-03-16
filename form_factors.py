@@ -70,15 +70,17 @@ class NuclearHelmFF:
     square of the form factor
     """
     def __init__(self, material: Material):
-        self.rn = 4.7*((material.n+material.z)/133)**(1/3)
-        self.z = material.z
+        self.rn = 4.7*((material.n[0]+material.z[0])/133)**(1/3)
+        self.z = material.z[0]
         self.frac = material.frac
 
     def __call__(self, q):
         r = self.rn * (10 ** -15) / METER_BY_MEV
         s = 0.9 * (10 ** -15) / METER_BY_MEV
         r0 = sqrt(5 / 3 * (r ** 2) - 5 * (s ** 2))
-        return np.dot(self.frac, (self.z * 3*spherical_jn(1, q*r0) / (q*r0) * exp((-(q*s)**2)/2))**2)
+        # TODO: incorporate full sum over elements in compound materials
+        #return np.dot(self.frac, (self.z * 3*spherical_jn(1, q*r0) / (q*r0) * exp((-(q*s)**2)/2))**2)
+        return (self.z * 3*spherical_jn(1, q*r0) / (q*r0) * exp((-(q*s)**2)/2))**2
 
 
 
