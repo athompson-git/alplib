@@ -26,7 +26,7 @@ def TwoSidedGridSearch(generator, observations, param_grid, background=None, tar
     stop_value = chi2.ppf(target_cl, observations.shape[0]) - observations.shape[0] \
         if background is not None else 2.3
     if delta_chi2:
-        stop_value = 6.18
+        stop_value = 2.71
 
     # lower bound
     if verbose:
