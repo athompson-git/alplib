@@ -54,8 +54,7 @@ class Crystal(Material):
 cryslist = ["Ge", "Si", "NaI", "CsI"]
 
 
-def get_crystal(material: Material, volume):
-    name = material.name
+def get_crystal(name, volume):
     if name not in cryslist:
         print("Specified material not in library. Supported crystals:\n", cryslist)
         return

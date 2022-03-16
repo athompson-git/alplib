@@ -130,7 +130,8 @@ class BraggPrimakoff:
 
             return rate
         
-        return prefactor * 2*pi*np.sum(Rate(self.phi_list))/self.nsamples  # fast MC-based integration
+        rates = np.array([Rate(this_phi) for this_phi in self.phi_list])
+        return prefactor * 2*pi*np.sum(rates)/self.nsamples  # fast MC-based integration
 
     def BraggPrimakoffScatteringPlane(self, theta, E1=2.0, E2=2.5, gagamma=1e-10):
         # Bragg-Primakoff event rate
@@ -178,5 +179,23 @@ class BraggPrimakoff:
 
 
 
+def l_laue(energy, mat: Material, hkl=(2,2,0,)):
+    pass
 
 
+
+
+def l_bragg(energy, mat: Material):
+    pass
+
+
+
+
+def l_bloch(energy, mat: Material, hkl=(2,2,0,)):
+    pass
+
+
+
+
+def l_att(energy, mat: Material):
+    pass
