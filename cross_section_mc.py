@@ -184,6 +184,18 @@ class Scatter2to2MC:
         self.p3_cm_3vectors = [p3_cm.get_3velocity() for p3_cm in self.p3_cm_4vectors]
         self.p3_lab_3vectors = [p3_lab.get_3velocity() for p3_lab in self.p3_lab_4vectors]
     
+    def get_total_xs(self, s):
+        p1_cm = self.p1_cm(s)
+        p3_cm = self.p3_cm(s)
+
+        t0 = power(self.m1**2 - self.m3**2 - self.m2**2 + self.m4**2, 2)/(4*s) - power(p1_cm - p3_cm, 2)
+        t1 = power(self.m1**2 - self.m3**2 - self.m2**2 + self.m4**2, 2)/(4*s) - power(p1_cm + p3_cm, 2)
+
+        def integrand(t):
+            return self.dsigma_dt(s, t)
+
+        return quad(integrand, t1, t0)[0]
+
     def get_cosine_lab_weights(self):
         lab_cosines = np.array([self.p3_lab_4vectors[i].cosine() for i in range(self.n_samples)])
         cosine_weights = np.array([power(self.p3_lab_3vectors[i].mag()/self.p3_cm_3vectors[i].mag(), 2) * \
@@ -193,19 +205,8 @@ class Scatter2to2MC:
         return lab_cosines, cosine_weights
     
     def get_e3_lab_weights(self):
-        # Declare momenta and energy in the CM frame
-        cm_p4 = self.lv_p1 + self.lv_p2
-        s = cm_p4.mass2()
-        p3_cm = self.p3_cm(s)
-        e_in = cm_p4.energy()
-        p1star = cm_p4.get_3momentum()
-        beta = Vector3(p1star.v1 / e_in, p1star.v2 / e_in, p1star.v3 / e_in).mag()
-        gamma = power(1 - beta**2, -0.5)
-        jacobian_lab = 1 / gamma / beta / p3_cm
-
         lab_energies = np.array([self.p3_lab_4vectors[i].energy() for i in range(self.n_samples)])
-
-        return lab_energies, jacobian_lab * self.dsigma_dcos_cm_wgts
+        return lab_energies, self.dsigma_dcos_cm_wgts  # jacobian * mc volume = 1
 
 
 
