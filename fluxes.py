@@ -468,8 +468,9 @@ class FluxNuclearIsotropic(AxionFlux):
         self.decay_axion_weight = []
 
         for i in range(self.rates.shape[0]):
-            self.axion_energy.append(self.rates[i,0])
-            self.axion_flux.append(self.rates[i,1] * self.br(self.rates[i,0], j, delta, beta, eta))
+            if self.rates[i,0] > self.ma:
+                self.axion_energy.append(self.rates[i,0])
+                self.axion_flux.append(self.rates[i,1] * self.br(self.rates[i,0], j, delta, beta, eta))
 
     def propagate(self, new_coupling=None):
         if new_coupling is not None:
@@ -570,14 +571,30 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
                 - 2*cr*self.m_lepton**2 * kq * (cr*self.ma**2 * kl + 2*cr*kp*lp - 3*cl*q2*self.ma**2))
         
         def MatrixElement2QV(m223):
+            pk = (self.mm**2 + self.ma**2 - m212)/2
+            pl = (self.mm**2 + self.m_lepton**2 - m223)/2
+            pq = (m212 + m223 - self.m_lepton**2 - self.ma**2)/2
             kl = (self.mm**2 - m212 - m223)/2
             kq = (m223 - self.ma**2)/2
             lq = (m212 - self.m_lepton**2)/2
 
-            prefactor_IB3 = -2*power(self.gmu * G_F * self.fM * self.m_lepton, 2)
-            M_IB3 = -(prefactor_IB3 / self.m_lepton**2) * (8*lq + 16*kl*kq / self.ma**2)
+            # SD piece
+            prefactor_SD = 8 * power(self.gmu * G_F * CABIBBO / sqrt(2) / self.mm, 2)
+            fv = 1.0 #0.0265
+            fa = 1.0 #0.58 * fv
 
-            return M_IB3
+            M_SD = 130 * prefactor_SD * (2 * kl * (power(fa - fv, 2)*pk*pq - self.mm**2 * (fa**2 + fv**2)*kq) \
+                    + self.ma**2 * (power(fa*self.mm, 2) * lq - 2*fv**2 * pl * pq) \
+                    + 2 * power(fa + fv, 2) * pk * kq * pl)
+
+            # IB piece
+            prefactor_IB2 = 2*power(self.gmu * G_F * self.fM * self.m_lepton, 2)
+            M_IB2 = -prefactor_IB2 * ((self.m_lepton**2-m212)*((self.mm**2-m212+self.ma**2)**2 - 4*self.mm**2 * self.ma**2))/(self.ma**2 * (self.mm**2-m212)**2)
+
+            prefactor_IB3 = power(self.gmu * G_F * self.fM, 2)/2
+            M_IB3 = prefactor_IB3 * (8*lq + 16*kl*kq / self.ma**2)
+
+            return M_IB2
         
         if self.rep == "P":
             return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2P, m223Min, m223Max)[0]
@@ -652,14 +669,14 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
         for i, p in enumerate(self.meson_flux):
             # Simulate decay positions between target and dump
             # The quantile is truncated at the dump position via umax
-            decay_l = METER_BY_MEV * p[0] / self.gamma_sm() / self.mm
+            decay_l = METER_BY_MEV * p[0] / self.total_width / self.mm
             umax = exp(-2*self.dump_dist/decay_l) * power(exp(self.dump_dist/decay_l) - 1, 2) \
                 if decay_l > 1.0 else 1.0
             try:
                 u = np.random.uniform(0.0, min(umax, 1.0))
             except:
                 print("umax = ", umax, " decay l = ", decay_l, p[0])
-            x = decay_quantile(u, p[0], self.mm, self.gamma_sm())
+            x = decay_quantile(u, p[0], self.mm, self.total_width)
             
             # Append decay positions and solid angle cosines for the geometric acceptance of each meson decay
             self.decay_pos.append(x)
@@ -672,8 +689,8 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
     def propagate(self, gagamma=None):  # propagate to detector
         wgt = np.array(self.axion_flux)
         # Do not decay
-        self.decay_weight = np.asarray(wgt*0.0, dtype=np.float64)
-        self.scatter_weight = np.asarray(wgt, dtype=np.float64)
+        self.decay_axion_weight = np.asarray(wgt*0.0, dtype=np.float64)
+        self.scatter_axion_weight = np.asarray(wgt, dtype=np.float64)
 
 
 

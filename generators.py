@@ -115,7 +115,7 @@ class DarkPrimakoffGenerator:
         self.n_samples = n_samples
         self.mediator_type = mediator
 
-    def get_cosine_weights(self, lam, gphi, mphi, n_e=3.2e26, eff=Efficiency()):
+    def get_weights(self, lam, gphi, mphi, n_e=3.2e26, eff=Efficiency()):
         # Simulate using the MatrixElement method
         if self.mediator_type == "S":
             m2_dp = M2VectorScalarPrimakoff(mphi, self.mx, self.det)
@@ -130,7 +130,9 @@ class DarkPrimakoffGenerator:
         mc = Scatter2to2MC(m2_dp, pa_mu, PM_mu, n_samples=self.n_samples)
 
         cosine_list = []
-        weights_list = []
+        cosine_weights_list = []
+        energy_list = []
+        energy_weights_list = []
         for i in range(len(self.energies)):
             Ea0 = self.energies[i]
             if Ea0 < self.mx:
@@ -138,50 +140,13 @@ class DarkPrimakoffGenerator:
             mc.lv_p1 = LorentzVector(Ea0, 0.0, 0.0, np.sqrt(Ea0**2 - self.mx**2))
             mc.lv_p2 = LorentzVector(self.det_m, 0.0, 0.0, 0.0)
             mc.scatter_sim()
-            cosines, diff_xs = mc.get_cosine_lab_weights()
-            wgts = power(gphi*lam, 2)*eff(self.energies[i])*self.weights[i]*n_e*power(METER_BY_MEV*100, 2)*diff_xs
-            weights_list.extend(wgts)
-            cosine_list.extend(cosines)
-        return np.array(weights_list), np.array(cosine_list)
-
-    def get_evis_weights(self, lam, gphi, mphi, n_e=3.2e26, eff=Efficiency()):
-        # Simulate using the MatrixElement method
-        if self.mediator_type == "S":
-            m2_dp = M2VectorScalarPrimakoff(mphi, self.mx, self.det)
-        if self.mediator_type == "P":
-            m2_dp = M2VectorPseudoscalarPrimakoff(mphi, self.mx, self.det)
-        if self.mediator_type == "V":
-            m2_dp = M2DarkPrimakoff(self.mx, self.det_m, mphi)
-
-        # Declare initial vectors
-        pa_mu = LorentzVector(0.0, 0.0, 0.0, 0.0)
-        PM_mu = LorentzVector(0.0, 0.0, 0.0, 0.0)
-        mc = Scatter2to2MC(m2_dp, pa_mu, PM_mu, n_samples=self.n_samples)
-        
-        weights_list = []
-        energy_list = []
-        for i in range(len(self.energies)):
-            Ea0 = self.energies[i]
-            mc.lv_p1 = LorentzVector(Ea0, 0.0, 0.0, np.sqrt(Ea0**2 - self.mx**2))
-            mc.lv_p2 = LorentzVector(self.det_m, 0.0, 0.0, 0.0)
-            mc.scatter_sim()
-            e3, diff_xs = mc.get_e3_lab_weights()
+            cosines, dsdcos = mc.get_cosine_lab_weights()
+            e3, dsde = mc.get_e3_lab_weights()
             energy_list.extend(e3)
-            weights_list.extend(power(lam*gphi, 2)*eff(self.energies[i])*self.weights[i]*n_e*power(METER_BY_MEV*100, 2)*diff_xs)
-        return np.array(weights_list), np.array(energy_list)
-
-
-
-
-
-
-
-
-
-
-
-
-
+            cosine_list.extend(cosines)
+            energy_weights_list.extend(power(lam*gphi, 2)*eff(self.energies[i])*self.weights[i]*n_e*power(METER_BY_MEV*100, 2)*dsde)
+            cosine_weights_list.extend(power(gphi*lam, 2)*eff(self.energies[i])*self.weights[i]*n_e*power(METER_BY_MEV*100, 2)*dsdcos)
+        return np.array(energy_list), np.array(energy_weights_list), np.array(cosine_list), np.array(cosine_weights_list)
 
 
 
