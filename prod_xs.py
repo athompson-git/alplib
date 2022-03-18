@@ -145,6 +145,18 @@ def compton_dsigma_dea(ea, eg, g, ma, z=1):
 
 
 
+def compton_dsigma_domega(theta, Ea, ma, ge):
+    # Differential cross-section dS/dOmega_a. (γ + e- > a + e-)
+    y = 2*M_E*Ea + ma**2
+    pa = sqrt(Ea**2 - ma**2)
+    e_gamma = 0.5*y/(M_E + Ea - pa*cos(theta))
+
+    prefactor = ge**2 * ALPHA * e_gamma / (4*pi*2*pa*M_E**2)
+    return prefactor * (1 + 4*(M_E*e_gamma/y)**2 - 4*M_E*e_gamma/y - 4*M_E*e_gamma*(ma*pa*sin(theta))**2 / y**3)
+
+
+
+
 def brem_dsigma_dea_domega(Ea, thetaa, Ee, g, ma, z):
     # Differential cross section d^2 Sigma/(dE_a dOmega) for ALP bremsstrahlung (e- Z -> e- Z a)
     # Tsai, 1986
