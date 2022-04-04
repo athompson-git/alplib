@@ -106,8 +106,6 @@ class DarkPrimakoffGenerator:
         self.flux = flux
         self.mx = flux.ma
         self.det = detector
-        self.det_z = detector.z[0]
-        self.det_m = detector.m[0]
         self.energies = flux.axion_energy
         self.weights = flux.scatter_axion_weight
         self.efficiency = None  # TODO: add efficiency info
@@ -118,16 +116,17 @@ class DarkPrimakoffGenerator:
     def get_weights(self, lam, gphi, mphi, n_e=3.2e26, eff=Efficiency()):
         # Simulate using the MatrixElement method
         if self.mediator_type == "S":
-            m2_dp = M2VectorScalarPrimakoff(mphi, self.mx, self.det)
+            m2_dp = [M2VectorScalarPrimakoff(mphi, self.mx, self.det.m[i], self.det.n[i], self.det.z[i]) \
+                for i in range(len(self.det.frac))]
         if self.mediator_type == "P":
-            m2_dp = M2VectorPseudoscalarPrimakoff(mphi, self.mx, self.det)
+            m2_dp = [M2VectorPseudoscalarPrimakoff(mphi, self.mx, self.det.m[i], self.det.n[i], self.det.z[i]) \
+                for i in range(len(self.det.frac))]
         if self.mediator_type == "V":
-            m2_dp = M2DarkPrimakoff(self.mx, self.det_m, mphi)
+            m2_dp = [M2DarkPrimakoff(self.mx, mphi, self.det.m[i], self.det.n[i], self.det.z[i]) \
+                for i in range(len(self.det.frac))]
 
         # Declare initial vectors
-        pa_mu = LorentzVector(0.0, 0.0, 0.0, 0.0)
-        PM_mu = LorentzVector(0.0, 0.0, 0.0, 0.0)
-        mc = Scatter2to2MC(m2_dp, pa_mu, PM_mu, n_samples=self.n_samples)
+        mc = [Scatter2to2MC(m2, LorentzVector(), LorentzVector(), n_samples=self.n_samples) for m2 in m2_dp]
 
         cosine_list = []
         cosine_weights_list = []
@@ -137,15 +136,17 @@ class DarkPrimakoffGenerator:
             Ea0 = self.energies[i]
             if Ea0 < self.mx:
                 continue
-            mc.lv_p1 = LorentzVector(Ea0, 0.0, 0.0, np.sqrt(Ea0**2 - self.mx**2))
-            mc.lv_p2 = LorentzVector(self.det_m, 0.0, 0.0, 0.0)
-            mc.scatter_sim()
-            cosines, dsdcos = mc.get_cosine_lab_weights()
-            e3, dsde = mc.get_e3_lab_weights()
-            energy_list.extend(e3)
-            cosine_list.extend(cosines)
-            energy_weights_list.extend(power(lam*gphi, 2)*eff(self.energies[i])*self.weights[i]*n_e*power(METER_BY_MEV*100, 2)*dsde)
-            cosine_weights_list.extend(power(gphi*lam, 2)*eff(self.energies[i])*self.weights[i]*n_e*power(METER_BY_MEV*100, 2)*dsdcos)
+            for j, this_mc in enumerate(mc):  # loop over elements in compound material
+                this_mc.lv_p1 = LorentzVector(Ea0, 0.0, 0.0, np.sqrt(Ea0**2 - self.mx**2))
+                this_mc.lv_p2 = LorentzVector(self.det.m[j], 0.0, 0.0, 0.0)
+                this_mc.scatter_sim()
+                cosines, dsdcos = this_mc.get_cosine_lab_weights()
+                e3, dsde = this_mc.get_e3_lab_weights()
+                energy_list.extend(e3)
+                cosine_list.extend(cosines)
+                weight_prefactor = self.det.frac[j]*power(lam*gphi, 2)*eff(self.energies[i])*self.weights[i]*n_e*power(METER_BY_MEV*100, 2)
+                energy_weights_list.extend(weight_prefactor*dsde)
+                cosine_weights_list.extend(weight_prefactor*dsdcos)
         return np.array(energy_list), np.array(energy_weights_list), np.array(cosine_list), np.array(cosine_weights_list)
 
 

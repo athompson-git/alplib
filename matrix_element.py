@@ -40,8 +40,18 @@ class MatrixElementDecay3:
         self.m2 = m2
         self.m3 = m3
     
-    def __call__(self):
+    def __call__(self, m122, m232):
         return 0.0
+    
+    def get_sp_from_dalitz(self, m122, m232):
+        sp03 = (self.m_parent**2 + self.m3**2 - m122)/2
+        sp01 = (self.m_parent**2 + self.m1**2 - m232)/2
+        sp02 = (m122 + m232 - self.m1**2 - self.m3**2)/2
+        sp13 = (self.m_parent**2 + self.m2**2 - m122 - m232)/2
+        sp23 = (m232 - self.m2**2 - self.m3**2)/2
+        sp12 = (m122 - self.m1**2 - self.m2**2)/2
+
+        return sp01, sp02, sp03, sp12, sp13, sp23
 
 
 
@@ -94,17 +104,19 @@ class M2DarkPrimakoff(MatrixElement2):
     """
     Dark Primakoff scattering (a + N -> gamma + N) via heavy mediator Zprime
     """
-    def __init__(self, ma, mN, mZp):
+    def __init__(self, ma, mZp, mN, n, z):
         super().__init__(ma, mN, 0, mN)
         self.mZp = mZp
         self.mN = mN
         self.ma = ma
+        self.ff2 = NuclearHelmFF(n, z)
     
     def __call__(self, s, t, coupling_product=1.0):
+        mN = self.mN[0] #np.tile(self.mN,(t.shape[0],1)).transpose()
         prefactor = ALPHA * coupling_product**2
         propagator = power(t - self.mZp**2, 2)
-        numerator = (2*self.mN**2 * (self.ma**2 - 2*s - t) + 2*self.mN**4 - 2*self.ma**2 * (s + t) + self.ma**4 + 2*s**2 + 2*s*t + t**2)
-        return prefactor * numerator / propagator
+        numerator = (2*mN**2 * (self.ma**2 - 2*s - t) + 2*mN**4 - 2*self.ma**2 * (s + t) + self.ma**4 + 2*s**2 + 2*s*t + t**2)
+        return self.ff2(sqrt(abs(t))) * prefactor * numerator / propagator
 
 
 
@@ -113,12 +125,12 @@ class M2VectorScalarPrimakoff(MatrixElement2):
     """
     Zp + N -> gamma + N via massive scalar mediator
     """
-    def __init__(self, mphi, mZp, mat: Material):
-        super().__init__(mZp, mat.m[0], 0, mat.m[0])
+    def __init__(self, mphi, mZp, mN, n, z):
+        super().__init__(mZp, mN, 0, mN)
         self.mZp = mZp
-        self.mN = mat.m[0]
+        self.mN = mN
         self.mphi = mphi
-        self.ff2 = NuclearHelmFF(mat)
+        self.ff2 = NuclearHelmFF(n, z)
     
     def __call__(self, s, t, coupling_product=1.0):
         return self.ff2(np.sqrt(abs(t))) * coupling_product**2 * (2*self.mN**2 - t) * power((self.mZp**2 - t)/(2*(self.mphi**2 - t)),2) 
@@ -130,12 +142,12 @@ class M2VectorPseudoscalarPrimakoff(MatrixElement2):
     """
     Zp + N -> gamma + N via massive scalar mediator
     """
-    def __init__(self, mphi, mZp, mat: Material):
-        super().__init__(mZp, mat.m[0], 0, mat.m[0])
+    def __init__(self, mphi, mZp, mN, n, z):
+        super().__init__(mZp, mN, 0, mN)
         self.mZp = mZp
-        self.mN = mat.m[0]
+        self.mN = mN
         self.mphi = mphi
-        self.ff2 = NuclearHelmFF(mat)
+        self.ff2 = NuclearHelmFF(n, z)
     
     def __call__(self, s, t, coupling_product=1.0):
         return - self.ff2(np.sqrt(abs(t))) * coupling_product**2 * t * power((self.mZp**2 - t)/(2*(self.mphi**2 - t)),2)
@@ -147,10 +159,10 @@ class M2PairProduction:
     """
     a + N -> e+ e- N    ALP-driven pair production
     """
-    def __init__(self, ma, mat: Material):
+    def __init__(self, ma, mN, n, z):
         self.ma = ma
-        self.mN = mat.m[0]
-        self.ff2 = NuclearHelmFF(mat)
+        self.mN = mN
+        self.ff2 = NuclearHelmFF(n, z)
     
     def m2(self, Ea, Ep, tp, tm, phi, coupling_product=1.0):
         # k: ALP momentum
@@ -205,5 +217,80 @@ class M2PairProduction:
                             + 2 * m2_m1 / propagator2 / propagator1)
 
 
-        
+
+
+class M2Meson3BodyDecayHadronic(MatrixElementDecay3):
+    # Radiative decay M -> l(1) nu(2) X(3), X radiated from hadronic meson current
+    def __init__(self, mx, meson="pion", lepton_mass=M_E):
+        if meson == "pion":
+            m_meson = M_PI
+            self.ckm = V_UD
+            self.fM = F_PI
+            self.total_width = PION_WIDTH
+        elif meson == "kaon":
+            m_meson = M_K
+            self.ckm = V_US
+            self.fM = F_K
+            self.total_width = KAON_WIDTH
+        super().__init__(m_meson, lepton_mass, 0.0, mx)
+    
+    def __call__(self, m122, m232, c0=0.0, coupling_product=1.0):
+        lp, pq, kp, lq, kl, kq = super().get_sp_from_dalitz(m122, m232)
+        denom = power((c0 + 1) * self.m3 * (self.m3**2 - kp), 2)
+        numerator1 = 8 * self.m3**2 * (2*c0*(kq*lp)*(kp-self.m3**2) \
+            - lq*((1-c0**2)*kp**2 - 2*self.m3**2 * kp + power(c0*self.m_parent*self.m3,2) + self.m3**4))
+        numerator2 = 16*kl*(kq * ((c0+1)*kp + self.m3 * (c0*self.m_parent-self.m3))*(self.m3*(c0*self.m_parent+self.m3)-(c0+1)*kp)+c0*self.m3**2 * pq * (kp-self.m3**2))
+
+        #msq = 4*(-(4*c0**2 * m122*(self.m_parent**4 - self.m_parent**2 * (m122+2*m232+self.m1**2)+m122*(2*m232+self.m1**2)+m232**2))/((c0+1)**2 * (-self.m_parent**2+m122+self.m3**2)**2) \
+        #    + (4*c0*(self.m1**2 * (-c0*m122-self.m_parent**2 + m122+m232) + c0*m122*(self.m_parent**2-m232)))/((c0+1)**2 * (self.m_parent**2-m122-self.m3**2)) \
+        #        - (2*m122)/((c0+1)**2) + ((1-(c0-2)*c0)*self.m1**2)/((c0+1)**2) + (m232*(-self.m_parent**2+m122+m232))/(self.m3**2) + self.m_parent**2 - m232)
+
+        return -power(coupling_product*G_F*self.fM*self.ckm/sqrt(2), 2) * (numerator1 + numerator2)/denom
+
+
+
+class M2Meson3BodyDecayLeptonic(MatrixElementDecay3):
+    # Radiative decay M -> l(1) nu(2) X(3), X radiated from leptonic leg
+    def __init__(self, mx, boson_rep="S", meson="pion", lepton="muon"):
+        if meson == "pion":
+            m_meson = M_PI
+            self.ckm = V_UD
+            self.fM = F_PI
+            self.total_width = PION_WIDTH
+        elif meson == "kaon":
+            m_meson = M_K
+            self.ckm = V_US
+            self.fM = F_K
+            self.total_width = KAON_WIDTH
+        if lepton == "muon":
+            ml = M_MU
+        elif lepton == "electron":
+            ml = M_E
+        super().__init__(m_meson, ml, 0.0, mx)
+        # 0: parent meson
+        # 1: lepton
+        # 2: neutrino
+        # 3: dark boson
+        self.boson_rep = boson_rep
+    
+    def __call__(self, m122, m232, coupling_product=1.0):
+        if self.boson_rep == "S":
+            pass
+        if self.boson_rep == "P":
+            pass
+        if self.boson_rep == "V":
+            q2 = self.m_parent**2 - 2*self.m_parent*(m122 + m232 - self.m1**2 - self.m3**2)/(2*self.m_parent)
+
+            prefactor = 8*power(G_F*self.fM*self.ckm/(q2 - self.m1**2)/self.m3, 2)
+
+            lp, pq, kp, lq, kl, kq = super().get_sp_from_dalitz(m122, m232)
+
+            cr = coupling_product
+            cl = coupling_product
+
+            # Dmu(self.m_parent/kl)*
+            return -prefactor * ((power(cr*self.m_parent*self.m1,2) - power(cl*q2,2)) * (lq*self.m3**2 + 2*lp*pq) \
+                - 2*cr*self.m1**2 * kq * (cr*self.m3**2 * kl + 2*cr*kp*lp - 3*cl*q2*self.m3**2))
+
+        return super().__call__(m122, m232)
         

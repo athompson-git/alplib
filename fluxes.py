@@ -523,6 +523,8 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
         self.energy_cut = energy_cut
         self.cosines = []
         self.decay_pos = []
+        self.m2had = M2Meson3BodyDecayHadronic(self.ma, meson_type, m_lepton)
+        self.decay_model = "IB2"
 
     def dGammadEa(self, Ea):
         m212 = self.mm**2 + self.ma**2 - 2*self.mm*Ea
@@ -596,6 +598,33 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
 
             return M_IB2
         
+        def MatrixElement2QVSD(m223):
+            pk = (self.mm**2 + self.ma**2 - m212)/2
+            pl = (self.mm**2 + self.m_lepton**2 - m223)/2
+            pq = (m212 + m223 - self.m_lepton**2 - self.ma**2)/2
+            kl = (self.mm**2 - m212 - m223)/2
+            kq = (m223 - self.ma**2)/2
+            lq = (m212 - self.m_lepton**2)/2
+
+            # SD piece
+            prefactor_SD = 8 * power(self.gmu * G_F * CABIBBO / sqrt(2) / self.mm, 2)
+            fv = 1.0 #0.0265
+            fa = 1.0 #0.58 * fv
+
+            M_SD = 130 * prefactor_SD * (2 * kl * (power(fa - fv, 2)*pk*pq - self.mm**2 * (fa**2 + fv**2)*kq) \
+                    + self.ma**2 * (power(fa*self.mm, 2) * lq - 2*fv**2 * pl * pq) \
+                    + 2 * power(fa + fv, 2) * pk * kq * pl)
+            return M_SD
+        
+        def MatrixElement2QVContact(m223):
+            self.m2had.m3 = self.ma
+            return self.m2had(m212, m223, c0=-0.97, coupling_product=self.gmu)
+        
+        def MatrixElement2QVIB2(m223):
+            prefactor_IB2 = 2*power(self.gmu * G_F * self.fM * self.m_lepton, 2)
+            M_IB2 = -prefactor_IB2 * ((self.m_lepton**2-m212)*((self.mm**2-m212+self.ma**2)**2 - 4*self.mm**2 * self.ma**2))/(self.ma**2 * (self.mm**2-m212)**2)
+            return M_IB2
+        
         if self.rep == "P":
             return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2P, m223Min, m223Max)[0]
         
@@ -604,9 +633,14 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
 
         if self.rep == "V":
             return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2V, m223Min, m223Max)[0]
-        
+                
         if self.rep == "QV":
-            return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2QV, m223Min, m223Max)[0]
+            if self.decay_model == "contact":
+                return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2QVContact, m223Min, m223Max)[0]
+            if self.decay_model == "IB2":
+                return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2QVIB2, m223Min, m223Max)[0]
+            if self.decay_model == "SD":
+                return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2QVSD, m223Min, m223Max)[0]
     
     def total_br(self):
         EaMax = (self.mm**2 + self.ma**2 - self.m_lepton**2)/(2*self.mm)
@@ -719,6 +753,8 @@ class FluxChargedMeson3BodyIsotropic(AxionFlux):
         self.EaMax = (self.mm**2 + self.ma**2 - self.m_lepton**2)/(2*self.mm)
         self.EaMin = self.ma
         self.n_samples = n_samples
+        self.m2had = M2Meson3BodyDecayHadronic(self.ma, meson_type, m_lepton)
+        self.decay_model = "IB2"
     
     def lifetime(self, gagamma):
         return 1/W_gg(gagamma, self.ma)
@@ -769,7 +805,7 @@ class FluxChargedMeson3BodyIsotropic(AxionFlux):
             return -prefactor * ((power(cr*self.mm*self.m_lepton,2) - power(cl*q2,2)) * (lq*self.ma**2 + 2*lp*pq) \
                 - 2*cr*self.m_lepton**2 * kq * (cr*self.ma**2 * kl + 2*cr*kp*lp - 3*cl*q2*self.ma**2))
         
-        def MatrixElement2QV(m223):
+        def MatrixElement2QVSD(m223):
             pk = (self.mm**2 + self.ma**2 - m212)/2
             pl = (self.mm**2 + self.m_lepton**2 - m223)/2
             pq = (m212 + m223 - self.m_lepton**2 - self.ma**2)/2
@@ -785,15 +821,22 @@ class FluxChargedMeson3BodyIsotropic(AxionFlux):
             M_SD = 130 * prefactor_SD * (2 * kl * (power(fa - fv, 2)*pk*pq - self.mm**2 * (fa**2 + fv**2)*kq) \
                     + self.ma**2 * (power(fa*self.mm, 2) * lq - 2*fv**2 * pl * pq) \
                     + 2 * power(fa + fv, 2) * pk * kq * pl)
-
-            # IB piece
-            prefactor_IB2 = -16*power(self.gmu * G_F * self.fM * self.mm * self.m_lepton, 2)
-            M_IB2 = prefactor_IB2 * ((self.m_lepton**2-m212)*((self.mm**2-m212+self.ma**2)**2 - 4*self.mm**2 * self.ma**2))/(self.ma**2 * (self.mm**2-m212)**2)
-
+            return M_SD
+        
+        def MatrixElement2QVContact(m223):
+            self.m2had.m3 = self.ma
+            return self.m2had(m212, m223, c0=-0.97, coupling_product=self.gmu)
+            kl = (self.mm**2 - m212 - m223)/2
+            kq = (m223 - self.ma**2)/2
+            lq = (m212 - self.m_lepton**2)/2
             prefactor_IB3 = -2*power(self.gmu * G_F * self.fM * self.m_lepton, 2)
             M_IB3 = -(prefactor_IB3 / self.m_lepton**2) * (8*lq + 16*kl*kq / self.ma**2)
-
             return M_IB3
+        
+        def MatrixElement2QVIB2(m223):
+            prefactor_IB2 = 2*power(self.gmu * G_F * self.fM * self.m_lepton, 2)
+            M_IB2 = -prefactor_IB2 * ((self.m_lepton**2-m212)*((self.mm**2-m212+self.ma**2)**2 - 4*self.mm**2 * self.ma**2))/(self.ma**2 * (self.mm**2-m212)**2)
+            return M_IB2
         
         if self.rep == "P":
             return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2P, m223Min, m223Max)[0]
@@ -805,7 +848,12 @@ class FluxChargedMeson3BodyIsotropic(AxionFlux):
             return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2V, m223Min, m223Max)[0]
         
         if self.rep == "QV":
-            return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2QV, m223Min, m223Max)[0]
+            if self.decay_model == "contact":
+                return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2QVContact, m223Min, m223Max)[0]
+            if self.decay_model == "IB2":
+                return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2QVIB2, m223Min, m223Max)[0]
+            if self.decay_model == "SD":
+                return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2QVSD, m223Min, m223Max)[0]
 
     def gamma_sm(self):
         return self.total_width
@@ -845,7 +893,7 @@ class FluxChargedMeson3BodyIsotropic(AxionFlux):
         # Monte Carlo volume, making sure to use the lab frame energy range
 
         mc_vol = ea_max - ea_min
-        weights = jacobian*np.array([pion_wgt*mc_vol*self.dGammadEa(ea)/self.gamma_sm()/self.n_samples \
+        weights = np.array([pion_wgt*mc_vol*self.dGammadEa(ea)/self.gamma_sm()/self.n_samples \
             for ea in energies])
 
         for i in range(self.n_samples):
@@ -878,9 +926,9 @@ class FluxChargedMeson3BodyIsotropic(AxionFlux):
 
 class FluxPi0Isotropic(AxionFlux):
     def __init__(self, pi0_rate=0.0259, boson_mass=0.1, coupling=1.0,
-                 boson_type="QV", det_dist=20.0, det_area=2.0, det_length=1.0,
-                 target=Material("W"), detector=Material("Ar"), n_samples=1000):
-        super().__init__(boson_mass, target, detector, det_dist, det_length, det_area)
+                 det_dist=20.0, det_area=2.0, det_length=1.0,
+                 target=Material("W"), n_samples=1000):
+        super().__init__(boson_mass, target, det_dist, det_length, det_area)
         self.meson_rate = pi0_rate
         self.n_samples = n_samples
         self.g = coupling
@@ -888,7 +936,7 @@ class FluxPi0Isotropic(AxionFlux):
         self.mm = M_PI0
     
     def br(self):
-        return 2 * self.g**2 * (1 - power(self.boson_mass / M_PI0, 2))**3
+        return 2 * (self.g)**2 * (1 - power(self.boson_mass / M_PI0, 2))**3 / sqrt(4*pi*ALPHA)
     
     def simulate_flux(self, pi0_flux, energy_cut=0.0, angle_cut=np.pi):
         # pi0_flux = momenta array, normalized to pi0 rate
