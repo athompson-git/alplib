@@ -2,6 +2,8 @@
 # Based on "Solar Position Algorithm for Solar Radiation Applications"
 # by Ibrahim Reda and Afshin Andreas
 
+import pkg_resources
+
 from alplib.constants import *
 from alplib.fmath import *
 
@@ -11,23 +13,40 @@ class SPA:
     Solar Position Algorithm for Solar Radiation Applications
     """
     def __init__(self):
-        self.r0_data = np.genfromtxt("data/solar/periodic_earth_terms_R0.txt", skip_header=1)
-        self.r1_data = np.genfromtxt("data/solar/periodic_earth_terms_R1.txt", skip_header=1)
-        self.r2_data = np.genfromtxt("data/solar/periodic_earth_terms_R2.txt", skip_header=1)
-        self.r3_data = np.genfromtxt("data/solar/periodic_earth_terms_R3.txt", skip_header=1)
-        self.r4_data = np.genfromtxt("data/solar/periodic_earth_terms_R4.txt", skip_header=1)
+        self.path_prefix = "data/solar/"
+        self.file_extension = ".txt"
 
-        self.b0_data = np.genfromtxt("data/solar/periodic_earth_terms_B0.txt", skip_header=1)
-        self.b1_data = np.genfromtxt("data/solar/periodic_earth_terms_B1.txt", skip_header=1)
+        self.r0_data = np.genfromtxt(pkg_resources.resource_filename(__name__, self.path_prefix \
+            + "periodic_earth_terms_R0" + self.file_extension), skip_header=1)
+        self.r1_data = np.genfromtxt(pkg_resources.resource_filename(__name__, self.path_prefix \
+            + "periodic_earth_terms_R1" + self.file_extension), skip_header=1)
+        self.r2_data = np.genfromtxt(pkg_resources.resource_filename(__name__, self.path_prefix \
+            + "periodic_earth_terms_R2" + self.file_extension), skip_header=1)
+        self.r3_data = np.genfromtxt(pkg_resources.resource_filename(__name__, self.path_prefix \
+            + "periodic_earth_terms_R3" + self.file_extension), skip_header=1)
+        self.r4_data = np.genfromtxt(pkg_resources.resource_filename(__name__, self.path_prefix \
+            + "periodic_earth_terms_R4" + self.file_extension), skip_header=1)
 
-        self.l0_data = np.genfromtxt("data/solar/periodic_earth_terms_L0.txt", skip_header=1)
-        self.l1_data = np.genfromtxt("data/solar/periodic_earth_terms_L1.txt", skip_header=1)
-        self.l2_data = np.genfromtxt("data/solar/periodic_earth_terms_L2.txt", skip_header=1)
-        self.l3_data = np.genfromtxt("data/solar/periodic_earth_terms_L3.txt", skip_header=1)
-        self.l4_data = np.genfromtxt("data/solar/periodic_earth_terms_L4.txt", skip_header=1)
-        self.l5_data = np.genfromtxt("data/solar/periodic_earth_terms_L5.txt", skip_header=1)
+        self.b0_data = np.genfromtxt(pkg_resources.resource_filename(__name__, self.path_prefix \
+            + "periodic_earth_terms_B0" + self.file_extension), skip_header=1)
+        self.b1_data = np.genfromtxt(pkg_resources.resource_filename(__name__, self.path_prefix \
+            + "periodic_earth_terms_B1" + self.file_extension), skip_header=1)
 
-        nuta_data = np.genfromtxt("data/solar/nutation_longitude_obliquity.txt", skip_header=1)
+        self.l0_data = np.genfromtxt(pkg_resources.resource_filename(__name__, self.path_prefix \
+            + "periodic_earth_terms_L0" + self.file_extension), skip_header=1)
+        self.l1_data = np.genfromtxt(pkg_resources.resource_filename(__name__, self.path_prefix \
+            + "periodic_earth_terms_L1" + self.file_extension), skip_header=1)
+        self.l2_data = np.genfromtxt(pkg_resources.resource_filename(__name__, self.path_prefix \
+            + "periodic_earth_terms_L2" + self.file_extension), skip_header=1)
+        self.l3_data = np.genfromtxt(pkg_resources.resource_filename(__name__, self.path_prefix \
+            + "periodic_earth_terms_L3" + self.file_extension), skip_header=1)
+        self.l4_data = np.genfromtxt(pkg_resources.resource_filename(__name__, self.path_prefix \
+            + "periodic_earth_terms_L4" + self.file_extension), skip_header=1)
+        self.l5_data = np.genfromtxt(pkg_resources.resource_filename(__name__, self.path_prefix \
+            + "periodic_earth_terms_L5" + self.file_extension), skip_header=1)
+
+        nuta_data = np.genfromtxt(pkg_resources.resource_filename(__name__, self.path_prefix \
+            + "nutation_longitude_obliquity" + self.file_extension), skip_header=1)
         self.ai = nuta_data[:,5]
         self.bi = nuta_data[:,6]
         self.ci = nuta_data[:,7]
@@ -37,6 +56,13 @@ class SPA:
         self.yi2 = nuta_data[:,2]
         self.yi3 = nuta_data[:,3]
         self.yi4 = nuta_data[:,4]
+    
+
+    # Helper functions
+
+    def deltaT(self, year):
+        t = (year - 1820)/100
+        return -20 + 32 * t**2  # seconds
 
 
     # 3.1: Time scales ~~~
@@ -216,5 +242,21 @@ class SPA:
 
     # 3.8: Calculate the apparent sidereal time at Greenwich at any given time (in degrees)
 
-    def v0(self):
+    def v0(self, jd):
+        v0 = 280.46061837 + 360.98564736629 * (jd - 2451545) \
+            + 0.000387933*power(self.jc(jd),2) - power(self.jc(jd),3) / 38710000
+        if v0 > 0.0:
+            return v0 % 360.0
+        elif v0 < 0.0:
+            return 360.0 - v0 % 360.0 
+        return 0.0
+    
+    def v(self, jd, year=2022):
+        jde = self.jde(jd, self.deltaT(year))
+        return self.v0(jd) + self.delta_psi(self.jce(jde)) * cos(self.epsilon(self.jme(self.jce(jde))))
+    
+
+    # 3.9: Calculate the geocentric sun right ascension, alpha (degrees)
+
+    def alpha(self):
         pass
