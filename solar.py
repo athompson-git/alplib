@@ -258,5 +258,18 @@ class SPA:
 
     # 3.9: Calculate the geocentric sun right ascension, alpha (degrees)
 
-    def alpha(self):
-        pass
+    def alpha(self, jme):
+        alpha = (180.0 / pi)*np.arctan2((sin(self.lambda_sun_long(jme))*cos(self.epsilon(jme)) \
+            - tan(self.beta_gc_lat(jme))*sin(self.epsilon(jme))) / cos(self.lambda_sun_long(jme)))
+        if alpha > 0.0:
+            return alpha % 360.0
+        elif alpha < 0.0:
+            return 360.0 - alpha % 360.0 
+        return 0.0
+    
+
+    # 3.10: Calculate the geocentric sun declination
+
+    def delta(self, jme):
+        return (180.0/pi)*arcsin(sin(self.beta_gc_lat(jme))*cos(self.epsilon(jme)) \
+            + cos(self.beta_gc_lat(jme))*sin(self.epsilon(jme))*sin(self.lambda_sun_long(jme)))
