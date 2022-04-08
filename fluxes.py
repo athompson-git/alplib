@@ -496,24 +496,20 @@ class FluxNuclearIsotropic(AxionFlux):
 
 class FluxChargedMeson3BodyDecay(AxionFlux):
     def __init__(self, meson_flux, axion_mass=0.1, coupling=1.0, n_samples=50, meson_type="pion",
-                 m_lepton=M_MU, boson_type="S", energy_cut=140.0, det_dist=541, det_length=12, det_area=36,
-                 target=Material("Be")):
+                 m_lepton=M_MU, interaction_model="scalar_ib1", energy_cut=140.0, det_dist=541, det_length=12,
+                 det_area=36*pi, target=Material("Be"), c0=-0.95):
         super().__init__(axion_mass, target, det_dist, det_length, det_area, n_samples)
         self.meson_flux = meson_flux
-        if meson_type == "pion":
-            self.mm = M_PI
-            self.ckm = V_UD
-            self.fM = F_PI
-            self.total_width = PION_WIDTH
-        elif meson_type == "kaon":
-            self.mm = M_K
-            self.ckm = V_US
-            self.fM = F_K
-            self.total_width = KAON_WIDTH
-        else:
-            raise Exception("Meson type not understood!", meson_type)
+        param_dict = {
+            "pion": [M_PI, V_UD, F_PI, PION_WIDTH],
+            "kaon": [M_K, V_US, F_K, KAON_WIDTH]
+        }
+        decay_params = param_dict[meson_type]
+        self.mm = decay_params[0]
+        self.ckm = decay_params[1]
+        self.fM = decay_params[2]
+        self.total_width = decay_params[3]
         self.m_lepton = m_lepton
-        self.rep = boson_type
         self.gmu = coupling
         self.EaMax = (self.mm**2 + self.ma**2 - self.m_lepton**2)/(2*self.mm)
         self.EaMin = self.ma
@@ -523,10 +519,11 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
         self.energy_cut = energy_cut
         self.cosines = []
         self.decay_pos = []
-        self.m2had = M2Meson3BodyDecayHadronic(self.ma, meson_type, m_lepton)
-        self.decay_model = "IB2"
+        self.c0 = c0  # contact model parameter, 0 by default
+        self.m2 = M2Meson3BodyDecay(self.ma, meson_type, m_lepton, interaction_model)
 
     def dGammadEa(self, Ea):
+        self.m2.m3 = self.ma
         m212 = self.mm**2 + self.ma**2 - 2*self.mm*Ea
         e2star = (m212 - self.m_lepton**2)/(2*sqrt(m212))
         e3star = (self.mm**2 - m212 - self.ma**2)/(2*sqrt(m212))
@@ -536,111 +533,11 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
 
         m223Max = (e2star + e3star)**2 - (sqrt(e2star**2) - sqrt(e3star**2 - self.ma**2))**2
         m223Min = (e2star + e3star)**2 - (sqrt(e2star**2) + sqrt(e3star**2 - self.ma**2))**2
-    
-        def MatrixElement2P(m223):
-            ev = (m212 + m223 - self.m_lepton**2 - self.ma**2)/(2*self.mm)
-            emu = (self.mm**2 - m223 + self.m_lepton**2)/(2*self.mm)
-            q2 = self.mm**2 - 2*self.mm*ev
 
-            prefactor = heaviside(e3star-self.ma,0.0)*(self.gmu*G_F*self.fM*self.ckm/(q2 - self.m_lepton**2))**2
-            return prefactor*((2*self.mm*emu*q2 * (q2 - self.m_lepton**2) - (q2**2 - (self.m_lepton*self.mm)**2)*(q2 + self.m_lepton**2 - self.ma**2)) - (2*q2*self.m_lepton**2 * (self.mm**2 - q2)))
+        def MatrixElement2(m223):
+            return self.m2(m212, m223, c0=self.c0, coupling=self.gmu)
         
-        def MatrixElement2S(m223):
-            ev = (m212 + m223 - self.m_lepton**2 - self.ma**2)/(2*self.mm)
-            emu = (self.mm**2 - m223 + self.m_lepton**2)/(2*self.mm)
-            q2 = self.mm**2 - 2*self.mm*ev
-
-            prefactor = heaviside(e3star-self.ma,0.0)*(self.gmu*G_F*self.fM*self.ckm/(q2 - self.m_lepton**2))**2
-            return prefactor*((2*self.mm*emu*q2 * (q2 - self.m_lepton**2) - (q2**2 - (self.m_lepton*self.mm)**2)*(q2 + self.m_lepton**2 - self.ma**2)) + (2*q2*self.m_lepton**2 * (self.mm**2 - q2)))
-
-        def MatrixElement2V(m223):
-            q2 = self.mm**2 - 2*self.mm*(m212 + m223 - self.m_lepton**2 - self.ma**2)/(2*self.mm)
-
-            prefactor = heaviside(e3star-self.ma,0.0)*8*power(G_F*self.fM*self.ckm/(q2 - self.m_lepton**2)/self.ma, 2)
-
-            lq = (m212 - self.m_lepton**2)/2
-            lp = (self.mm**2 - m212 - m223)/2
-            kq = (m212 + m223 - self.m_lepton**2 - self.ma**2)/2
-            pq = (m223 - self.ma**2)/2
-            kl = (self.mm**2 + self.m_lepton**2 - m223)/2
-            kp = (self.mm**2 + self.ma**2 - m212)/2
-
-            cr = self.gmu
-            cl = self.gmu
-
-            # Dmu(self.mm/kl)*
-            return -prefactor * ((power(cr*self.mm*self.m_lepton,2) - power(cl*q2,2)) * (lq*self.ma**2 + 2*lp*pq) \
-                - 2*cr*self.m_lepton**2 * kq * (cr*self.ma**2 * kl + 2*cr*kp*lp - 3*cl*q2*self.ma**2))
-        
-        def MatrixElement2QV(m223):
-            pk = (self.mm**2 + self.ma**2 - m212)/2
-            pl = (self.mm**2 + self.m_lepton**2 - m223)/2
-            pq = (m212 + m223 - self.m_lepton**2 - self.ma**2)/2
-            kl = (self.mm**2 - m212 - m223)/2
-            kq = (m223 - self.ma**2)/2
-            lq = (m212 - self.m_lepton**2)/2
-
-            # SD piece
-            prefactor_SD = 8 * power(self.gmu * G_F * CABIBBO / sqrt(2) / self.mm, 2)
-            fv = 1.0 #0.0265
-            fa = 1.0 #0.58 * fv
-
-            M_SD = 130 * prefactor_SD * (2 * kl * (power(fa - fv, 2)*pk*pq - self.mm**2 * (fa**2 + fv**2)*kq) \
-                    + self.ma**2 * (power(fa*self.mm, 2) * lq - 2*fv**2 * pl * pq) \
-                    + 2 * power(fa + fv, 2) * pk * kq * pl)
-
-            # IB piece
-            prefactor_IB2 = 2*power(self.gmu * G_F * self.fM * self.m_lepton, 2)
-            M_IB2 = -prefactor_IB2 * ((self.m_lepton**2-m212)*((self.mm**2-m212+self.ma**2)**2 - 4*self.mm**2 * self.ma**2))/(self.ma**2 * (self.mm**2-m212)**2)
-
-            prefactor_IB3 = power(self.gmu * G_F * self.fM, 2)/2
-            M_IB3 = prefactor_IB3 * (8*lq + 16*kl*kq / self.ma**2)
-
-            return M_IB2
-        
-        def MatrixElement2QVSD(m223):
-            pk = (self.mm**2 + self.ma**2 - m212)/2
-            pl = (self.mm**2 + self.m_lepton**2 - m223)/2
-            pq = (m212 + m223 - self.m_lepton**2 - self.ma**2)/2
-            kl = (self.mm**2 - m212 - m223)/2
-            kq = (m223 - self.ma**2)/2
-            lq = (m212 - self.m_lepton**2)/2
-
-            # SD piece
-            prefactor_SD = 8 * power(self.gmu * G_F * CABIBBO / sqrt(2) / self.mm, 2)
-            fv = 1.0 #0.0265
-            fa = 1.0 #0.58 * fv
-
-            M_SD = 130 * prefactor_SD * (2 * kl * (power(fa - fv, 2)*pk*pq - self.mm**2 * (fa**2 + fv**2)*kq) \
-                    + self.ma**2 * (power(fa*self.mm, 2) * lq - 2*fv**2 * pl * pq) \
-                    + 2 * power(fa + fv, 2) * pk * kq * pl)
-            return M_SD
-        
-        def MatrixElement2QVContact(m223):
-            self.m2had.m3 = self.ma
-            return self.m2had(m212, m223, c0=-0.97, coupling_product=self.gmu)
-        
-        def MatrixElement2QVIB2(m223):
-            prefactor_IB2 = 2*power(self.gmu * G_F * self.fM * self.m_lepton, 2)
-            M_IB2 = -prefactor_IB2 * ((self.m_lepton**2-m212)*((self.mm**2-m212+self.ma**2)**2 - 4*self.mm**2 * self.ma**2))/(self.ma**2 * (self.mm**2-m212)**2)
-            return M_IB2
-        
-        if self.rep == "P":
-            return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2P, m223Min, m223Max)[0]
-        
-        if self.rep == "S":
-            return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2S, m223Min, m223Max)[0]
-
-        if self.rep == "V":
-            return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2V, m223Min, m223Max)[0]
-                
-        if self.rep == "QV":
-            if self.decay_model == "contact":
-                return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2QVContact, m223Min, m223Max)[0]
-            if self.decay_model == "IB2":
-                return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2QVIB2, m223Min, m223Max)[0]
-            if self.decay_model == "SD":
-                return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2QVSD, m223Min, m223Max)[0]
+        return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2, m223Min, m223Max)[0]
     
     def total_br(self):
         EaMax = (self.mm**2 + self.ma**2 - self.m_lepton**2)/(2*self.mm)
