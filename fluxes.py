@@ -496,7 +496,7 @@ class FluxNuclearIsotropic(AxionFlux):
 
 class FluxChargedMeson3BodyDecay(AxionFlux):
     def __init__(self, meson_flux, axion_mass=0.1, coupling=1.0, n_samples=50, meson_type="pion",
-                 m_lepton=M_MU, interaction_model="scalar_ib1", energy_cut=140.0, det_dist=541, det_length=12,
+                 interaction_model="scalar_ib1", energy_cut=140.0, det_dist=541, det_length=12,
                  det_area=36*pi, target=Material("Be"), c0=-0.95):
         super().__init__(axion_mass, target, det_dist, det_length, det_area, n_samples)
         self.meson_flux = meson_flux
@@ -509,10 +509,7 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
         self.ckm = decay_params[1]
         self.fM = decay_params[2]
         self.total_width = decay_params[3]
-        self.m_lepton = m_lepton
         self.gmu = coupling
-        self.EaMax = (self.mm**2 + self.ma**2 - self.m_lepton**2)/(2*self.mm)
-        self.EaMin = self.ma
         self.dump_dist = 50
         self.det_sa = cos(arctan(self.det_length/(self.det_dist-self.dump_dist)/2))
         self.solid_angles = []
@@ -520,12 +517,17 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
         self.cosines = []
         self.decay_pos = []
         self.c0 = c0  # contact model parameter, 0 by default
-        self.m2 = M2Meson3BodyDecay(self.ma, meson_type, m_lepton, interaction_model)
+        self.m2_e = M2Meson3BodyDecay(axion_mass, meson_type, M_E, interaction_model)
+        self.m2_mu = M2Meson3BodyDecay(axion_mass, meson_type, M_MU, interaction_model)
 
-    def dGammadEa(self, Ea):
-        self.m2.m3 = self.ma
+    def set_ma(self, ma):
+        self.ma = ma
+        self.m2_mu.m3 = self.ma
+        self.m2_e.m3 = self.ma
+
+    def dGammadEa(self, Ea, ml=M_MU):
         m212 = self.mm**2 + self.ma**2 - 2*self.mm*Ea
-        e2star = (m212 - self.m_lepton**2)/(2*sqrt(m212))
+        e2star = (m212 - ml**2)/(2*sqrt(m212))
         e3star = (self.mm**2 - m212 - self.ma**2)/(2*sqrt(m212))
 
         if self.ma > e3star:
@@ -534,19 +536,28 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
         m223Max = (e2star + e3star)**2 - (sqrt(e2star**2) - sqrt(e3star**2 - self.ma**2))**2
         m223Min = (e2star + e3star)**2 - (sqrt(e2star**2) + sqrt(e3star**2 - self.ma**2))**2
 
-        def MatrixElement2(m223):
-            return self.m2(m212, m223, c0=self.c0, coupling=self.gmu)
-        
-        return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2, m223Min, m223Max)[0]
+        if ml == M_MU:
+            def MatrixElement2(m223):
+                return self.m2_mu(m212, m223, c0=self.c0, coupling=self.gmu)
+            
+            return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2, m223Min, m223Max)[0]
+        elif ml == M_E:
+            def MatrixElement2(m223):
+                    return self.m2_e(m212, m223, c0=self.c0, coupling=self.gmu)
+                
+            return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2, m223Min, m223Max)[0]
+        else:
+            return 0.0
     
     def total_br(self):
-        EaMax = (self.mm**2 + self.ma**2 - self.m_lepton**2)/(2*self.mm)
-        EaMin = self.ma
-        return quad(self.dGammadEa, EaMin, EaMax)[0] / self.total_width
+        ea_max_mu = (self.mm**2 + self.ma**2 - M_MU**2)/(2*self.mm)
+        ea_max_e = (self.mm**2 + self.ma**2 - M_E**2)/(2*self.mm)
+        return (quad(self.dGammadEa, self.ma, ea_max_e, args=(M_E,))[0] \
+            + quad(self.dGammadEa, self.ma, ea_max_mu, args=(M_MU,))[0]) / self.total_width
     
-    def simulate_single(self, meson_p, pion_wgt, cut_on_solid_angle=True, solid_angle_cosine=0.0):
+    def simulate_single(self, meson_p, pion_wgt, cut_on_solid_angle=True, solid_angle_cosine=0.0, ml=M_E):
         ea_min = self.ma
-        ea_max = (self.mm**2 + self.ma**2 - self.m_lepton**2)/(2*self.mm)
+        ea_max = (self.mm**2 + self.ma**2 - ml**2)/(2*self.mm)
 
         # Boost to lab frame
         beta = meson_p / sqrt(meson_p**2 + self.mm**2)
@@ -564,13 +575,13 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
         cos_theta_lab = pz_lab / sqrt(e_lab**2 - self.ma**2)
 
         # Jacobian for transforming d2Gamma/(dEa * dOmega) to lab frame:
-        jacobian = sqrt(e_lab**2 - self.ma**2) / momenta
+        #jacobian = sqrt(e_lab**2 - self.ma**2) / momenta
         # Monte Carlo volume, making sure to use the lab frame energy range
-        mc_vol = (self.EaMax - self.EaMin)*(1-min_cm_cos)
-        mc_vol_lab = boost*(self.EaMax - sqrt(self.EaMax**2 - self.ma**2)*beta) - boost*(self.EaMin + sqrt(self.EaMin**2 - self.ma**2)*beta)
+        mc_vol = (ea_max - ea_min)*(1-min_cm_cos)
+        #mc_vol_lab = boost*(ea_max - sqrt(ea_max**2 - self.ma**2)*beta) - boost*(ea_min + sqrt(ea_min**2 - self.ma**2)*beta)
 
         # Draw weights from the PDF
-        weights = np.array([pion_wgt*mc_vol*self.dGammadEa(ea)/self.total_width/self.n_samples \
+        weights = np.array([pion_wgt*mc_vol*self.dGammadEa(ea, ml)/self.total_width/self.n_samples \
             for ea in energies])
         #weights = np.array([pion_wgt*mc_vol_lab*self.dGammadEa(ea)/self.gamma_sm()/self.n_samples \
         #    for ea in energies])*jacobian
@@ -593,10 +604,6 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
         self.decay_pos = []
         self.solid_angles = []
 
-        if self.ma > self.mm - self.m_lepton:
-            # Kinematically forbidden beyond Meson mass - muon mass difference
-            return
-
         for i, p in enumerate(self.meson_flux):
             # Simulate decay positions between target and dump
             # The quantile is truncated at the dump position via umax
@@ -614,7 +621,10 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
             solid_angle_cosine = cos(arctan(self.det_length/(self.det_dist-x)/2))
 
             # Simulate decays for each charged meson
-            self.simulate_single(p[0], p[2], cut_on_solid_angle, solid_angle_cosine)
+            for ml in [M_E, M_MU]:
+                if self.ma > self.mm - ml:
+                    continue
+                self.simulate_single(p[0], p[2], cut_on_solid_angle, solid_angle_cosine, ml)
         
 
     def propagate(self, gagamma=None):  # propagate to detector
@@ -894,41 +904,3 @@ class FluxPi0Isotropic(AxionFlux):
             self.decay_axion_weight = np.asarray(wgt*0.0, dtype=np.float64)
             self.scatter_axion_weight = np.asarray(wgt, dtype=np.float64)
 
-
-
-
-##### DARK MATTER FLUXES #####
-rho_chi = 0.4e6 #(* keV / cm^3 *)
-vesc = 544.0e6
-v0 = 220.0e6
-ve = 244.0e6
-nesc = erf(vesc/v0) - 2*(vesc/v0) * exp(-(vesc/v0)**2) * sqrt(pi)
-
-def fv(v):  # Velocity profile ( v ~ [0,1] )
-    return (1.0 / (nesc * np.power(pi,3/2) * v0**3)) * exp(-((v + ve)**2 / v0**2))
-
-def DMFlux(v, m):  # DM differential flux as a function of v~[0,1] and the DM mass
-    return heaviside(v + v0 - vesc) * 4*pi*C_LIGHT*(rho_chi / m) * (C_LIGHT*v)**3 * fv(C_LIGHT*v)
-
-
-##### NUCLEAR COUPLING FLUXES #####
-
-def Fe57SolarFlux(gp): 
-    # Monoenergetic flux at 14.4 keV from the Sun
-    return (4.56e23) * gp**2
-
-
-##### ELECTRON COUPLING FLUXES #####
-
-
-##### PHOTON COUPLING #####
-
-def PrimakoffSolarFlux(Ea, gagamma):
-    # Solar ALP flux
-    # input Ea in keV, gagamma in GeV-1
-    return (gagamma * 1e8)**2 * (5.95e14 / 1.103) * (Ea / 1.103)**3 / (exp(Ea / 1.103) - 1)
-
-
-
-def SunPosition(t):
-    pass
