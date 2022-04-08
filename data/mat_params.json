@@ -1,4 +1,20 @@
 {
+  "Al":
+    {
+      "iso": 1,
+      "z": [13],
+      "n": [14],
+      "frac": [1.0],
+      "lattice_const": 4.05,
+      "cell_volume": 141.0,
+      "atomic_radius": [1.84],
+      "m": [25.351e3],
+      "density": 2.7,
+      "er_min": 100e-6,
+      "er_max": 10e-3,
+      "bg": 1,
+      "bg_un": 0.1
+    },
   "C":
     {
       "iso": 1,
@@ -7,7 +23,7 @@
       "frac": [1.0],
       "lattice_const": 2.46,
       "cell_volume": 181.0,
-      "atomic_radius": [0.17],
+      "atomic_radius": [1.70],
       "m": [11.27e3],
       "density": 2.26,
       "er_min": 100e-6,
@@ -23,7 +39,7 @@
       "frac": [1.0],
       "lattice_const": 2.28,
       "cell_volume": 181.0,
-      "atomic_radius": [0.153],
+      "atomic_radius": [1.53],
       "m": [8.442e3],
       "density": 1.848,
       "er_min": 100e-6,

@@ -42,7 +42,7 @@ class Material:
             self.density = mat_info['density']  # g/cm^3
             self.fid_mass = fiducial_mass  # kg
             self.volume = volume  # cm^3
-            self.ntargets = density * volume / (np.sum(self.m) / MEV_PER_KG / 1e-3)
+            self.ntargets = density * volume / (np.dot(self.m, self.iso*self.frac) / MEV_PER_KG / 1e-3)
             self.ndensity = self.ntargets / self.volume
         else:
             raise Exception("No such detector in mat_params.json.")
