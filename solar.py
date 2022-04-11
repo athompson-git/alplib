@@ -4,9 +4,8 @@
 
 import pkg_resources
 
-from alplib.constants import *
-from alplib.fmath import *
-
+import numpy as np
+from numpy import pi, power, sin, cos, tan, arccos, arctan, arctan2, arcsin, heaviside
 from numpy import deg2rad as d2r
 
 
@@ -113,8 +112,7 @@ class SPA:
             for i in range(self.l3_data.shape[0])]))
         l4 = np.sum(np.array([self.l4_data[i, 1] * np.cos(self.l4_data[i, 2] + self.l4_data[i, 3] * jme) \
             for i in range(self.l4_data.shape[0])]))
-        l5 = np.sum(np.array([self.l5_data[i, 1] * np.cos(self.l5_data[i, 2] + self.l5_data[i, 3] * jme) \
-            for i in range(self.l5_data.shape[0])]))
+        l5 = self.l5_data[1] * np.cos(self.l5_data[2] + self.l5_data[3] * jme)
         
         longitude = (180.0/np.pi) * 1e-8 * \
             (l0 + l1*jme + l2*power(jme,2) + l3*power(jme,3) \
@@ -154,8 +152,7 @@ class SPA:
             for i in range(self.r2_data.shape[0])]))
         r3 = np.sum(np.array([self.r3_data[i, 1] * np.cos(self.r3_data[i, 2] + self.r3_data[i, 3] * jme) \
             for i in range(self.r3_data.shape[0])]))
-        r4 = np.sum(np.array([self.r4_data[i, 1] * np.cos(self.r4_data[i, 2] + self.r4_data[i, 3] * jme) \
-            for i in range(self.r4_data.shape[0])]))
+        r4 = self.r4_data[1] * np.cos(self.r4_data[2] + self.r4_data[3] * jme)
         
         radius = (180.0/np.pi) * 1e-8 * \
             (r0 + r1*jme + r2*power(jme,2) + r3*power(jme,3) + r4*power(jme,4))
@@ -264,8 +261,8 @@ class SPA:
     # 3.9: Calculate the geocentric sun right ascension, alpha (degrees)
 
     def alpha(self, jme):
-        alpha = (180.0 / pi)*np.arctan2((sin(d2r(self.lambda_sun_long(jme)))*cos(d2r(self.epsilon(jme))) \
-            - tan(d2r(self.beta_gc_lat(jme)))*sin(d2r(self.epsilon(jme)))) / cos(d2r(self.lambda_sun_long(jme))))
+        alpha = (180.0 / pi)*arctan2((sin(d2r(self.lambda_sun_long(jme)))*cos(d2r(self.epsilon(jme))) \
+            - tan(d2r(self.beta_gc_lat(jme)))*sin(d2r(self.epsilon(jme)))) / cos(d2r(self.lambda_sun_long(jme))), 1.0)
         if alpha > 0.0:
             return alpha % 360.0
         elif alpha < 0.0:
@@ -297,11 +294,11 @@ class SPA:
         y = 0.99664719*sin(u) + (elev / 6378140) * sin(d2r(lat))
         H = d2r(self.h_hour_angle(self.jd(y, m, d), y, lon))
 
-        delta_alpha = np.arctan2(-x*sin(xi)*sin(H) / (cos(d2r(self.delta(jme))) - x*sin(xi)*cos(H)))
+        delta_alpha = arctan2(-x*sin(xi)*sin(H) / (cos(d2r(self.delta(jme))) - x*sin(xi)*cos(H)), 1.0)
         #alpha_prime = d2r(self.alpha(jme)) + delta_alpha
 
-        return np.arctan2(((sin(d2r(self.delta(jme))) - y*sin(xi))*cos(delta_alpha)) \
-                            / (cos(d2r(self.delta(jme))) - x*sin(xi)*cos(H)))
+        return arctan2(((sin(d2r(self.delta(jme))) - y*sin(xi))*cos(delta_alpha)) \
+                            / (cos(d2r(self.delta(jme))) - x*sin(xi)*cos(H)), 1.0)
     
 
     # 3.13: Calculate the topocentric local hour anlge, Hprime (radians)
@@ -314,7 +311,7 @@ class SPA:
         y = 0.99664719*sin(u) + (elev / 6378140) * sin(d2r(lat))
         H = d2r(self.h_hour_angle(self.jd(y, m, d), y, lon))
 
-        delta_alpha = np.arctan2(-x*sin(xi)*sin(H) / (cos(d2r(self.delta(jme))) - x*sin(xi)*cos(H)))
+        delta_alpha = arctan2(-x*sin(xi)*sin(H) / (cos(d2r(self.delta(jme))) - x*sin(xi)*cos(H)), 1.0)
     
         return H - delta_alpha
     
@@ -334,3 +331,20 @@ class SPA:
     
 
     # 3.15: Calculate the topocentric azimuth angle
+
+    def gamma_topo_azimuth(self, y, m, d, lat, lon, elev):
+        delta_prime = self.delta_prime(y, m, d, lat, lon, elev)
+        h_prime = self.h_prime(y, m, d, lat, lon, elev)
+
+        gamma = (180/pi)*arctan2(sin(h_prime)/(cos(h_prime)*sin(d2r(lat)) - tan(delta_prime)*cos(d2r(lat))), 1.0)
+        gamma = heaviside(gamma, 0.0) * (gamma % 360.0) + heaviside(-gamma, 0.0) * (360.0 - gamma % 360.0)
+        return gamma
+
+
+    # 3.16: Calculate the incidence angle for a surface oriented in any direction
+
+    def incidence_angle(self, omega, gamma, y, m, d, lat, lon, elev, pres=1013.25, temp=20.0):
+        theta = d2r(self.theta_topo_elev(y, m, d, lat, lon, elev, pres, temp))
+        big_gamma = d2r(self.gamma_topo_azimuth(y, m, d, lat, lon, elev))
+
+        return arccos(cos(theta)*cos(d2r(omega))+ sin(d2r(omega))*sin(theta)*cos(big_gamma - d2r(gamma)))
