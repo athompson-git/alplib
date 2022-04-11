@@ -7,6 +7,8 @@ import pkg_resources
 from alplib.constants import *
 from alplib.fmath import *
 
+from numpy import deg2rad as d2r
+
 
 class SPA:
     """
@@ -90,6 +92,9 @@ class SPA:
     def jme(self, jce):
         # Julian Ephemeris Millenium
         return jce / 10
+    
+    def date_to_jme(self, y, m, d, b=0.0):
+        return self.jme(self.jce(self.jde(self.jd(y,m,d), self.deltaT(y))))
 
 
     # 3.2: Earth Heliocentric Longitude, Latitude, Radius Vector
@@ -253,14 +258,14 @@ class SPA:
     
     def v(self, jd, year=2022):
         jde = self.jde(jd, self.deltaT(year))
-        return self.v0(jd) + self.delta_psi(self.jce(jde)) * cos(self.epsilon(self.jme(self.jce(jde))))
+        return self.v0(jd) + self.delta_psi(self.jce(jde)) * cos(d2r(self.epsilon(self.jme(self.jce(jde)))))
     
 
     # 3.9: Calculate the geocentric sun right ascension, alpha (degrees)
 
     def alpha(self, jme):
-        alpha = (180.0 / pi)*np.arctan2((sin(self.lambda_sun_long(jme))*cos(self.epsilon(jme)) \
-            - tan(self.beta_gc_lat(jme))*sin(self.epsilon(jme))) / cos(self.lambda_sun_long(jme)))
+        alpha = (180.0 / pi)*np.arctan2((sin(d2r(self.lambda_sun_long(jme)))*cos(d2r(self.epsilon(jme))) \
+            - tan(d2r(self.beta_gc_lat(jme)))*sin(d2r(self.epsilon(jme)))) / cos(d2r(self.lambda_sun_long(jme))))
         if alpha > 0.0:
             return alpha % 360.0
         elif alpha < 0.0:
@@ -271,5 +276,61 @@ class SPA:
     # 3.10: Calculate the geocentric sun declination
 
     def delta(self, jme):
-        return (180.0/pi)*arcsin(sin(self.beta_gc_lat(jme))*cos(self.epsilon(jme)) \
-            + cos(self.beta_gc_lat(jme))*sin(self.epsilon(jme))*sin(self.lambda_sun_long(jme)))
+        return (180.0/pi)*arcsin(sin(d2r(self.beta_gc_lat(jme)))*cos(d2r(self.epsilon(jme))) \
+            + cos(d2r(self.beta_gc_lat(jme)))*sin(d2r(self.epsilon(jme)))*sin(d2r(self.lambda_sun_long(jme))))
+
+
+    # 3.11: Calculate the observer local hour anlge H
+
+    def h_hour_angle(self, jd, year, lon):
+        jme = self.jme(self.jce(self.jde(jd, self.deltaT(year))))
+        return self.v(jd, year) + lon - self.alpha(jme)
+
+
+    # 3.12 Calculate the topocentric sun right ascension alphaPrime (radians)
+
+    def delta_prime(self, y, m, d, lat, lon, elev):
+        jme = self.date_to_jme(y, m, d)
+        xi = d2r(8.794 / (3600 * self.earth_hc_radius(jme)))
+        u = arctan(0.99664719 * tan(d2r(lat)))
+        x = cos(u) + (elev / 6378140) * cos(d2r(lat))
+        y = 0.99664719*sin(u) + (elev / 6378140) * sin(d2r(lat))
+        H = d2r(self.h_hour_angle(self.jd(y, m, d), y, lon))
+
+        delta_alpha = np.arctan2(-x*sin(xi)*sin(H) / (cos(d2r(self.delta(jme))) - x*sin(xi)*cos(H)))
+        #alpha_prime = d2r(self.alpha(jme)) + delta_alpha
+
+        return np.arctan2(((sin(d2r(self.delta(jme))) - y*sin(xi))*cos(delta_alpha)) \
+                            / (cos(d2r(self.delta(jme))) - x*sin(xi)*cos(H)))
+    
+
+    # 3.13: Calculate the topocentric local hour anlge, Hprime (radians)
+
+    def h_prime(self, y, m, d, lat, lon, elev):
+        jme = self.date_to_jme(y, m, d)
+        xi = d2r(8.794 / (3600 * self.earth_hc_radius(jme)))
+        u = arctan(0.99664719 * tan(d2r(lat)))
+        x = cos(u) + (elev / 6378140) * cos(d2r(lat))
+        y = 0.99664719*sin(u) + (elev / 6378140) * sin(d2r(lat))
+        H = d2r(self.h_hour_angle(self.jd(y, m, d), y, lon))
+
+        delta_alpha = np.arctan2(-x*sin(xi)*sin(H) / (cos(d2r(self.delta(jme))) - x*sin(xi)*cos(H)))
+    
+        return H - delta_alpha
+    
+
+    # 3.14: Calculate the topocentric zenith angle (degrees)
+
+    def theta_topo_elev(self, y, m, d, lat, lon, elev, pres=1013.25, temp=20.0):
+        # pressure in millibars
+        # temperature in celcius
+        delta_prime = self.delta_prime(y, m, d, lat, lon, elev)
+        h_prime = self.h_prime(y, m, d, lat, lon, elev)
+
+        e0 = (180/pi)*arcsin(sin(d2r(lat))*sin(delta_prime) + cos(d2r(lat))*cos(delta_prime)*cos(h_prime))  
+        delta_e = (pres/1010)*(283/(273+temp))*(1.02/60.0/tan(d2r(e0 + 10.3/(e0+5.11))))
+    
+        return 90 - (e0 + delta_e)
+    
+
+    # 3.15: Calculate the topocentric azimuth angle
