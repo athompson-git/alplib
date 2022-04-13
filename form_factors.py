@@ -70,12 +70,7 @@ class NuclearHelmFF:
     """
     def __init__(self, n, z):
         self.s = 0.9 * (10 ** -15) / METER_BY_MEV
-        if (n+z) >= 5:
-            #rn = 4.7*((n+z)/133)**(1/3) * (10 ** -15) / METER_BY_MEV
-            #self.r1 = sqrt((5 * (rn ** 2) / 3) - 5 * (self.s ** 2))
-            self.r1 = sqrt((1.23*power(n+z, 1/3) - 0.6)**2 - 5*0.9**2 + 7*power(pi*0.52, 2)/3) * (10 ** -15) / METER_BY_MEV
-        else:
-            self.r1 = sqrt((1.23*power(n+z, 1/3) - 0.6)**2 - 5*0.9**2 + 7*power(pi*0.52, 2)/3) * (10 ** -15) / METER_BY_MEV
+        self.r1 = sqrt((1.23*power(n+z, 1/3) - 0.6)**2 - 5*0.9**2 + 7*power(pi*0.52, 2)/3) * (10 ** -15) / METER_BY_MEV
         self.z = z
 
     def __call__(self, q):
