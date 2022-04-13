@@ -109,13 +109,14 @@ class M2DarkPrimakoff(MatrixElement2):
         self.mZp = mZp
         self.mN = mN
         self.ma = ma
-        self.ff2 = NuclearHelmFF(n, z)
+        self.z = z
+        self.ff2 = ProtonFF() #NuclearHelmFF(n, z)
     
     def __call__(self, s, t, coupling_product=1.0):
         prefactor = coupling_product**2
         propagator = power(t - self.mZp**2, 2)
-        numerator = (2*self.mN**2 * (self.ma**2 - 2*s - t) + 2*self.mN**4 - 2*self.ma**2 * (s + t) + self.ma**4 + 2*s**2 + 2*s*t + t**2)
-        return self.ff2(sqrt(abs(t))) * prefactor * numerator / propagator
+        numerator = -t*(2*self.mN**2 * (self.ma**2 - 2*s - t) + 2*self.mN**4 - 2*self.ma**2 * (s + t) + self.ma**4 + 2*s**2 + 2*s*t + t**2)
+        return self.z * self.ff2(t) * prefactor * numerator / propagator
 
 
 
