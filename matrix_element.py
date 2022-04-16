@@ -267,7 +267,7 @@ class M2Meson3BodyDecay(MatrixElementDecay3):
         if self.interaction == "vector_ib1":
             q2 = self.m_parent**2 - 2*self.m_parent*(m122 + m232 - self.m1**2 - self.m3**2)/(2*self.m_parent)
             prefactor = 8*power(G_F*self.fM*self.ckm/(q2 - self.m1**2)/self.m3, 2)
-            lp, pq, kp, lq, kl, kq = super().get_sp_from_dalitz(m122, m232)
+            kl, kq, kp, lq, lp, pq = super().get_sp_from_dalitz(m122, m232)
             cr = coupling
             cl = coupling
             return -prefactor * ((power(cr*self.m_parent*self.m1,2) - power(cl*q2,2)) * (lq*self.m3**2 + 2*lp*pq) \

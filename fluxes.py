@@ -532,7 +532,7 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
 
         if self.ma > e3star:
             return 0.0
-
+        
         m223Max = (e2star + e3star)**2 - (sqrt(e2star**2) - sqrt(e3star**2 - self.ma**2))**2
         m223Min = (e2star + e3star)**2 - (sqrt(e2star**2) + sqrt(e3star**2 - self.ma**2))**2
 
@@ -638,37 +638,36 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
 
 class FluxChargedMeson3BodyIsotropic(AxionFlux):
     def __init__(self, meson_flux=[[0.0, 0.0259]], boson_mass=0.1, coupling=1.0, meson_type="pion",
-                 m_lepton=M_MU, boson_type="S", det_dist=20, det_length=2, det_area=2, target=Material("W"),
-                 n_samples=50):
+                 interaction_model="scalar_ib1", det_dist=20, det_length=2, det_area=2,
+                 target=Material("W"), n_samples=50, c0=-0.97):
         super().__init__(boson_mass, target, det_dist, det_length, det_area, n_samples)
         self.meson_flux = meson_flux
-        if meson_type == "pion":
-            self.mm = M_PI
-            self.ckm = V_UD
-            self.fM = F_PI
-            self.total_width = PION_WIDTH
-        elif meson_type == "kaon":
-            self.mm = M_K
-            self.ckm = V_US
-            self.fM = F_K
-            self.total_width = KAON_WIDTH
-        else:
-            raise Exception("Meson type not understood!", meson_type)
-        self.m_lepton = m_lepton
-        self.rep = boson_type
+        param_dict = {
+            "pion": [M_PI, V_UD, F_PI, PION_WIDTH],
+            "kaon": [M_K, V_US, F_K, KAON_WIDTH]
+        }
+        decay_params = param_dict[meson_type]
+        self.mm = decay_params[0]
+        self.ckm = decay_params[1]
+        self.fM = decay_params[2]
+        self.total_width = decay_params[3]
         self.gmu = coupling
-        self.EaMax = (self.mm**2 + self.ma**2 - self.m_lepton**2)/(2*self.mm)
-        self.EaMin = self.ma
         self.n_samples = n_samples
-        self.m2had = M2Meson3BodyDecayHadronic(self.ma, meson_type, m_lepton)
-        self.decay_model = "IB2"
+        self.c0 = c0  # contact model parameter, 0 by default
+        self.m2_e = M2Meson3BodyDecay(boson_mass, meson_type, M_E, interaction_model)
+        self.m2_mu = M2Meson3BodyDecay(boson_mass, meson_type, M_MU, interaction_model)
     
     def lifetime(self, gagamma):
         return 1/W_gg(gagamma, self.ma)
+    
+    def set_ma(self, ma):
+        self.ma = ma
+        self.m2_mu.m3 = self.ma
+        self.m2_e.m3 = self.ma
 
-    def dGammadEa(self, Ea):
+    def dGammadEa(self, Ea, ml=M_MU):
         m212 = self.mm**2 + self.ma**2 - 2*self.mm*Ea
-        e2star = (m212 - self.m_lepton**2)/(2*sqrt(m212))
+        e2star = (m212 - ml**2)/(2*sqrt(m212))
         e3star = (self.mm**2 - m212 - self.ma**2)/(2*sqrt(m212))
 
         if self.ma > e3star:
@@ -676,112 +675,38 @@ class FluxChargedMeson3BodyIsotropic(AxionFlux):
 
         m223Max = (e2star + e3star)**2 - (sqrt(e2star**2) - sqrt(e3star**2 - self.ma**2))**2
         m223Min = (e2star + e3star)**2 - (sqrt(e2star**2) + sqrt(e3star**2 - self.ma**2))**2
-    
-        def MatrixElement2P(m223):
-            ev = (m212 + m223 - self.m_lepton**2 - self.ma**2)/(2*self.mm)
-            emu = (self.mm**2 - m223 + self.m_lepton**2)/(2*self.mm)
-            q2 = self.mm**2 - 2*self.mm*ev
 
-            prefactor = heaviside(e3star-self.ma,0.0)*(self.gmu*G_F*self.fM*self.ckm/(q2 - self.m_lepton**2))**2
-            return prefactor*((2*self.mm*emu*q2 * (q2 - self.m_lepton**2) - (q2**2 - (self.m_lepton*self.mm)**2)*(q2 + self.m_lepton**2 - self.ma**2)) - (2*q2*self.m_lepton**2 * (self.mm**2 - q2)))
-        
-        def MatrixElement2S(m223):
-            ev = (m212 + m223 - self.m_lepton**2 - self.ma**2)/(2*self.mm)
-            emu = (self.mm**2 - m223 + self.m_lepton**2)/(2*self.mm)
-            q2 = self.mm**2 - 2*self.mm*ev
-
-            prefactor = heaviside(e3star-self.ma,0.0)*(self.gmu*G_F*self.fM*self.ckm/(q2 - self.m_lepton**2))**2
-            return prefactor*((2*self.mm*emu*q2 * (q2 - self.m_lepton**2) - (q2**2 - (self.m_lepton*self.mm)**2)*(q2 + self.m_lepton**2 - self.ma**2)) + (2*q2*self.m_lepton**2 * (self.mm**2 - q2)))
-
-        def MatrixElement2V(m223):
-            q2 = self.mm**2 - 2*self.mm*(m212 + m223 - self.m_lepton**2 - self.ma**2)/(2*self.mm)
-
-            prefactor = heaviside(e3star-self.ma,0.0)*8*power(G_F*self.fM*self.ckm/(q2 - self.m_lepton**2)/self.ma, 2)
-
-            lq = (m212 - self.m_lepton**2)/2
-            lp = (self.mm**2 - m212 - m223)/2
-            kq = (m212 + m223 - self.m_lepton**2 - self.ma**2)/2
-            pq = (m223 - self.ma**2)/2
-            kl = (self.mm**2 + self.m_lepton**2 - m223)/2
-            kp = (self.mm**2 + self.ma**2 - m212)/2
-
-            cr = self.gmu
-            cl = self.gmu
-
-            # Dmu(self.mm/kl)*
-            return -prefactor * ((power(cr*self.mm*self.m_lepton,2) - power(cl*q2,2)) * (lq*self.ma**2 + 2*lp*pq) \
-                - 2*cr*self.m_lepton**2 * kq * (cr*self.ma**2 * kl + 2*cr*kp*lp - 3*cl*q2*self.ma**2))
-        
-        def MatrixElement2QVSD(m223):
-            pk = (self.mm**2 + self.ma**2 - m212)/2
-            pl = (self.mm**2 + self.m_lepton**2 - m223)/2
-            pq = (m212 + m223 - self.m_lepton**2 - self.ma**2)/2
-            kl = (self.mm**2 - m212 - m223)/2
-            kq = (m223 - self.ma**2)/2
-            lq = (m212 - self.m_lepton**2)/2
-
-            # SD piece
-            prefactor_SD = 8 * power(self.gmu * G_F * CABIBBO / sqrt(2) / self.mm, 2)
-            fv = 1.0 #0.0265
-            fa = 1.0 #0.58 * fv
-
-            M_SD = 130 * prefactor_SD * (2 * kl * (power(fa - fv, 2)*pk*pq - self.mm**2 * (fa**2 + fv**2)*kq) \
-                    + self.ma**2 * (power(fa*self.mm, 2) * lq - 2*fv**2 * pl * pq) \
-                    + 2 * power(fa + fv, 2) * pk * kq * pl)
-            return M_SD
-        
-        def MatrixElement2QVContact(m223):
-            self.m2had.m3 = self.ma
-            return self.m2had(m212, m223, c0=-0.97, coupling_product=self.gmu)
-            kl = (self.mm**2 - m212 - m223)/2
-            kq = (m223 - self.ma**2)/2
-            lq = (m212 - self.m_lepton**2)/2
-            prefactor_IB3 = -2*power(self.gmu * G_F * self.fM * self.m_lepton, 2)
-            M_IB3 = -(prefactor_IB3 / self.m_lepton**2) * (8*lq + 16*kl*kq / self.ma**2)
-            return M_IB3
-        
-        def MatrixElement2QVIB2(m223):
-            prefactor_IB2 = 2*power(self.gmu * G_F * self.fM * self.m_lepton, 2)
-            M_IB2 = -prefactor_IB2 * ((self.m_lepton**2-m212)*((self.mm**2-m212+self.ma**2)**2 - 4*self.mm**2 * self.ma**2))/(self.ma**2 * (self.mm**2-m212)**2)
-            return M_IB2
-        
-        if self.rep == "P":
-            return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2P, m223Min, m223Max)[0]
-        
-        if self.rep == "S":
-            return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2S, m223Min, m223Max)[0]
-
-        if self.rep == "V":
-            return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2V, m223Min, m223Max)[0]
-        
-        if self.rep == "QV":
-            if self.decay_model == "contact":
-                return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2QVContact, m223Min, m223Max)[0]
-            if self.decay_model == "IB2":
-                return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2QVIB2, m223Min, m223Max)[0]
-            if self.decay_model == "SD":
-                return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2QVSD, m223Min, m223Max)[0]
-
-    def gamma_sm(self):
-        return self.total_width
+        if ml == M_MU:
+            def MatrixElement2(m223):
+                return self.m2_mu(m212, m223, c0=self.c0, coupling=self.gmu)
+            
+            return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2, m223Min, m223Max)[0]
+        elif ml == M_E:
+            def MatrixElement2(m223):
+                    return self.m2_e(m212, m223, c0=self.c0, coupling=self.gmu)
+                
+            return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2, m223Min, m223Max)[0]
+        else:
+            return 0.0
 
     def total_br(self):
-        EaMax = (self.mm**2 + self.ma**2 - self.m_lepton**2)/(2*self.mm)
-        EaMin = self.ma
-        return quad(self.dGammadEa, EaMin, EaMax)[0] / self.gamma_sm()
+        ea_max_mu = (self.mm**2 + self.ma**2 - M_MU**2)/(2*self.mm)
+        ea_max_e = (self.mm**2 + self.ma**2 - M_E**2)/(2*self.mm)
+        return (quad(self.dGammadEa, self.ma, ea_max_e, args=(M_E,))[0] \
+            + quad(self.dGammadEa, self.ma, ea_max_mu, args=(M_MU,))[0]) / self.total_width
     
     def diff_br(self):
         ea_min = self.ma
         ea_max = (self.mm**2 + self.ma**2 - self.m_lepton**2)/(2*self.mm)
         mc_vol = ea_max - ea_min
         energies = np.random.uniform(ea_min, ea_max, self.n_samples)
-        weights = np.array([mc_vol*self.dGammadEa(ea)/self.gamma_sm()/self.n_samples \
+        weights = np.array([mc_vol*self.dGammadEa(ea)/self.total_width/self.n_samples \
             for ea in energies])
         return energies, weights
     
-    def simulate_single(self, meson_p, pion_wgt):
+    def simulate_single(self, meson_p, pion_wgt, ml=M_E):
         ea_min = self.ma
-        ea_max = (self.mm**2 + self.ma**2 - self.m_lepton**2)/(2*self.mm)
+        ea_max = (self.mm**2 + self.ma**2 - ml**2)/(2*self.mm)
 
         # Draw random variate energies and angles in the pion rest frame
         energies = np.random.uniform(ea_min, ea_max, self.n_samples)
@@ -793,34 +718,32 @@ class FluxChargedMeson3BodyIsotropic(AxionFlux):
         beta = meson_p / sqrt(meson_p**2 + self.mm**2)
         boost = power(1-beta**2, -0.5)
         e_lab = boost*(energies + beta*pz)
-        pz_lab = boost*(pz + beta*energies)
+        #pz_lab = boost*(pz + beta*energies)
 
         # Jacobian for transforming d2Gamma/(dEa * dOmega) to lab frame:
-        jacobian = sqrt(e_lab**2 - self.ma**2) / momenta
+        #jacobian = sqrt(e_lab**2 - self.ma**2) / momenta
         # Monte Carlo volume, making sure to use the lab frame energy range
 
         mc_vol = ea_max - ea_min
-        weights = np.array([pion_wgt*mc_vol*self.dGammadEa(ea)/self.gamma_sm()/self.n_samples \
+        weights = np.array([pion_wgt*mc_vol*self.dGammadEa(ea, ml)/self.total_width/self.n_samples \
             for ea in energies])
 
         for i in range(self.n_samples):
             self.axion_energy.append(e_lab[i])
             self.axion_flux.append(weights[i])
     
-    def simulate(self, cut_on_solid_angle=True):
+    def simulate(self):
         self.axion_energy = []
         self.axion_flux = []
         self.decay_axion_weight = []
         self.scatter_axion_weight = []
 
-        if self.ma > self.mm - self.m_lepton:
-            # Kinematically forbidden beyond Meson mass - muon mass difference
-            return
-
         for i, p in enumerate(self.meson_flux):
-            # Simulate decays for each charged meson
-            self.simulate_single(p[0], p[1])
-        
+            for ml in [M_E, M_MU]:
+                if self.ma > self.mm - ml:
+                    continue
+                # Simulate decays for each charged meson
+                self.simulate_single(p[0], p[1], ml)
 
     def propagate(self):  # propagate to detector
         wgt = np.array(self.axion_flux)
