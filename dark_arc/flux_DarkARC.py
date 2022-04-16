@@ -79,7 +79,7 @@ class XeResponse:
     def TIntegrate(self, q, wgtfunc, T_low, T_high, nsamples=1000):
         # We use logarithmic MC integration here
         def f(T):
-            return T * self.W1(T, q) * wgtfunc(T) 
+            return T * self.W1(T, q) * (1 / (8*T)) * wgtfunc(T)  # factor of T for log-MC
 
         integrand = np.vectorize(f)
 
@@ -88,12 +88,25 @@ class XeResponse:
         volume = (log10(T_high) - log10(T_low)) * log(10)
 
         return np.sum(volume * integrand(dT_grid) / nsamples)
+    
+    def QIntegrate(self, T, wgtfunc, q_low, q_high, nsamples=1000):
+        # We use logarithmic MC integration here
+        def f(q):
+            return q * self.W1(T, q) * (1 / (8*T)) * wgtfunc(q)  # factor of q for log-MC
+
+        integrand = np.vectorize(f)
+
+        dq_grid = 10**np.random.uniform(log10(q_low), log10(q_high), nsamples)
+
+        volume = (log10(q_high) - log10(q_low)) * log(10)
+
+        return np.sum(volume * integrand(dq_grid) / nsamples)
 
 
-    
-    def QGridIntegrate(self, wgtfunc, q_low, q_high):
-        return 0
-    
+
+
+# Deprecated
+"""
     def TGridIntegrate(self, wgtfunc, T_low, T_high):
         k_low = sqrt(2*self.me*T_low)
         k_high = sqrt(2*self.me*T_high)
@@ -121,5 +134,5 @@ class XeResponse:
         resp = self.data[idx_k_low:idx_k_high,idx_q_low:idx_q_high]
 
         return np.sum(wgts * resp * dQQ * (KK * dKK / self.me))
-
+"""
 
