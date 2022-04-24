@@ -495,10 +495,10 @@ class FluxNuclearIsotropic(AxionFlux):
 
 
 class FluxChargedMeson3BodyDecay(AxionFlux):
-    def __init__(self, meson_flux, axion_mass=0.1, coupling=1.0, n_samples=50, meson_type="pion",
+    def __init__(self, meson_flux, boson_mass=0.1, coupling=1.0, n_samples=50, meson_type="pion",
                  interaction_model="scalar_ib1", energy_cut=140.0, det_dist=541, det_length=12,
-                 det_area=36*pi, target=Material("Be"), c0=-0.95):
-        super().__init__(axion_mass, target, det_dist, det_length, det_area, n_samples)
+                 det_area=36*pi, c0=-0.95, lepton_masses=[M_E, M_MU]):
+        super().__init__(boson_mass, Material("Be"), det_dist, det_length, det_area, n_samples)
         self.meson_flux = meson_flux
         param_dict = {
             "pion": [M_PI, V_UD, F_PI, PION_WIDTH],
@@ -509,6 +509,7 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
         self.ckm = decay_params[1]
         self.fM = decay_params[2]
         self.total_width = decay_params[3]
+        self.lepton_masses = lepton_masses
         self.gmu = coupling
         self.dump_dist = 50
         self.det_sa = cos(arctan(self.det_length/(self.det_dist-self.dump_dist)/2))
@@ -517,8 +518,8 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
         self.cosines = []
         self.decay_pos = []
         self.c0 = c0  # contact model parameter, 0 by default
-        self.m2_e = M2Meson3BodyDecay(axion_mass, meson_type, M_E, interaction_model)
-        self.m2_mu = M2Meson3BodyDecay(axion_mass, meson_type, M_MU, interaction_model)
+        self.m2_e = M2Meson3BodyDecay(boson_mass, meson_type, M_E, interaction_model)
+        self.m2_mu = M2Meson3BodyDecay(boson_mass, meson_type, M_MU, interaction_model)
 
     def set_ma(self, ma):
         self.ma = ma
@@ -621,7 +622,7 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
             solid_angle_cosine = cos(arctan(self.det_length/(self.det_dist-x)/2))
 
             # Simulate decays for each charged meson
-            for ml in [M_E, M_MU]:
+            for ml in self.lepton_masses:
                 if self.ma > self.mm - ml:
                     continue
                 self.simulate_single(p[0], p[2], cut_on_solid_angle, solid_angle_cosine, ml)
@@ -639,13 +640,14 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
 class FluxChargedMeson3BodyIsotropic(AxionFlux):
     def __init__(self, meson_flux=[[0.0, 0.0259]], boson_mass=0.1, coupling=1.0, meson_type="pion",
                  interaction_model="scalar_ib1", det_dist=20, det_length=2, det_area=2,
-                 target=Material("W"), n_samples=50, c0=-0.97):
+                 target=Material("W"), n_samples=50, c0=-0.97, lepton_masses=[M_E, M_MU]):
         super().__init__(boson_mass, target, det_dist, det_length, det_area, n_samples)
         self.meson_flux = meson_flux
         param_dict = {
             "pion": [M_PI, V_UD, F_PI, PION_WIDTH],
             "kaon": [M_K, V_US, F_K, KAON_WIDTH]
         }
+        self.lepton_masses = lepton_masses
         decay_params = param_dict[meson_type]
         self.mm = decay_params[0]
         self.ckm = decay_params[1]
@@ -739,7 +741,7 @@ class FluxChargedMeson3BodyIsotropic(AxionFlux):
         self.scatter_axion_weight = []
 
         for i, p in enumerate(self.meson_flux):
-            for ml in [M_E, M_MU]:
+            for ml in self.lepton_masses:
                 if self.ma > self.mm - ml:
                     continue
                 # Simulate decays for each charged meson
@@ -766,7 +768,7 @@ class FluxPi0Isotropic(AxionFlux):
         self.mm = M_PI0
     
     def br(self):
-        return 2 * (self.g)**2 * (1 - power(self.boson_mass / M_PI0, 2))**3 / sqrt(4*pi*ALPHA)
+        return 2 * (self.g)**2 * (1 - power(self.ma / M_PI0, 2))**3 / sqrt(4*pi*ALPHA)
     
     def simulate_flux(self, pi0_flux, energy_cut=0.0, angle_cut=np.pi):
         # pi0_flux = momenta array, normalized to pi0 rate
@@ -797,7 +799,6 @@ class FluxPi0Isotropic(AxionFlux):
                 continue
             self.axion_energy.append(e_lab)
             self.axion_flux.append(self.meson_rate*self.br()/pi0_flux.shape[0])
-
     
     def simulate(self):
         self.axion_energy = []
