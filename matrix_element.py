@@ -336,4 +336,37 @@ class M2Meson3BodyDecayLeptonic(MatrixElementDecay3):
                 - 2*cr*self.m1**2 * kq * (cr*self.m3**2 * kl + 2*cr*kp*lp - 3*cl*q2*self.m3**2))
 
         return super().__call__(m122, m232)
+
+
+
+
+class M2Pi0ToAGammaGamma(MatrixElementDecay3):
+    # Radiative decay M^0 -> gamma(1) gamma(2) a(3) from alp-photon coupling
+    def __init__(self, ma):
+        self.fM = F_PI
+        self.total_width = PI0_WIDTH
+        super().__init__(M_PI0, 0.0, 0.0, ma)
+        # 0: parent meson
+        # 1: gamma
+        # 2: gamma
+        # 3: ALP
+    
+    def __call__(self, m122, m232, coupling=1.0):
+        prefactor = 2 * power(ALPHA * coupling / pi / self.fM, 2)
+        mpi02 = M_PI0**2
+        mpi04 = M_PI0**4
+        mpi06 = M_PI0**6
+
+        Pq1, Pq2, Pk, q1q2, q1k, q2k = super().get_sp_from_dalitz(m122, m232)
+
+        #return prefactor * (mpi02*power(q1q2, 3) + power(q1q2, 2) * (Pq1**2 + Pq2**2 - 3*mpi02*Pq1 - 3*mpi02*Pq2 + 3*mpi04) \
+         #   + 4*power(Pq1*Pq2, 2) + 2*Pq1*Pq2*q1q2*(Pq1 + Pq2 - 3*mpi02))
         
+        denom = (mpi02-2*(Pq1))**2 * (mpi02-2*(Pq2))**2
+        num =  (mpi02*(mpi02-2*Pq1)*(mpi02-2*Pq2)*q1q2**3 \
+            + 4*power(Pq1*Pq2, 2)*(Pq1+Pq2-mpi02)**2 \
+                + q1q2**2 * (7*mpi04*Pq2**2 + (8*Pq2*(Pq2 - 2*mpi02) + 7*mpi04)*Pq1**2 \
+                    - 9*mpi06*Pq2 - Pq1*(3*M_PI0**3 - 4*M_PI0*Pq2)**2 + 3*power(mpi04, 2)) \
+                        + 2*Pq1*Pq2*q1q2*(Pq1 + Pq2 - mpi02)*(4*Pq1*(Pq2 - mpi02) - 4*mpi02*Pq2 + 3*mpi04))
+        
+        return prefactor * num / denom
