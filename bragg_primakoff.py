@@ -92,17 +92,22 @@ class BraggPrimakoff:
         return np.array(g)
 
     # Bragg-Primakoff event rate
-    def BraggPrimakoff(self, theta_z, phi, E1=2.0, E2=2.5, gagamma=1e-10):
+    def BraggPrimakoff(self, theta_z, phi, E1=2.0, E2=2.5, gagamma=1e-10, use_att=False):
         rate = 0.0
         prefactor = (gagamma / 1e6)**2 * HBARC_KEV_ANG**2 * (self.volume / self.va**2) / 4  # 1e6 to convert to keV^-1
         for mList in self.GetReciprocalLattice():
             sineThetaBy2 = np.dot(self.vecU(theta_z, phi), self.vecG(mList)) / np.dot(self.vecG(mList),self.vecG(mList))
             sineSquaredTheta = 4 * sineThetaBy2**2 * (1 - sineThetaBy2**2)
             formFactorSquared = self.FA(sqrt(np.dot(self.vecG(mList), self.vecG(mList))), self.Ea(theta_z, phi, mList))
-            rate += heaviside(self.Ea(theta_z, phi, mList), 0.0) \
-                * self.SolarFlux(self.Ea(theta_z, phi, mList), gagamma) * sineSquaredTheta \
-                * formFactorSquared * self.S2(mList) * self.FW(self.Ea(theta_z, phi, mList), E1, E2) \
-                * (1 / np.dot(self.vecG(mList), self.vecG(mList)))
+            l_factor = power(self.volume, 1/3)
+            if use_att:
+                l_factor = power(self.volume, 1/3)
+            ea = abs(self.Ea(theta_z, phi, mList))
+            rate += np.sum(heaviside(ea, 0.0) \
+                    * self.SolarFlux(ea, gagamma) * sineSquaredTheta \
+                    * formFactorSquared * self.S2Expanded(mList) \
+                    * self.FW(ea, E1, E2) * (1 / np.dot(self.vecG(mList), self.vecG(mList)))) \
+                    * l_factor / power(self.volume, 1/3)
         
         return prefactor * rate
 
@@ -132,38 +137,6 @@ class BraggPrimakoff:
         
         rates = np.array([Rate(this_phi) for this_phi in self.phi_list])
         return prefactor * 2*pi*np.sum(rates)/self.nsamples  # fast MC-based integration
-
-    def BraggPrimakoffScatteringPlane(self, theta, E1=2.0, E2=2.5, gagamma=1e-10):
-        # Bragg-Primakoff event rate
-        rate = 0.0
-        prefactor = (gagamma / 1e6)**2 * HBARC_KEV_ANG**2 * (self.volume / self.va**2) / 4  # 1e6 to convert to keV^-1
-        for mList in self.GetReciprocalLattice():
-            if (np.all(np.array(mList) % 2 == 1) or (np.all(np.array(mList) % 2 == 0) and np.sum(np.array(mList)) % 4 == 0)):
-                sineSquaredTheta = sin(theta)**3
-                formFactorSquared = self.FA(sqrt(np.dot(self.vecG(mList), self.vecG(mList))), self.Ea2(theta, mList))
-                rate += heaviside(self.Ea2(theta, mList), 0.0) * self.SolarFlux(self.Ea2(theta, mList), gagamma) \
-                    * sineSquaredTheta * formFactorSquared * self.S2(mList) \
-                    * self.FW(self.Ea2(theta, mList), E1, E2) * (1 / np.dot(self.vecG(mList), self.vecG(mList)))
-        
-        return prefactor * rate
-
-    def LauePrimakoffAvgPhi(self, theta_z, E1=2.0, E2=2.5, gagamma=1e-10):
-        # Laue-Primakoff event rate averaging over polar angle. Absorption effects included
-        prefactor = (gagamma / 1e6)**2 * HBARC_KEV_ANG**2 * (self.volume / self.va**2) / 4  # 1e6 to convert to keV^-1
-        mList = self.GetReciprocalLattice()
-        def Rate(phi):
-            rate = 0.0
-            for m in mList:
-                sineThetaBy2 = np.dot(self.vecU(theta_z, phi), self.vecG(m)) / np.dot(self.vecG(m),self.vecG(m))
-                sineSquaredTheta = 4 * sineThetaBy2**2 * (1 - sineThetaBy2**2)
-                formFactorSquared = self.FA(sqrt(np.dot(self.vecG(m), self.vecG(m))), self.Ea(theta_z, phi, m))
-                rate += np.sum(heaviside(self.Ea(theta_z, phi, m), 0.0) \
-                    * self.SolarFlux(self.Ea(theta_z, phi, m), gagamma) * sineSquaredTheta \
-                    * formFactorSquared * self.S2Expanded(m) \
-                    * self.FW(self.Ea(theta_z, phi, m), E1, E2) * (1 / np.dot(self.vecG(m), self.vecG(m))))
-            return rate
-        
-        return prefactor * 2*pi*np.sum(Rate(self.phi_list))/self.nsamples  # fast MC-based integration
 
     def AtomicPrimakoffRate(self, E1=2.0, E2=2.5, gagamma=1e-10, ma=1e-4):
         # Solar ALP scattering rate ignoring crystal structure (isolated atomic scattering)
