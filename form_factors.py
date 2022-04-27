@@ -35,14 +35,13 @@ class AtomicElasticFF:
     """
     square of the form factor
     """
-    def __init__(self, material: Material):
-        self.z = material.z
-        self.frac = material.frac
+    def __init__(self, z):
+        self.z = z
 
     def __call__(self, q):
         t = q**2
         a = 184.15*np.power(2.718, -1/2)*np.power(self.z, -1/3) / M_E
-        return np.dot(self.frac, power(self.z*(t*a**2) / (1 + t*a**2), 2))
+        return power(self.z*(t*a**2) / (1 + t*a**2), 2)
 
 
 
