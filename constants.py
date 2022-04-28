@@ -18,6 +18,7 @@ C_LIGHT  = 3e10 * (cm / sec)  # Speed of light
 HBAR = 6.58212e-22 * MeV * sec  # Reduced Planck's Constant (hbar)
 HBARC = 1.97236e-11 * MeV * cm  # hbar * c
 HC = 1.239e-10 * MeV * cm  # h c
+KB = 8.617333262145e-11 # Boltzmann's constant in MeV K^-1
 
 # Scientific Constants
 AVOGADRO = 6.022e23
