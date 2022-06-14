@@ -47,6 +47,22 @@
       "bg": 1,
       "bg_un": 0.1
     },
+  "Fe":
+    {
+      "iso": 1,
+      "z": [26],
+      "n": [29],
+      "frac": [1.0],
+      "lattice_const": 2.87,
+      "cell_volume": 181.0,
+      "atomic_radius": [1.26],
+      "m": [51.64226e3],
+      "density": 7.874,
+      "er_min": 100e-6,
+      "er_max": 10e-3,
+      "bg": 1,
+      "bg_un": 0.1
+    },
   "Ge":
     {
       "iso": 1,
@@ -94,6 +110,22 @@
       "er_max": 1e-1,
       "bg": 5e-3,
       "bg_un": 0.05
+    },
+  "Hg":
+    {
+      "iso": 1,
+      "z": [80],
+      "n": [120],
+      "frac": [1.0], 
+      "lattice_const": 3,
+      "cell_volume": 27.0,
+      "atomic_radius": [1.55],
+      "m": [200.59e3],
+      "density": 5.43,
+      "er_min": 100e-6,
+      "er_max": 10e-3,
+      "bg": 1,
+      "bg_un": 0.1
     },
   "CsI":
     {
