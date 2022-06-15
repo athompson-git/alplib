@@ -1,5 +1,5 @@
 Photon    Nuclear  
-Energy    Pr. Prd. 
+Energy    Pr. Prd.   (barn/atom)
 
 1.000E+00 0.000E+00 
 1.022E+00 0.000E+00 
