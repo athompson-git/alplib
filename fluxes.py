@@ -137,15 +137,16 @@ class FluxPrimakoffIsotropic(AxionFlux):
         for i, el in enumerate(self.photon_flux):
             self.simulate_single(el)
     
-    def propagate(self, new_coupling=None):
+    def propagate(self, new_coupling=None, is_isotropic=True):
         if new_coupling is not None:
             rescale=power(new_coupling/self.gagamma, 2)
             super().propagate(W_gg(new_coupling, self.ma), rescale)
         else:
             super().propagate(W_gg(self.gagamma, self.ma))
-        geom_accept = self.det_area / (4*pi*self.det_dist**2)
-        self.decay_axion_weight *= geom_accept
-        self.scatter_axion_weight *= geom_accept
+        if is_isotropic:
+            geom_accept = self.det_area / (4*pi*self.det_dist**2)
+            self.decay_axion_weight *= geom_accept
+            self.scatter_axion_weight *= geom_accept
 
 
 
@@ -444,7 +445,7 @@ class FluxNuclearIsotropic(AxionFlux):
     Takes in a rate (#/s) of nuclear decays for a specified nuclear transition
     Produces the associated ALP flux from a given branching ratio
     """
-    def __init__(self, transition_rates=np.array([[1.0, 0.0]]), target=Material("W"),
+    def __init__(self, transition_rates=np.array([[1.0, 0.0, 1.0, 0.5]]), target=Material("W"),
                  det_dist=4., det_length=0.2, det_area=0.04, is_isotropic=True,
                  axion_mass=0.1, gae=1.0e-5, gann0=1e-3, gann1=1e-3, n_samples=100):
         super().__init__(axion_mass, target, det_dist, det_length, det_area, n_samples)
@@ -461,7 +462,7 @@ class FluxNuclearIsotropic(AxionFlux):
             * power(sqrt(energy**2 - self.ma**2)/energy, 2*j + 1) \
                 * power((self.gann0 * beta + self.gann1)/((mu0-0.5)*beta + (mu1 - eta)), 2)
 
-    def simulate(self, j=1, delta=0.0, beta=1.0, eta=0.5):
+    def simulate(self, j=1, delta=0.0):
         self.axion_energy = []
         self.axion_flux = []
         self.scatter_axion_weight = []
@@ -470,7 +471,7 @@ class FluxNuclearIsotropic(AxionFlux):
         for i in range(self.rates.shape[0]):
             if self.rates[i,0] > self.ma:
                 self.axion_energy.append(self.rates[i,0])
-                self.axion_flux.append(self.rates[i,1] * self.br(self.rates[i,0], j, delta, beta, eta))
+                self.axion_flux.append(self.rates[i,1] * self.br(self.rates[i,0], j, delta, self.rates[i,2], self.rates[i,3]))
 
     def propagate(self, new_coupling=None):
         if new_coupling is not None:
@@ -486,10 +487,10 @@ class FluxNuclearIsotropic(AxionFlux):
     
     def propagate_iso_vol_int(self, geom: DetectorGeometry, new_coupling=None):
         if new_coupling is not None:
-            rescale=power(new_coupling/self.gagamma, 2)
-            super().propagate_iso_vol_int(geom, W_gg(self.gagamma, self.ma), rescale)
+            rescale=power(new_coupling/self.gae, 2)
+            super().propagate_iso_vol_int(geom, W_ee(new_coupling, self.ma), rescale)
         else:
-            super().propagate_iso_vol_int(geom, W_gg(self.gagamma, self.ma))
+            super().propagate_iso_vol_int(geom, W_ee(self.gae, self.ma))
 
 
 
@@ -692,10 +693,7 @@ class FluxChargedMeson3BodyIsotropic(AxionFlux):
             return 0.0
 
     def total_br(self):
-        ea_max_mu = (self.mm**2 + self.ma**2 - M_MU**2)/(2*self.mm)
-        ea_max_e = (self.mm**2 + self.ma**2 - M_E**2)/(2*self.mm)
-        return (quad(self.dGammadEa, self.ma, ea_max_e, args=(M_E,))[0] \
-            + quad(self.dGammadEa, self.ma, ea_max_mu, args=(M_MU,))[0]) / self.total_width
+        return np.sum([quad(self.dGammadEa, self.ma,  (self.mm**2 + self.ma**2 - ml**2)/(2*self.mm), args=(ml,))[0] for ml in self.lepton_masses]) / self.total_width
     
     def diff_br(self):
         ea_min = self.ma
