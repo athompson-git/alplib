@@ -70,7 +70,6 @@ class PhotonEventGenerator:
         self.pair_weights = np.zeros_like(flux.scatter_axion_weight)
         self.efficiency = None  # TODO: add efficiency info
         self.energy_threshold = None  # TODO: add threshold as member var
-        self.pair_xs = PairProdutionCrossSection(detector)
     
     def propagate_isotropic(self, new_gagamma=1.0):
         #self.flux.propagate(W_gg(new_gagamma, self.flux.ma), rescale_factor=power(new_gagamma/self.flux.ge, 2))
@@ -81,7 +80,7 @@ class PhotonEventGenerator:
         pass
 
 
-    def inverse_primakoff(self, gagamma, ma, ntargets, days_exposure, threshold):
+    def inverse_primakoff(self, gagamma, ma, ntargets, days_exposure, threshold=0.0):
         self.axion_energy = np.array(self.flux.axion_energy)
         self.scatter_weights = days_exposure * S_PER_DAY * (ntargets / self.flux.det_area) \
             * iprimakoff_sigma(self.axion_energy, gagamma, ma, self.det_z) \
