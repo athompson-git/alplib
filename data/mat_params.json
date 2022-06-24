@@ -223,6 +223,38 @@
       "bg": 0,
       "bg_un": 0.05
     },
+  "N2":
+    {
+      "iso": 2,
+      "z": [7, 7],
+      "n": [7, 7],
+      "frac": [0.5, 0.5],
+      "lattice_const": [],
+      "cell_volume": 10.0,
+      "atomic_radius": [],
+      "m": [13.132e3, 13.132e3],
+      "density": 1.16,
+      "er_min": 0.8,
+      "er_max": 1000,
+      "bg": 0,
+      "bg_un": 0.05
+    },
+  "O2":
+    {
+      "iso": 2,
+      "z": [8, 8],
+      "n": [8, 8],
+      "frac": [0.5, 0.5],
+      "lattice_const": [],
+      "cell_volume": 10.0,
+      "atomic_radius": [],
+      "m": [15.015e3, 15.015e3],
+      "density": 1.4291,
+      "er_min": 0.8,
+      "er_max": 1000,
+      "bg": 0,
+      "bg_un": 0.05
+    },
   "Gd-scintillator":
     {
       "iso": 2,
