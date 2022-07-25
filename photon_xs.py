@@ -17,7 +17,6 @@ Data taken from NIST XCOM database.
 
 class AbsCrossSection:
     def __init__(self, material: Material):
-        #self.pe_data = np.empty()
         self.xs_dim = 1e-24  # barns to cm2
         self.mat_name = material.mat_name
         self.path_prefix = "data/photon_absorption/photon_abs_"
@@ -30,7 +29,11 @@ class AbsCrossSection:
         elif self.mat_name == "CsI":
             self.xs_dim = 259.81 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
         elif self.mat_name == "CH2":
-            self.xs_dim = 259.81 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
+            self.xs_dim = 14.027 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
+        elif self.mat_name == "N2":
+            self.xs_dim = 28.0 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
+        elif self.mat_name == "O2":
+            self.xs_dim = 32.0 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
         
         self.cleanPEData()
     

@@ -112,7 +112,7 @@ class LorentzVector:
 
 
 class Scatter2to2MC:
-    def __init__(self, mtrx2: MatrixElement2, p1: LorentzVector, p2: LorentzVector, n_samples=1000):
+    def __init__(self, mtrx2: MatrixElement2, p1=LorentzVector(), p2=LorentzVector(), n_samples=1000):
         self.mtrx2 = mtrx2
 
         self.m1 = mtrx2.m1
@@ -135,12 +135,6 @@ class Scatter2to2MC:
 
     def dsigma_dt(self, s, t):
         return self.mtrx2(s, t)/(16*np.pi*(s - (self.m1 + self.m2)**2)*(s - (self.m1 - self.m2)**2))
-
-    def dsigma_dcos_cm(self, s, t):
-        pass
-
-    def boost_final_states_to_lab(self, p3: LorentzVector, p4: LorentzVector):
-        pass
 
     def p1_cm(self, s):
         return np.sqrt((np.power(s - self.m1**2 - self.m2**2, 2) - np.power(2*self.m1*self.m2, 2))/(4*s))
@@ -198,9 +192,9 @@ class Scatter2to2MC:
 
     def get_cosine_lab_weights(self):
         lab_cosines = np.array([self.p3_lab_4vectors[i].cosine() for i in range(self.n_samples)])
-        cosine_weights = np.array([power(self.p3_lab_3vectors[i].mag()/self.p3_cm_3vectors[i].mag(), 2) * \
+        cosine_weights = abs(np.array([power(self.p3_lab_3vectors[i].mag()/self.p3_cm_3vectors[i].mag(), 2) * \
                         (self.p3_cm_3vectors[i]*self.p3_lab_3vectors[i])/(self.p3_cm_3vectors[i].mag()*self.p3_lab_3vectors[i].mag()) \
-                         * self.dsigma_dcos_cm_wgts[i] for i in range(self.n_samples)])
+                         * self.dsigma_dcos_cm_wgts[i] for i in range(self.n_samples)]))
 
         return lab_cosines, cosine_weights
     

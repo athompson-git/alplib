@@ -22,7 +22,7 @@ class ElectronEventGenerator:
     def __init__(self, flux: AxionFlux, detector: Material):
         self.flux = flux
         self.det_z = detector.z[0]
-        self.axion_energy = np.zeros_like(flux.axion_energy)
+        self.axion_energy = np.array(flux.axion_energy)
         self.decay_weights = np.zeros_like(flux.decay_axion_weight)
         self.scatter_weights = np.zeros_like(flux.scatter_axion_weight)
         self.pair_weights = np.zeros_like(flux.scatter_axion_weight)
@@ -41,7 +41,6 @@ class ElectronEventGenerator:
         return res
 
     def compton(self, ge, ma, ntargets, days_exposure, threshold):
-        self.axion_energy = np.array(self.flux.axion_energy)
         self.scatter_weights = days_exposure * S_PER_DAY * (ntargets / self.flux.det_area) \
             * icompton_sigma(self.axion_energy, ma, ge, self.det_z) \
                 * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.axion_energy - threshold, 1.0)
