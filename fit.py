@@ -10,16 +10,16 @@ from scipy.signal import savgol_filter
 
 
 def TwoSidedGridSearch(generator, observations, param_grid, background=None, target_cl=0.90,
-                        ddof=0, verbose=False, delta_chi2=False):
+                        ddof=0, verbose=False, delta_chi2=True):
     # This is a brute-force grid search for the upper and lower limit CLs.
     lower_cl = param_grid[0]
     upper_cl = param_grid[-1]
 
     def statistic(param):
         if background is not None:
-            return chisquare(generator(param) + background, observations, ddof)[0]
-        elif background is not None and delta_chi2 == True:
             return np.sum(power(generator(param) + background - observations, 2)/background)
+        elif background is not None and delta_chi2 == False:
+            return chisquare(generator(param) + background, observations, ddof)[0]
         else:
             return np.sum(generator(param))
 
