@@ -106,6 +106,32 @@ def primakoff_sigma(eg, g, ma, z, r0 = 2.2e-10 / METER_BY_MEV):
 
 
 
+def epem_to_alp_photon_dsigma_de(ea, ep, g=1.0, ma=1.0, z=1):
+    # e+ e- annihilation into gamma ALP via a virtual photon
+    s = 2 * M_E * (M_E + ep)
+    ps_cm = sqrt((s - ma**2)**2 / (4*s))
+    pp_cm = sqrt(((s - 2*M_E**2)**2 - 4*M_E**4)/ (4*s))
+    es_cm = sqrt(ps_cm**2 + ma**2)
+    ep_cm = sqrt(pp_cm**2 + M_E**2)
+
+    beta = sqrt(ep**2 - M_E**2) / (M_E + ep)
+    gamma = power(1-beta**2, -0.5)
+
+    costheta =  (ea/gamma - es_cm)/(beta*ps_cm)
+
+    t = ma**2 + M_E**2 - 2 * (ep_cm * es_cm - pp_cm * ps_cm * costheta)
+
+    m_st = z * 4*pi*ALPHA*g**2 * (2*s*M_E**4 + 2*M_E**2 * (ma**4 - s*ma**2 - 2*s*t) \
+        + s*(ma**4 - 2*ma**2 * (s + t) + s**2 + 2*s*t + 2*t**2))/s**2
+    
+    jacobian = 2 * pp_cm / gamma / beta
+    
+    return heaviside(ep - max((ma**2 - M_E**2)/(2*M_E), M_E), 1.0) * jacobian * m_st / (16*pi*(s - 4*M_E**2)*s)
+
+
+
+
+
 
 #### Electron coupling ####
 
