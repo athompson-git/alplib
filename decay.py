@@ -22,6 +22,13 @@ def W_ee(g_ae, ma):
 
 
 
+def W_gg_loop(g_af, ma, mf):
+    # a -> gamma gamma via f loop
+    return (g_af**2 * ALPHA / (pi * mf)) * (1 - 4*mf**2 * arcsin(ma/(2*mf))/ma**2)
+
+
+
+
 def W_aprime_gamma_phi(g_gauge, m_aprime, m_phi):
     # Aprime -> gamma + phi (scalar)
     return power(g_gauge, 2) * power((m_aprime**2 - m_phi**2)/m_aprime, 3) / (128*pi)
