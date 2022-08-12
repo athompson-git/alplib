@@ -345,7 +345,7 @@ class FluxResonanceIsotropic(AxionFlux):
         self.ntarget_area_density = target_radiation_length * AVOGADRO / (2*target.z[0])  # N_T / cm^2
         self.is_isotropic = is_isotropic
         self.loop_decay = loop_decay
-    
+
     def decay_width(self, ge, ma):
         if self.loop_decay:
             return W_ee(ge, ma) + W_gg_loop(ge, ma, M_E)
