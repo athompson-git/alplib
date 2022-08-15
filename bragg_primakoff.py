@@ -77,9 +77,6 @@ class BraggPrimakoff:
     def Ea(self, theta_z, phi, mList):
         return HBARC_KEV_ANG * np.dot(self.vecG(mList), self.vecG(mList)) / (2 * np.dot(self.vecU(theta_z, phi), self.vecG(mList)))
 
-    def Ea2(self, theta, mList):
-        return HBARC_KEV_ANG * np.sqrt(np.dot(self.vecG(mList), self.vecG(mList))) / (2 * sin(theta/2))
-
     # Solar ALP flux in keV^-1 cm^-2 s^-1
     def SolarFlux(self, Ea, gagamma):
         return (gagamma * 1e8)**2 * (5.95e14 / 1.103) * (Ea / 1.103)**3 / (exp(Ea / 1.103) - 1)
@@ -96,17 +93,21 @@ class BraggPrimakoff:
         return np.array(g)
 
     # Bragg-Primakoff event rate
-    def BraggPrimakoff(self, theta_z, phi, E1=2.0, E2=2.5, gagamma=1e-10, use_att=False):
+    def PrimakoffRate(self, theta_z, phi, E1=2.0, E2=2.5, gagamma=1e-10, use_att=False, use_borrmann=False, days_exposure=1.0):
         rate = 0.0
-        prefactor = (gagamma / 1e6)**2 * HBARC_KEV_ANG**2 * (self.volume / self.va**2) / 4  # 1e6 to convert to keV^-1
+        #prefactor = (gagamma / 1e6)**2 * HBARC_KEV_ANG**2 * (self.volume / self.va**2) / 4  # 1e6 to convert to keV^-1
+        prefactor = pi*(S_PER_DAY*days_exposure) * (gagamma / 1e6)**2 * HBARC_KEV_ANG**3 \
+            * (self.volume / self.va**2) * 1e-16 # 1e6 to convert to keV^-1
         for mList in self.GetReciprocalLattice():
+            ea = abs(self.Ea(theta_z, phi, mList))
             sineThetaBy2 = np.dot(self.vecU(theta_z, phi), self.vecG(mList)) / sqrt(np.dot(self.vecG(mList),self.vecG(mList)))
             sineSquaredTheta = 4 * sineThetaBy2**2 * (1 - sineThetaBy2**2)
-            formFactorSquared = self.FA(sqrt(np.dot(self.vecG(mList), self.vecG(mList))), self.Ea(theta_z, phi, mList))
+            formFactorSquared = self.FA(sqrt(np.dot(self.vecG(mList), self.vecG(mList))), ea)
             l_factor = power(self.volume, 1/3)
-            if use_att:
-                l_factor = power(self.volume, 1/3)
-            ea = abs(self.Ea(theta_z, phi, mList))
+            if use_borrmann:
+                l_factor = 1e8*self.borrmann.anomalous_depth(ea, mList[0], mList[1], mList[2])  # 1e8: cm to A conversion
+            elif use_att:
+                l_factor = 1e8/(self.borrmann.n * self.borrmann.abs_xs.sigma_cm2(1e-3*ea))
             rate += np.sum(heaviside(ea, 0.0) \
                     * self.SolarFlux(ea, gagamma) * sineSquaredTheta \
                     * formFactorSquared * self.S2Expanded(mList) \
