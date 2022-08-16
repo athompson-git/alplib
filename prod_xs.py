@@ -254,9 +254,10 @@ def resonance_sigma(ee, ma, g):
 
 
 
-def resonance_peak(g):
+def resonance_peak(g, ma):
     # Returns the peak value of the resonance production cross section (e- e+ -> a)
-    return pi * g**2 / (2 * M_E)
+    #return pi * g**2 / (2 * M_E)
+    return 2*pi*M_E*power(g / ma, 2) / sqrt(1 - power(2*M_E/ma, 2))
 
 
 
