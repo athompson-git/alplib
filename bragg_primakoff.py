@@ -32,13 +32,13 @@ class BraggPrimakoff:
         self.borrmann = Borrmann(Material(crys.mat_name))
 
         # Primitive basis vectors
-        self.a0 = np.array([0,0,0])
-        self.a1 = (self.a/4) * np.array([1,1,1])
+        self.a0 = crys.a0 #np.array([0,0,0])
+        self.a1 = crys.a1 #(self.a/4) * np.array([1,1,1])
 
         # Bravais lattice
-        self.b1 = (2*pi/self.a) * np.array([-1, 1, 1])
-        self.b2 = (2*pi/self.a) * np.array([1, -1, 1])
-        self.b3 = (2*pi/self.a) * np.array([-1, 1, -1])
+        self.b1 = crys.b1
+        self.b2 = crys.b2
+        self.b3 = crys.b3
 
         # Phi list
         self.nsamples = nsamples
@@ -75,7 +75,8 @@ class BraggPrimakoff:
 
     # Bragg condition
     def Ea(self, theta_z, phi, mList):
-        return HBARC_KEV_ANG * np.dot(self.vecG(mList), self.vecG(mList)) / (2 * np.dot(self.vecU(theta_z, phi), self.vecG(mList)))
+        return HBARC_KEV_ANG * abs(np.dot(self.vecG(mList), self.vecG(mList)) \
+            / (2 * np.dot(self.vecU(theta_z, phi), self.vecG(mList))))
 
     # Solar ALP flux in keV^-1 cm^-2 s^-1
     def SolarFlux(self, Ea, gagamma):
@@ -85,7 +86,7 @@ class BraggPrimakoff:
     # Getter for the list of reciprocal vectors
     def GetReciprocalLattice(self, nmax=5):
         g = []
-        for mList in product(np.arange(1,nmax),repeat=3):
+        for mList in product(np.arange(0,nmax),repeat=3):
             if (np.sum(mList) == 0):
                 continue
             if (np.all(np.array(mList) % 2 == 1) or (np.all(np.array(mList) % 2 == 0) and np.sum(np.array(mList)) % 4 == 0)):
