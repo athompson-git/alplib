@@ -28,6 +28,11 @@ class Crystal(Material):
         self.b1 = 2*pi*cross(self.a2, self.a3) / (dot(self.a1, cross(self.a2, self.a3)))
         self.b2 = 2*pi*cross(self.a3, self.a1) / (dot(self.a1, cross(self.a2, self.a3)))
         self.b3 = 2*pi*cross(self.a1, self.a2) / (dot(self.a1, cross(self.a2, self.a3)))
+
+        self.norm = [0.0, 0.0, 1.0]
+        self.lx = power(volume, 1/3)
+        self.ly = power(volume, 1/3)
+        self.lz = power(volume, 1/3)
     
     def r(self, n1, n2, n3):
         return n1 * self.a1 + n2 * self.a2 + n3 * self.a3
