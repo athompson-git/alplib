@@ -379,7 +379,7 @@ class FluxResonanceIsotropic(AxionFlux):
         mc_vol = (5.0 - 0.0)*(max(self.positron_flux[:,0]) - resonant_energy)
 
         attenuated_flux = mc_vol*np.sum(self.positron_flux_attenuated(t_rnd, e_rnd, resonant_energy))/self.n_samples
-        wgt = self.target_z * (self.ntarget_area_density * HBARC**2) * resonance_peak(self.ge) * attenuated_flux
+        wgt = self.target_z * (self.ntarget_area_density * HBARC**2) * resonance_peak(self.ge, self.ma) * attenuated_flux
         
         self.axion_energy.append(self.ma**2 / (2 * M_E))
         self.axion_flux.append(wgt)
