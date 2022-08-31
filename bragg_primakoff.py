@@ -100,6 +100,8 @@ class BraggPrimakoff:
         prefactor = pi*(S_PER_DAY*days_exposure) * (gagamma / 1e6)**2 * HBARC_KEV_ANG**3 \
             * (self.volume / self.va**2) * 1e-16 # 1e6 to convert to keV^-1
         for mList in self.GetReciprocalLattice():
+            if np.dot(self.vecU(theta_z, phi), self.vecG(mList)) == 0.0:
+                continue
             ea = abs(self.Ea(theta_z, phi, mList))
             sineThetaBy2 = np.dot(self.vecU(theta_z, phi), self.vecG(mList)) / sqrt(np.dot(self.vecG(mList),self.vecG(mList)))
             sineSquaredTheta = 4 * sineThetaBy2**2 * (1 - sineThetaBy2**2)
@@ -152,10 +154,11 @@ class BraggPrimakoff:
 
     def AtomicPrimakoffRate(self, E1=2.0, E2=2.5, gagamma=1e-10, ma=1e-6, days_exposure=1.0):
         # Solar ALP scattering rate ignoring crystal structure (isolated atomic scattering)
+        # energy range in keV, gagamma in GeV^-1, ma in MeV
         def AtomicPrimakoffDifferentialRate(Ee, Ea):
-            return self.ntargets * self.SolarFlux(Ea, gagamma) * (KEV_CM**2) \
-                * iprimakoff_sigma(Ea*1e-3, gagamma*1e-3, ma, self.z[0], self.r0[0]) * 1e-6 \
-                    * exp(-power((Ee - Ea)/(sqrt(2)*self.fwhm/2.35), 2)) / sqrt(2)*self.fwhm/2.35 # MeV^-2 to keV^-2
+            return self.ntargets * self.SolarFlux(Ea, gagamma) * (HBARC**2) \
+                * iprimakoff_sigma(Ea*1e-3, gagamma*1e-3, ma, self.z[0], self.r0[0]) \
+                    * exp(-power((Ee - Ea)/(sqrt(2)*self.fwhm/2.35), 2)) / sqrt(2)*self.fwhm/2.35
         
         ea_list = np.linspace(0.1, 30.0, 10*self.nsamples)
         rates = np.array([quad(AtomicPrimakoffDifferentialRate, E1, E2, args=(Ea,))[0] for Ea in ea_list])
