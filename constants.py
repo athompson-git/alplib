@@ -77,3 +77,8 @@ VCELL_GE = 181
 LATTICE_CONST_GE = 5.66
 
 R0_CSI = 1.0
+
+
+# Astronomical constants
+L_SUN_EARTH = 15.13e12  # cm
+R_SUN = 6.957e10  # cm
