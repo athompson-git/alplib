@@ -91,6 +91,12 @@ class LorentzVector:
     def cosine(self):
         return self.p3 / self.momentum()
     
+    def phi(self):
+        return arctan(self.p2 / self.p1)
+    
+    def theta(self):
+        return arccos(self.p3 / self.momentum())
+    
     def momentum(self):
         return self.momentum3.mag()
     
@@ -155,7 +161,7 @@ class Scatter2to2MC:
         cm_p4 = self.lv_p1 + self.lv_p2
         e_in = cm_p4.energy()
         p_in = cm_p4.get_3momentum()
-        v_in = Vector3(p_in.v1 / e_in, p_in.v2 / e_in, p_in.v3 / e_in)
+        v_in = Vector3(-p_in.v1 / e_in, -p_in.v2 / e_in, -p_in.v3 / e_in)
         s = cm_p4.mass2()
         if s < (self.m3 + self.m4)**2:
             return
