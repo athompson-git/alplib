@@ -3,6 +3,7 @@
 
 from .constants import *
 from .fmath import *
+from .efficiency import Efficiency
 
 import json
 import pkg_resources
@@ -46,24 +47,6 @@ class Material:
             self.ndensity = self.ntargets / self.volume
         else:
             raise Exception("No such detector in mat_params.json.")
-
-
-
-
-class Efficiency:
-    """
-    TODO: efficiency super class
-    should be able to pass in a function or an array of points to interpolate between
-    can take in a (N, 2) array with energies in the first column and efficiencies in the second column
-    __call__ returns an efficiency function
-    """
-    def __init__(self, eff_data=None):
-        self.eff_data = eff_data
-
-    def __call__(self, energy):
-        if self.eff_data is not None:
-            return np.interp(energy, self.eff_data[:,0], self.eff_data[:,1])
-        return 1.0
 
 
 

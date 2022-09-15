@@ -3,18 +3,41 @@
 from .fmath import *
 from scipy.interpolate import interp1d
 
-EFF_TYPES = ['uniform', 'spline']
-
 class Efficiency:
-    def __init__(self, func_type='uniform', control_points=None):
-        if func_type not in EFF_TYPES:
-            raise Exception('Efficiency function type is not known; select from ', EFF_TYPES)
-        self.func_type = func_type
-        self.eff_spline = interp1d(control_points[:,0], control_points[:,1],
-            kind='cubic', bounds_error=False, fill_value='extrapolate') if func_type=='spline' else None
-    
+    """
+    TODO: efficiency super class
+    should be able to pass in a function or an array of points to interpolate between
+    can take in a (N, 2) array with energies in the first column and efficiencies in the second column
+    __call__ returns an efficiency function
+    """
+    def __init__(self, control_points=None):
+        if control_points is None:
+            self.func_type = 'uniform'
+        else:
+            self.func_type = 'spline'
+        self.control_points = control_points
+
     def __call__(self, energy):
         if self.func_type == 'uniform':
             return 1.0
         elif self.func_type == 'spline':
-            return np.heaviside(self.eff_spline(energy), 0.0) * self.eff_spline(energy)
+            return np.clip(np.interp(energy, self.control_points[:,0], self.control_points[:,1]), 0.0, 1.0)
+
+
+
+
+# Deprecated function from materials.py
+"""
+class Efficiency:
+    #TODO: efficiency super class
+    #should be able to pass in a function or an array of points to interpolate between
+    #can take in a (N, 2) array with energies in the first column and efficiencies in the second column
+    #__call__ returns an efficiency function
+    def __init__(self, eff_data=None):
+        self.eff_data = eff_data
+
+    def __call__(self, energy):
+        if self.eff_data is not None:
+            return np.interp(energy, self.eff_data[:,0], self.eff_data[:,1])
+        return 1.0
+"""
