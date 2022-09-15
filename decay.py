@@ -14,6 +14,14 @@ def W_gg(g_agamma, ma):
 
 
 
+def W_ff(g, mf, ma):
+    # a -> f f   generic decay
+    return g**2 * ma * sqrt(1 - (2 * mf / ma)**2) / (8 * pi) \
+        if 1 - 4 * (mf / ma) ** 2 > 0 else 0.0
+
+
+
+
 def W_ee(g_ae, ma):
     # a -> e+ e-
     return g_ae**2 * ma * sqrt(1 - (2 * M_E / ma)**2) / (8 * pi) \
