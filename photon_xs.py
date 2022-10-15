@@ -44,7 +44,7 @@ class AbsCrossSection:
         return 10**np.interp(log10(E), log10(self.pe_data[:,0]), log10(self.xs_dim * self.pe_data[:,1]), left=0.0, right=0.0)
     
     def sigma_mev(self, E):
-        return 10**np.interp(log10(E), log10(self.pe_data[:,0]), log10(self.xs_dim * self.pe_data[:,1])) / MEV2_CM2
+        return 10**np.interp(log10(E), log10(self.pe_data[:,0]), log10(self.xs_dim * self.pe_data[:,1]), left=0.0, right=0.0) / MEV2_CM2
     
     def mu(self, E, n):  # atomic number density in cm^-3
         return self.sigma_cm2(E) * n
@@ -73,10 +73,14 @@ class PairProdutionCrossSection:
         self.xs_data = self.xs_data[np.unique(self.xs_data[:, 0], return_index=True)[1]]
 
     def sigma_cm2(self, E):
-        return heaviside(E-2*M_E,0.0) * 10**np.interp(log10(E), log10(self.xs_data[:,0]), log10(self.xs_dim * self.xs_data[:,1]))
+        return heaviside(E-2*M_E,0.0) * \
+            power(10, np.interp(log10(E), log10(self.xs_data[:,0]),
+                    log10(self.xs_dim * self.xs_data[:,1]), left=0.0))
     
     def sigma_mev(self, E):
-        return heaviside(E-2*M_E,0.0) * 10**np.interp(log10(E), log10(self.xs_data[:,0]), log10(self.xs_dim * self.xs_data[:,1] / MEV2_CM2))
+        return heaviside(E-2*M_E,0.0) * \
+            power(10, np.interp(log10(E), log10(self.xs_data[:,0]), 
+                    log10(self.xs_dim * self.xs_data[:,1] / MEV2_CM2), left=0.0))
     
     def mu(self, E, n):  # atomic number density in cm^-3
         return self.sigma_cm2(E) * n
