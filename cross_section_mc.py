@@ -2,8 +2,6 @@
 Cross section class and MC
 """
 
-import numpy as np
-
 from alplib.constants import *
 from alplib.fmath import *
 from alplib.matrix_element import *
@@ -26,6 +24,12 @@ class Vector3:
         v1_new = self.v1 + other.v1
         v2_new = self.v2 + other.v2
         v3_new = self.v3 + other.v3
+        return Vector3(v1_new, v2_new, v3_new)
+    
+    def __sub__(self, other):
+        v1_new = self.v1 - other.v1
+        v2_new = self.v2 - other.v2
+        v3_new = self.v3 - other.v3
         return Vector3(v1_new, v2_new, v3_new)
     
     def __mul__(self, other):
@@ -71,6 +75,13 @@ class LorentzVector:
         p1_new = self.p1 + other.p1
         p2_new = self.p2 + other.p2
         p3_new = self.p3 + other.p3
+        return LorentzVector(p0_new, p1_new, p2_new, p3_new)
+    
+    def __sub__(self, other):
+        p0_new = self.p0 - other.p0
+        p1_new = self.p1 - other.p1
+        p2_new = self.p2 - other.p2
+        p3_new = self.p3 - other.p3
         return LorentzVector(p0_new, p1_new, p2_new, p3_new)
     
     def __mul__(self, other):
@@ -136,6 +147,8 @@ class Scatter2to2MC:
         self.p3_lab_4vectors = []
         self.p3_cm_3vectors = []
         self.p3_lab_3vectors = []
+        self.p4_lab_3vectors = []
+        self.p4_lab_4vectors = []
         self.dsigma_dcos_cm_wgts = np.array([])
 
 
@@ -183,6 +196,9 @@ class Scatter2to2MC:
         self.p3_lab_4vectors = [lorentz_boost(p3, v_in) for p3 in self.p3_cm_4vectors]
         self.p3_cm_3vectors = [p3_cm.get_3velocity() for p3_cm in self.p3_cm_4vectors]
         self.p3_lab_3vectors = [p3_lab.get_3velocity() for p3_lab in self.p3_lab_4vectors]
+
+        self.p4_lab_4vectors = [self.lv_p1 + self.lv_p2 - p3_lab for p3_lab in self.p3_lab_4vectors]
+        self.p4_lab_3vectors = [p4_lab.get_3velocity() for p4_lab in self.p4_lab_4vectors]
     
     def get_total_xs(self, s):
         p1_cm = self.p1_cm(s)
