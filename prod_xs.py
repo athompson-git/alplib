@@ -189,7 +189,7 @@ def brem_dsigma_dea_domega(Ea, thetaa, Ee, g, ma, z):
     theta_max = max(sqrt(ma*M_E)/Ee, power(ma/Ee, 3/2))
     x = Ea / Ee
     l = (Ee * thetaa / M_E)**2
-    U = l*x*M_E**2 + x*M_E**2 + ((1-x)*M_E**2) / x
+    U = l*x*M_E**2 + x*M_E**2 + ((1-x)*ma**2) / x
     tmin = (U / (2*Ee*(1-x)))**2
     a = 111*power(z, -1/3)/M_E
     aPrime = 773*power(z, -2/3)/M_E
