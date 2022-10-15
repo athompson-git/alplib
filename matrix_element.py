@@ -441,8 +441,7 @@ class M2InversePrimakoff(MatrixElement2):
         super().__init__(ma, mN, 0, mN)
         self.mN = mN
         self.ma = ma
-        #self.ff2 = NuclearHelmFF(z,z)
-        self.ff2 = AtomicPlusNuclearFF(z, z)
+        self.ff2 = AtomicElasticFF(z)
     
     def __call__(self, s, t, coupling_product=1.0):
         prefactor = 2 * coupling_product**2
@@ -467,4 +466,4 @@ class M2Primakoff(MatrixElement2):
         prefactor = coupling_product**2
         propagator = power(t, 2)
         numerator = -t*(2*self.mN**2 * (self.ma**2 - 2*s - t) + 2*self.mN**4 - 2*self.ma**2 * (s + t) + self.ma**4 + 2*s**2 + 2*s*t + t**2)
-        return self.ff2(t) * prefactor * numerator / propagator
+        return self.ff2(np.sqrt(abs(t))) * prefactor * numerator / propagator
