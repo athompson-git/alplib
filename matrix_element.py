@@ -370,3 +370,101 @@ class M2Pi0ToAGammaGamma(MatrixElementDecay3):
                         + 2*Pq1*Pq2*q1q2*(Pq1 + Pq2 - mpi02)*(4*Pq1*(Pq2 - mpi02) - 4*mpi02*Pq2 + 3*mpi04))
         
         return prefactor * num / denom
+
+
+
+# Sterile Neutrio Matrix Elements
+
+
+class M2ElectronPositronToSterileNu(MatrixElement2):
+    """
+    e+ e- --> nu N, via s-channel gamma dipole portal
+    """
+    def __init__(self, mN):
+        super().__init__(M_E, M_E, mN, 0)
+        self.mN = mN
+    
+    def __call__(self, s, t, coupling_product=1.0):
+        return - 4*pi*ALPHA * coupling_product**2 * (2 * M_E**4 + 2 * M_E**2 * (self.mN**2 - s - 2*t) \
+            + self.mN**4 - self.mN**2 * (s + 2*t) + 2*t*(s + t)) / s
+
+
+
+
+class M2Compton(MatrixElement2):
+    """
+    Compton scattering (gamma + e- -> a + e-)
+    """
+    def __init__(self, ma, z):
+        super().__init__(0, M_E, ma, M_E)
+        self.ma = ma
+        self.z = z
+    
+    def __call__(self, s, t, coupling_product=1.0):
+        u = 2*M_E**2 + self.ma**2 - s - t
+        prefactor = self.z*4*pi*ALPHA * coupling_product**2
+        Ms2 = prefactor * (M_E**4 + M_E**2 * (3*self.ma**2 - 2*s - t) + s*(s + t - self.ma**2))/power(M_E**2 - s, 2)
+        Mu2 = prefactor * (M_E**4 + M_E**2 * (3*self.ma**2 - 2*s - t) + s*(s + t - self.ma**2))/power(M_E**2 - u, 2)
+        MuMt = prefactor * (M_E**4 + M_E**2 * (3*self.ma**2 - 2*s - t) - (self.ma**2 - s)*(s + t))/((M_E**2 - s)*(M_E**2 - u))
+
+        return Ms2 + Mu2 + 2*MuMt
+
+
+
+
+class M2InverseCompton(MatrixElement2):
+    """
+    Compton scattering (a + e- -> gamma + e-)
+    """
+    def __init__(self, ma, z):
+        super().__init__(ma, M_E, 0, M_E)
+        self.ma = ma
+        self.z = z
+    
+    def __call__(self, s, t, coupling_product=1.0):
+        u = 2*M_E**2 + self.ma**2 - s - t
+        prefactor = self.z*4*pi*ALPHA * coupling_product**2
+        Ms2 = prefactor * (M_E**4 + M_E**2 * (3*self.ma**2 - 2*s - t) + s*(s + t - self.ma**2))/power(M_E**2 - s, 2)
+        Mu2 = prefactor * (M_E**4 + M_E**2 * (3*self.ma**2 - 2*s - t) + s*(s + t - self.ma**2))/power(M_E**2 - u, 2)
+        MuMt = prefactor * (M_E**4 + M_E**2 * (3*self.ma**2 - 2*s - t) - (self.ma**2 - s)*(s + t))/((M_E**2 - s)*(M_E**2 - u))
+
+        return 2*(Ms2 + Mu2 + 2*MuMt)
+
+
+
+
+class M2InversePrimakoff(MatrixElement2):
+    """
+    Inverse Primakoff scattering (a + N -> gamma + N)
+    """
+    def __init__(self, ma, mN, z):
+        super().__init__(ma, mN, 0, mN)
+        self.mN = mN
+        self.ma = ma
+        #self.ff2 = NuclearHelmFF(z,z)
+        self.ff2 = AtomicPlusNuclearFF(z, z)
+    
+    def __call__(self, s, t, coupling_product=1.0):
+        prefactor = 2 * coupling_product**2
+        propagator = power(t, 2)
+        numerator = -t*(2*self.mN**2 * (self.ma**2 - 2*s - t) + 2*self.mN**4 - 2*self.ma**2 * (s + t) + self.ma**4 + 2*s**2 + 2*s*t + t**2)
+        return self.ff2(np.sqrt(abs(t))) * prefactor * numerator / propagator
+
+
+
+
+class M2Primakoff(MatrixElement2):
+    """
+    Primakoff scattering (gamma + N -> a + N)
+    """
+    def __init__(self, ma, mN, z):
+        super().__init__(0, mN, ma, mN)
+        self.mN = mN
+        self.ma = ma
+        self.ff2 = AtomicElasticFF(z)
+    
+    def __call__(self, s, t, coupling_product=1.0):
+        prefactor = coupling_product**2
+        propagator = power(t, 2)
+        numerator = -t*(2*self.mN**2 * (self.ma**2 - 2*s - t) + 2*self.mN**4 - 2*self.ma**2 * (s + t) + self.ma**4 + 2*s**2 + 2*s*t + t**2)
+        return self.ff2(t) * prefactor * numerator / propagator
