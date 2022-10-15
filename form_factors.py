@@ -78,6 +78,23 @@ class NuclearHelmFF:
 
 
 
+class AtomicPlusNuclearFF:
+    """
+    combined electron cloud FF (Tsai parameterization) + Helm nuclear FF
+    for Primakoff scattering at high energies
+    """
+    def __init__(self, n, z):
+        self.z = z
+        self.n = n
+        self.ffn = NuclearHelmFF(n, z)
+
+    def __call__(self, q):
+        t = q**2
+        a = 184.15*np.power(2.718, -1/2)*np.power(self.z, -1/3) / M_E
+        return np.power(self.z*(t*a**2) / (1 + t*a**2) - self.z + self.ffn(q), 2)
+
+
+
 class ProtonFF:
     """
     Square of the proton form factor F1
