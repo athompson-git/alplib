@@ -162,7 +162,7 @@ class M2PairProduction:
     def __init__(self, ma, mN, n, z):
         self.ma = ma
         self.mN = mN
-        self.ff2 = NuclearHelmFF(n, z)
+        self.ff2 = AtomicElasticFF(z)
     
     def m2(self, Ea, Ep, tp, tm, phi, coupling_product=1.0):
         # k: ALP momentum
@@ -170,11 +170,11 @@ class M2PairProduction:
         # p2: electron momentum
         # l: initial nucleus momentum
         # q: final nucleus momentum
-        c1 = 1.0 #cos(tp)
-        c2 = 1.0 #cos(tm)
-        s1 = tp #sin(tp)
-        s2 = tm #sin(tm)
-        cphi = 0.0 #cos(phi)
+        c1 = cos(tp)
+        c2 = cos(tm)
+        s1 = sin(tp)
+        s2 = sin(tm)
+        cphi = cos(phi)
 
         p1 = sqrt(Ep**2 - M_E**2)
         Em = Ea - Ep
