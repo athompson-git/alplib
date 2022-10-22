@@ -1,6 +1,7 @@
 Photon    Nuclear  
 Energy    Pr. Prd.   (barn/atom)
 
+1.00E+00 0.0
 1.250E+00 2.826E-03 
 1.500E+00 1.507E-02 
 2.000E+00 5.880E-02 
