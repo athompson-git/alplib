@@ -207,6 +207,22 @@
       "bg": 0,
       "bg_un": 0.05
     },
+  "Pb":
+    {
+      "iso": 1,
+      "z": [82],
+      "n": [125],
+      "m": [194.2e3],
+      "frac": [1.0],
+      "lattice_const": 3.1648,
+      "cell_volume": 31.7,
+      "atomic_radius": [2.1],
+      "density": 11.29,
+      "er_min": 1e-3,
+      "er_max": 100e-3,
+      "bg": 0,
+      "bg_un": 0.05
+    },
   "H2O":
     {
       "iso": 3,
