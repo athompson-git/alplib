@@ -3,10 +3,9 @@
 # All energies in MeV
 from .constants import *
 from .fmath import *
-from .photon_xs import PairProdutionCrossSection
+from .photon_xs import PECrossSection
 from .matrix_element import *
 
-import multiprocessing as multi
 from matplotlib.pyplot import hist2d
 
 
@@ -65,11 +64,12 @@ def dark_iprim_dsigma_dcostheta(cosTheta, Ea, gZN, gaGZ, ma, mZp, z=6):
 
 #### Electron Coupling ####
 
-def axioelectric_xs(pe_xs, energy, z, a, g, ma):
+def axioelectric_sigma(energy, g, ma, mat):
     # Axio-electric total cross section for ionization
-    pe = np.interp(energy, pe_xs[:,0], pe_xs[:,1])*1e-24 / (100*METER_BY_MEV)**2
-    beta = sqrt(energy**2 - ma**2)
-    return 137 * 3 * g**2 * pe * energy**2 * (1 - np.power(beta, 2/3)/3) / (16*pi*M_E**2 * beta)
+    pe_xs = PECrossSection(mat)
+    beta = sqrt(np.heaviside(energy-ma,0.0) * (energy**2 - ma**2))/energy
+    return  np.clip(np.heaviside(1.0 - energy, 0.0) *3 * power(energy * g / M_E, 2) * pe_xs.sigma_mev(energy) * \
+        (1 - power(beta, 2/3)/3) / (16*pi*ALPHA*beta), a_min=0.0, a_max=None)
 
 
 
@@ -93,9 +93,9 @@ def icompton_sigma(ea, ma, g, z=1):
     pa = sqrt((ea**2 - ma**2))
     prefactor = heaviside(ea - ma, 0.0) * (z**2) * ALPHA * power(g/M_E, 2) / (8 * pa)
 
-    return prefactor * ((2 * M_E**2 * (M_E + ea) * y)/power(M_E**2 + y, 2) \
+    return np.clip(prefactor * ((2 * M_E**2 * (M_E + ea) * y)/power(M_E**2 + y, 2) \
         + (4*M_E*(ma**4 + 2*power(ma*M_E, 2) - power(2*M_E*ea, 2)))/(y*(M_E**2 + y)) \
-        + log((M_E + ea + pa)/(M_E + ea - pa))*(power(2*M_E*pa, 2) + ma**4)/(ea*y))
+        + log((M_E + ea + pa)/(M_E + ea - pa))*(power(2*M_E*pa, 2) + ma**4)/(ea*y)), a_min=0.0, a_max=None)
 
 
 
@@ -130,17 +130,16 @@ def icompton_dsigma_domega(theta, Ea, ma, ge):
 
 
 def pair_production_sigma(Ea, ma, ge, mat: Material, n_samples=1000):
-    m2 = M2PairProduction(ma, mat)
+    m2 = M2PairProduction(ma, mat.m[0], mat.n[0], mat.z[0])
     
-    tp = np.random.uniform(-10, -2, n_samples)
-    tm = np.random.uniform(-10, -2, n_samples)
-
-    mc_vol = (Ea - 2*M_E)*(2*pi)*(tp[-1] - tp[0])*(tm[-1] - tm[0])*log(10)**2
+    tp = np.random.uniform(-15, -5, n_samples)
+    tm = np.random.uniform(-15, -5, n_samples)
 
     tp = 10**tp
     tm = 10**tm
+    mc_vol = tp * tm * (Ea - 2*M_E)*(2*pi)*(pi**2)*log(10)**2
 
-    phi = pi #np.random.uniform(0.0, 2*pi, n_samples)
+    phi = np.random.uniform(0.0, 2*pi, n_samples)
     ep = np.random.uniform(M_E, Ea - M_E, n_samples)
 
     p1 = sqrt(ep**2 - M_E**2)
@@ -150,6 +149,6 @@ def pair_production_sigma(Ea, ma, ge, mat: Material, n_samples=1000):
 
     m2_wgts = m2.m2(Ea, ep, tp, tm, phi, coupling_product=ge)
 
-    weights = abs(mc_vol * tp * tm * m2_wgts * (p1*p2*tp*tm/(512*pi**4)/Ea/va/mat.m[0]**2)/n_samples)
+    weights = abs(mc_vol * m2_wgts * (p1*p2*sin(tp)*sin(tm)/(512*pi**4)/Ea/va/mat.m[0]**2)/n_samples)
 
     return np.sum(weights)
