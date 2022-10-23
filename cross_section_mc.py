@@ -32,6 +32,9 @@ class Vector3:
         v3_new = self.v3 - other.v3
         return Vector3(v1_new, v2_new, v3_new)
     
+    def __neg__(self):
+        return Vector3(-self.v1, -self.v2, -self.v3)
+    
     def __mul__(self, other):
         return np.dot(self.vec, other.vec)
     
@@ -228,13 +231,12 @@ class Scatter2to2MC:
 
 
 class Decay2Body:
-    def __init__(self, mtrx2: MatrixElementDecay2, p: LorentzVector, n_samples=1000):
-        self.mtrx2 = mtrx2
-        self.mp = mtrx2.m_parent  # parent particle
-        self.m1 = mtrx2.m1  # decay body 1
-        self.m2 = mtrx2.m2  # decay body 2
+    def __init__(self, p_parent: LorentzVector, m1, m2, n_samples=1000):
+        self.mp = p_parent.mass()  # parent particle
+        self.m1 = m1  # decay body 1
+        self.m2 = m2  # decay body 2
 
-        self.lv_p = p
+        self.lv_p = p_parent
 
         self.n_samples = n_samples
         self.p1_cm_4vectors = []
@@ -247,13 +249,12 @@ class Decay2Body:
         p_cm = power((self.mp**2 - (self.m2 - self.m1)**2)*(self.mp**2 - (self.m2 + self.m1)**2), 0.5)/(2*self.mp)
         e1_cm = sqrt(p_cm**2 + self.m1**2)
         e2_cm = sqrt(p_cm**2 + self.m2**2)
-        decay_width = (p_cm / (8*np.pi*self.mp**2)) * self.mtrx2()
 
         # Draw random variates on the 2-sphere
         phi1_rnd = 2*pi*np.random.ranf(self.n_samples)
         theta1_rnd = arccos(1 - 2*np.random.ranf(self.n_samples))
 
-        v_in = self.lv_p.get_3velocity()
+        v_in = -self.lv_p.get_3velocity()
 
         self.p1_cm_4vectors = [LorentzVector(e1_cm,
                             p_cm*cos(phi1_rnd[i])*sin(theta1_rnd[i]),
@@ -265,13 +266,12 @@ class Decay2Body:
                             -p_cm*cos(theta1_rnd[i])) for i in range(self.n_samples)]
         self.p1_lab_4vectors = [lorentz_boost(p1, v_in) for p1 in self.p1_cm_4vectors]
         self.p2_lab_4vectors = [lorentz_boost(p2, v_in) for p2 in self.p2_cm_4vectors]
-        self.weights = decay_width * np.ones(self.n_samples)
+        self.weights = np.ones(self.n_samples) / self.n_samples
     
     def decay_from_flux(self):
         p_cm = power((self.mp**2 - (self.m2 - self.m1)**2)*(self.mp**2 - (self.m2 + self.m1)**2), 0.5)/(2*self.mp)
         e1_cm = sqrt(p_cm**2 + self.m1**2)
         e2_cm = sqrt(p_cm**2 + self.m2**2)
-        decay_width = (p_cm / (8*np.pi*self.mp**2)) * self.mtrx2()
 
         # Draw random variates on the 2-sphere
         phi1_rnd = 2*pi*np.random.ranf(self.n_samples)
@@ -279,7 +279,7 @@ class Decay2Body:
         phi2_rnd = np.pi + phi1_rnd
         theta2_rnd = np.pi - theta1_rnd
 
-        v_in = [lv.get_3velocity() for lv in self.lv_p]
+        v_in = [-lv.get_3velocity() for lv in self.lv_p]
 
         self.p1_cm_4vectors = [LorentzVector(e1_cm,
                             p_cm*cos(phi1_rnd[i])*sin(theta1_rnd[i]),
@@ -291,7 +291,7 @@ class Decay2Body:
                             p_cm*cos(theta2_rnd[i])) for i in range(self.n_samples)]
         self.p1_lab_4vectors = [lorentz_boost(p1, v_in) for p1 in self.p1_cm_4vectors]
         self.p2_lab_4vectors = [lorentz_boost(p2, v_in) for p2 in self.p2_cm_4vectors]
-        self.weights = decay_width * np.ones(self.n_samples)
+        self.weights = np.ones(self.n_samples)
 
 
 
