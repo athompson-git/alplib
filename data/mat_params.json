@@ -207,6 +207,22 @@
       "bg": 0,
       "bg_un": 0.05
     },
+  "Al2O3":
+    {
+      "iso": 2,
+      "z": [13, 8],
+      "n": [14, 8],
+      "m": [25.351e3, 15.015e3],
+      "frac": [0.4, 0.6],
+      "lattice_const": [4.785, 12.991],
+      "cell_volume": 100.0,
+      "atomic_radius": [1.84, 1.52],
+      "density": 3.98,
+      "er_min": 1e-3,
+      "er_max": 100e-3,
+      "bg": 0,
+      "bg_un": 0.05
+    },
   "Pb":
     {
       "iso": 1,
@@ -263,7 +279,7 @@
       "frac": [0.5, 0.5],
       "lattice_const": [],
       "cell_volume": 10.0,
-      "atomic_radius": [],
+      "atomic_radius": [1.52],
       "m": [15.015e3, 15.015e3],
       "density": 1.4291,
       "er_min": 0.8,
