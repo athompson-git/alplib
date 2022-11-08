@@ -325,9 +325,9 @@ class PrimakoffAxionFromBeam:
         tau = 64 * pi / (g ** 2 * self.axion_mass ** 3) * axion_boost
 
         # Get decay and survival probabilities
-        surv_prob = np.array([mp.exp(-self.det_dist / METER_BY_MEV / v_a[i] / tau[i]) \
+        surv_prob = np.array([np.exp(-self.det_dist / METER_BY_MEV / v_a[i] / tau[i]) \
                      for i in range(len(v_a))])
-        decay_prob = np.array([fsub(1,mp.exp(-self.det_length / METER_BY_MEV / v_a[i] / tau[i])) \
+        decay_prob = np.array([(1 - np.exp(-self.det_length / METER_BY_MEV / v_a[i] / tau[i])) \
                       for i in range(len(v_a))])
         # TODO: remove g**2 multiplication here (was ad hoc to speed up / modularize)
         self.decay_axion_weight = np.asarray(g**2 * wgt * surv_prob * decay_prob, dtype=np.float64)

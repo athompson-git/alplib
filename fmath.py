@@ -7,10 +7,6 @@ from scipy.integrate import quad, dblquad
 from scipy.special import exp1, erf, gamma
 from scipy.stats import norm, chisquare
 
-import mpmath as mp
-from mpmath import mpmathify, fsub
-mp.dps = 5
-
 
 
 
