@@ -78,6 +78,18 @@ class M2Chi2ToChi1Vector(MatrixElementDecay2):
 
 
 
+
+class M2DiphotonDecay(MatrixElementDecay2):
+    def __init__(self, m_parent):
+        super().__init__(m_parent, 0.0, 0.0)
+    
+    def __call__(self, coupling=1.0):
+        # Takes coupling in MeV^-1
+        return (coupling**2)*(self.m_parent**4)/8
+
+
+
+
 class M2DMUpscatter(MatrixElement2):
     """
     Dark matter upscattering (chi1 + N -> chi2 + N) via heavy mediator V
@@ -164,12 +176,85 @@ class M2PairProduction:
         self.mN = mN
         self.ff2 = AtomicElasticFF(z)
     
-    def m2(self, Ea, Ep, tp, tm, phi, coupling_product=1.0):
+    def sub_elements(self, kp1, kp2, kl1, kl2, p1p2, p1l1, p2l1, p1l2, p2l2, case="alp"):
+        if case == "alp":
+            m1_2 = -32 * ( (M_E**2 - kp1)*(2*kl2*p2l1 + 2*kl1*p2l2) + (self.ma**2 - 2*M_E**2)*(p2l1*p1l2 + p1l1*p2l2) )
+            m2_2 = -32 * ( (M_E**2 - kp2)*(2*kl2*p1l1 + 2*kl1*p1l2) + (self.ma**2 - 2*M_E**2)*(p2l1*p1l2 + p1l1*p2l2) )
+            m2_m1 = -32 * ( kp1 * (kl2*p2l1 + kl1*p2l2 - power(M_E*self.mN, 2)) \
+                            + kp2 * (kl2*p1l1 + kl1*p1l2 - power(M_E*self.mN, 2)) \
+                            - 2*kl1*kl2*p1p2 - p2l1*p1l2*self.ma**2 + (M_E**2 - self.ma**2)*p1l1*p2l2 \
+                            + p2l1*p1l2*M_E**2 + p1p2*power(M_E*self.ma,2) + power(self.mN*M_E**2, 2) )
+            return m1_2, m2_2, m2_m1
+        elif case == "vector":
+            return 0.0
+        elif case == "sm":
+            m1_2 = -128.0 * ( kl2*p2l1*(M_E**2 - kp1) + p2l2*(kl1*(M_E**2 - kp1) - M_E**2 * p1l1) - M_E**2 * p1l2*p2l1 )
+            m2_2 = -128.0 * ( kl2*p1l1*(M_E**2 - kp2) + p1l2*(kl1*(M_E**2 - kp2) - M_E**2 * p2l1) - M_E**2 * p2l2*p1l1 )
+            m2_m1 = -64.0 * ( -kp1*(p2l1*(p1l2 - 2*p2l2) + p1l1*p2l2 + (M_E*self.mN)**2) \
+                            - kp2*(p1l1*(p2l2 - 2*p1l2) + p2l1*p1l2 + (M_E*self.mN)**2) \
+                            + p2l2*(M_E**2 * (kl1 + p1l1 - 2*p2l1) - p1p2*(kl1 - 2*p1l1)) \
+                            + M_E**2 * (kl2*p1l1 + kl1*p1l2 + kl2*p2l1 + p2l1*p1l2 - 2*p1l1*p1l2) \
+                            - kl2*p1l1*p1p2 - kl2*p2l1*p1p2 - kl1*p1p2*p1l2 + 2*p2l1*p1p2*p1l2 \
+                            - power(M_E*self.mN, 2)*p1p2 + power(M_E, 4)*power(self.mN, 2))
+            return m1_2, m2_2, m2_m1
+        else:
+            print("case=", case, " not found in M2PairProduction.")
+            raise Exception()
+        
+    
+    def m2(self, Ea, Ep, tp, tm, phi, coupling=1.0, case="alp"):
         # k: ALP momentum
         # p1: positron momentum
         # p2: electron momentum
-        # l: initial nucleus momentum
-        # q: final nucleus momentum
+        # l1: initial nucleus momentum
+        # l2: final nucleus momentum
+        c1 = cos(tp)
+        c2 = cos(tm)
+        s1 = sin(tp)
+        s2 = sin(tm)
+        cphi = cos(phi)
+
+        p1 = sqrt(Ep**2 - M_E**2)
+        Em = Ea - Ep
+        p2 = sqrt(Em**2 - M_E**2)
+        k = sqrt(Ea**2 - self.ma**2)
+
+        # 3-vector dot products
+        l2_dot_k = k**2 - k*p1*c1 - k*p2*c2
+        l2_dot_p1 = k*p1*c1 - M_E**2 - p1*p2*(s1*s2*cphi + c1*c2)
+        l2_dot_p2 = k*p2*c2 - M_E**2 - p1*p2*(s1*s2*cphi + c1*c2)
+        p1_dot_p2 = p1*p2*(s1*s2*cphi + c1*c2)
+
+        # 4-vector scalar products
+        kp1 = Ea*Ep - k*p1*c1
+        kp2 = Ea*Em - k*p2*c2
+        kl1 = Ea*self.mN
+        kl2 = Ea*self.mN - l2_dot_k
+        p1p2 = Ep*Em - p1_dot_p2
+        p1l1 = Ep*self.mN
+        p2l1 = Em*self.mN
+        p1l2 = Ep*self.mN - l2_dot_p1
+        p2l2 = Em*self.mN - l2_dot_p2
+
+        m1_2, m2_2, m2_m1 = self.sub_elements(kp1, kp2, kl1, kl2, p1p2, p1l1, p2l1, p1l2, p2l2, case)
+
+        q2 = self.ma**2 + 2*M_E**2 - 2*kp1 - 2*kp2 + 2*p1p2
+
+        propagator1 = q2*(self.ma**2 - 2*kp1)
+        propagator2 = q2*(self.ma**2 - 2*kp2)
+
+        prefactor = power(4*pi*ALPHA*coupling, 2) * self.ff2(sqrt(abs(q2)))
+
+        return prefactor * (m1_2 / power(propagator1, 2) \
+                            + m2_2 / power(propagator2, 2) \
+                            + 2 * m2_m1 / propagator2 / propagator1)
+
+    def m2_separated(self, Ea, Ep, tp, tm, phi, coupling=1.0, case="alp"):
+        # k: ALP momentum
+        # p1: positron momentum
+        # p2: electron momentum
+        # l1: initial nucleus momentum
+        # l2: final nucleus momentum
         c1 = cos(tp)
         c2 = cos(tm)
         s1 = sin(tp)
@@ -198,23 +283,18 @@ class M2PairProduction:
         p1l2 = Ep*self.mN - l2_dot_p1
         p2l2 = Em*self.mN - l2_dot_p2
 
-        m1_2 = -32 * ( (M_E**2 - kp1)*(2*kl2*p2l1 + 2*kl1*p2l2) + (self.ma**2 - 2*M_E**2)*(p2l1*p1l2 + p1l1*p2l2) )
-        m2_2 = -32 * ( (M_E**2 - kp2)*(2*kl2*p1l1 + 2*kl1*p1l2) + (self.ma**2 - 2*M_E**2)*(p2l1*p1l2 + p1l1*p2l2) )
-        m2_m1 = -32 * ( kp1 * (kl2*p2l1 + kl1*p2l2 - power(M_E*self.mN, 2)) \
-                        + kp2 * (kl2*p1l1 + kl1*p1l2 - power(M_E*self.mN, 2)) \
-                        - 2*kl1*kl2*p1p2 - p2l1*p1l2*self.ma**2 + (M_E**2 - self.ma**2)*p1l1*p2l2 \
-                        + p2l1*p1l2*M_E**2 + p1p2*power(M_E*self.ma,2) + power(self.mN*M_E**2, 2) )
-        
+        m1_2, m2_2, m2_m1 = self.sub_elements(kp1, kp2, kl1, kl2, p1p2, p1l1, p2l1, p1l2, p2l2, case)
+
         q2 = self.ma**2 + 2*M_E**2 - 2*kp1 - 2*kp2 + 2*p1p2
 
         propagator1 = q2*(self.ma**2 - 2*kp1)
         propagator2 = q2*(self.ma**2 - 2*kp2)
 
-        prefactor = power(4*pi*ALPHA*coupling_product, 2) * self.ff2(sqrt(abs(q2)))
+        prefactor = power(4*pi*ALPHA*coupling, 2) * self.ff2(sqrt(abs(q2)))
 
-        return prefactor * (m1_2 / power(propagator1, 2) \
-                            + m2_2 / power(propagator2, 2) \
-                            + 2 * m2_m1 / propagator2 / propagator1)
+        return prefactor * m1_2 / power(propagator1, 2), \
+                prefactor * m2_2 / power(propagator2, 2), \
+                prefactor * 2 * m2_m1 / (propagator2*propagator1)
 
 
 
@@ -336,6 +416,19 @@ class M2Meson3BodyDecayLeptonic(MatrixElementDecay3):
                 - 2*cr*self.m1**2 * kq * (cr*self.m3**2 * kl + 2*cr*kp*lp - 3*cl*q2*self.m3**2))
 
         return super().__call__(m122, m232)
+
+
+
+
+class M2MesonToGammaDarkPhoton(MatrixElementDecay2):
+    """
+    Decay of a neutral pseudoscalar meson to gamma + dark vector boson
+    """
+    def __init__(self, maprime, meson_mass=M_PI0):
+        super().__init__(meson_mass, maprime, 0.0)
+    
+    def __call__(self, coupling=1.0):
+        return 2 * (coupling)**2 * (1 - power(self.m1 / self.m_parent, 2))**3 / sqrt(4*pi*ALPHA)
 
 
 
