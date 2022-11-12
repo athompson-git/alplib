@@ -177,7 +177,7 @@ class Scatter2to2MC:
         cm_p4 = self.lv_p1 + self.lv_p2
         e_in = cm_p4.energy()
         p_in = cm_p4.get_3momentum()
-        v_in = Vector3(-p_in.v1 / e_in, -p_in.v2 / e_in, -p_in.v3 / e_in)
+        v_in = Vector3(p_in.v1 / e_in, p_in.v2 / e_in, p_in.v3 / e_in)
         s = cm_p4.mass2()
         if s < (self.m3 + self.m4)**2:
             return
@@ -196,7 +196,7 @@ class Scatter2to2MC:
                             p3_cm*cos(phi_rnd[i])*sin(theta_rnd[i]),
                             p3_cm*sin(phi_rnd[i])*sin(theta_rnd[i]),
                             p3_cm*cos(theta_rnd[i])) for i in range(self.n_samples)]
-        self.p3_lab_4vectors = [lorentz_boost(p3, v_in) for p3 in self.p3_cm_4vectors]
+        self.p3_lab_4vectors = [lorentz_boost(p3, -v_in) for p3 in self.p3_cm_4vectors]
         self.p3_cm_3vectors = [p3_cm.get_3velocity() for p3_cm in self.p3_cm_4vectors]
         self.p3_lab_3vectors = [p3_lab.get_3velocity() for p3_lab in self.p3_lab_4vectors]
 
