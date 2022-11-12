@@ -425,6 +425,12 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
         else:
             return W_ee(ge, ma)
     
+    def p1_cm(self, s):
+        return np.sqrt((np.power(s - 2*M_E**2, 2) - np.power(2*M_E**2, 2))/(4*s))
+
+    def p3_cm(self, s):
+        return np.sqrt((np.power(s - self.ma**2, 2))/(4*s))
+
     def simulate_single(self, positron):
         ep_lab = positron[0]
         pos_wgt = positron[1]
@@ -432,15 +438,18 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
         if ep_lab < max((self.ma**2 - M_E**2)/(2*M_E), M_E):
             # Threshold check
             return
-
+        
         # Simulate ALPs produced in the CM frame
         cm_cosines = np.random.uniform(-1, 1, self.n_samples)
         cm_wgts = (self.ntarget_area_density * HBARC**2) * associated_dsigma_dcos_CM(cm_cosines, ep_lab, self.ma, self.ge, self.target_z)
 
         # Boost the ALPs to the lab frame and multiply weights by jacobian for the boost
-        jacobian_cm_to_lab = power(2, 1.5) * power(1 + cm_cosines, 0.5)
-        ea_cm = sqrt(M_E * (ep_lab + M_E) / 2)
-        paz_cm = sqrt(M_E * (ep_lab + M_E) / 2 - self.ma**2) * cm_cosines
+        #jacobian_cm_to_lab = power(2, 1.5) * power(1 + cm_cosines, 0.5)
+        s = 2*M_E**2 + 2*M_E*ep_lab
+        p3_cm = self.p3_cm(s)
+        ea_cm = np.sqrt(p3_cm**2 + self.ma**2)
+        #ea_cm = sqrt(M_E * (ep_lab + M_E) / 2)
+        paz_cm = p3_cm*cm_cosines #sqrt(M_E * (ep_lab + M_E) / 2 - self.ma**2) * cm_cosines
         beta = sqrt(ep_lab**2 - M_E**2) / (M_E + ep_lab)
         gamma = power(1-beta**2, -0.5)
 
@@ -450,7 +459,7 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
 
         for i in range(self.n_samples):
             self.axion_energy.append(ea_lab[i])
-            self.axion_flux.append(pos_wgt * jacobian_cm_to_lab[i] * cm_wgts[i] * mc_volume)
+            self.axion_flux.append(pos_wgt * cm_wgts[i] * mc_volume)
 
     
     def simulate(self):
@@ -867,6 +876,61 @@ class FluxPi0Isotropic(AxionFlux):
             wgt = np.array(self.axion_flux)
             self.decay_axion_weight = np.asarray(wgt*0.0, dtype=np.float64)
             self.scatter_axion_weight = np.asarray(wgt, dtype=np.float64)
+
+
+
+
+class FluxNeutralMeson2BodyDecay(AxionFlux):
+    def __init__(self, meson_flux, flux_weight, boson_mass=0.1, coupling=1.0, meson_mass=M_PI0, 
+                 det_dist=20.0, det_area=2.0, det_length=1.0, apply_angle_cut=False,
+                 n_samples=10, off_axis_angle=0.0):
+        super().__init__(boson_mass, Material("Be"), det_dist, det_length, det_area)
+        self.meson_flux = meson_flux  # Take nx4 array of 4-vectors (px, py, pz, E)
+        self.m_meson = meson_mass
+        self.n_samples = n_samples
+        self.g = coupling
+        self.boson_mass = boson_mass
+        self.mm = M_PI0
+        self.apply_angle_cut = apply_angle_cut
+        self.flux_weight = flux_weight
+
+        # Get detector solid angle
+        self.off_axis_angle = off_axis_angle
+        self.phi_range = 2*pi
+        if off_axis_angle > 0.0:
+            self.phi_range = self.det_sa()
+    
+    def br(self):
+        if self.ma > self.m_meson:
+            return 0.0
+        return 2 * (self.g)**2 * (1 - power(self.ma / self.m_meson, 2))**3 / 4*pi*ALPHA
+    
+    def simulate(self):
+        for m in self.meson_flux:
+            pi0_p4 = LorentzVector(m[3], m[0], m[1], m[2])
+            print(str(pi0_p4))
+            mc = Decay2Body(pi0_p4, m1=self.boson_mass, m2=0.0, n_samples=self.n_samples)
+            mc.decay()
+
+            ap_energies = np.array([lv.energy() for lv in mc.p1_lab_4vectors])
+            ap_thetas = np.array([lv.theta() for lv in mc.p1_lab_4vectors])
+            weights = self.br() * mc.weights * self.flux_weight
+
+            if self.apply_angle_cut:
+                theta_mask = (ap_thetas < self.det_sa() + self.off_axis_angle) \
+                    * (ap_thetas > self.off_axis_angle - self.det_sa())
+                ap_energies = ap_energies[theta_mask]
+                weights = self.br() * weights[theta_mask] * self.phi_range/(2*pi)  # Assume azimuthal symmetry
+                ap_thetas = ap_thetas[theta_mask]
+
+            self.axion_flux.extend(weights)
+            self.axion_energy.extend(ap_energies)
+            self.axion_angle.extend(ap_thetas)
+
+    def propagate(self):
+        wgt = np.array(self.axion_flux)
+        self.decay_axion_weight = np.asarray(wgt*0.0, dtype=np.float64)
+        self.scatter_axion_weight = np.asarray(wgt, dtype=np.float64)
 
 
 
