@@ -301,13 +301,14 @@ class M2PairProduction:
 
 class M2Meson3BodyDecay(MatrixElementDecay3):
     # Radiative decay M -> l(1) nu(2) X(3), X radiated from hadronic meson current
-    def __init__(self, mx, meson="pion", lepton_mass=M_E, interaction_model="vector_ib2"):
+    def __init__(self, mx, meson="pion", lepton_mass=M_E, interaction_model="vector_ib2", abd=(0,0,0)):
         param_dict = {
             "pion": [M_PI, V_UD, F_PI, PION_WIDTH],
             "kaon": [M_K, V_US, F_K, KAON_WIDTH]
         }
         decay_params = param_dict[meson]
         m_meson = decay_params[0]
+        self.abd = abd  # QCD free parameters
         self.ckm = decay_params[1]
         self.fM = decay_params[2]
         self.total_width = decay_params[3]
@@ -322,7 +323,7 @@ class M2Meson3BodyDecay(MatrixElementDecay3):
         # vector_contact: 4-point contact interaction
         # sd: structure-dependent interaction with vector meson form factors
 
-    def __call__(self, m122, m232, c0=0.0, coupling=1.0, a=0.0, b=0.0, d=0.0):
+    def __call__(self, m122, m232, c0=0.0, coupling=1.0):
         lp, pq, kp, lq, kl, kq = super().get_sp_from_dalitz(m122, m232)
         if self.interaction == "scalar_ib1":
             e3star = (self.m_parent**2 - m122 - self.m3**2)/(2*sqrt(m122))
@@ -359,6 +360,7 @@ class M2Meson3BodyDecay(MatrixElementDecay3):
             return -prefactor_IB2 * ((self.m1**2-m122)*((self.m_parent**2-m122+self.m3**2)**2 \
                 - 4*self.m_parent**2 * self.m3**2))/(self.m3**2 * (self.m_parent**2-m122)**2)
         if self.interaction == "vector_ib9":
+            a, b, d = self.abd
             return self.MIB9(g=coupling, m122=m122, m232=m232, mV=self.m3, M=self.m_parent,
                 ml=self.m1, a=a, b=b, d=d, f_pi=self.fM, Gf=G_F)
         if self.interaction == "sd":
