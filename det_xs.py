@@ -81,7 +81,7 @@ def icompton_sigma_old(ea, g, z=1):
     aa = g ** 2 / 4 / pi
     prefact = a * aa * pi / 2 / M_E / ea**2
     sigma = prefact * 2 * ea * (-(2*ea * (3*ea + M_E)/(2 * ea + M_E)**2) + np.log(2 * ea / M_E + 1))
-    return z**2 * sigma
+    return z*sigma
 
 
 
@@ -91,7 +91,7 @@ def icompton_sigma(ea, ma, g, z=1):
     # Borexino 2008, eq. 14
     y = 2 * M_E * ea + ma**2
     pa = sqrt((ea**2 - ma**2))
-    prefactor = heaviside(ea - ma, 0.0) * (z**2) * ALPHA * power(g/M_E, 2) / (8 * pa)
+    prefactor = heaviside(ea - ma, 0.0) * z * ALPHA * power(g/M_E, 2) / (8 * pa)
 
     return np.clip(prefactor * ((2 * M_E**2 * (M_E + ea) * y)/power(M_E**2 + y, 2) \
         + (4*M_E*(ma**4 + 2*power(ma*M_E, 2) - power(2*M_E*ea, 2)))/(y*(M_E**2 + y)) \
@@ -101,13 +101,13 @@ def icompton_sigma(ea, ma, g, z=1):
 
 
 
-def icompton_dsigma_det(ea, et, g, ma):
+def icompton_dsigma_det(ea, et, g, ma, z=1):
     # Inverse Compton differential cross section by electron recoil (a + e- -> \gamma + e-)
     # dSigma / dEt   electron kinetic energy
     # ea: axion energy
     # et: transferred electron energy = E_e - m_e.
     y = 2 * M_E * ea + ma ** 2
-    prefact = (1/137) * g ** 2 / (4 * M_E ** 2)
+    prefact = z*(1/137) * g ** 2 / (4 * M_E ** 2)
     pa = np.sqrt(ea ** 2 - ma ** 2)
     eg = ea - et
     return -(prefact / pa) * (1 - (8 * M_E * eg / y) + (12 * (M_E * eg / y) ** 2)
@@ -116,14 +116,14 @@ def icompton_dsigma_det(ea, et, g, ma):
 
 
 
-def icompton_dsigma_domega(theta, Ea, ma, ge):
+def icompton_dsigma_domega(theta, Ea, ma, ge, z=1):
     # Compton differential cross section by solid angle (a + e- -> \gamma + e-)
     # dSigma / dOmega
     y = 2*M_E*Ea + ma**2
     pa = sqrt(Ea**2 - ma**2)
     e_gamma = 0.5*y/(M_E + Ea - pa*cos(theta))
 
-    prefactor = ge**2 * ALPHA * e_gamma / (4*pi*2*pa*M_E**2)
+    prefactor = z*ge**2 * ALPHA * e_gamma / (4*pi*2*pa*M_E**2)
     return prefactor * (1 + 4*(M_E*e_gamma/y)**2 - 4*M_E*e_gamma/y - 4*M_E*e_gamma*(ma*pa*sin(theta))**2 / y**3)
 
 
