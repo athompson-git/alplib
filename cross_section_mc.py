@@ -164,14 +164,20 @@ class Scatter2to2MC:
     def p3_cm(self, s):
         return np.sqrt((np.power(s - self.m3**2 - self.m4**2, 2) - np.power(2*self.m3*self.m4, 2))/(4*s))
 
-    def scatter_sim(self):
+    def scatter_sim(self, log_sampling=False):
         # Takes in initial energy-momenta for p1, p2
         # Computes CM frame energies
         # Simulates events in CM frame
 
         # Draw random variates on the 2-sphere
-        phi_rnd = 2*pi*np.random.ranf(self.n_samples)
-        theta_rnd = arccos(1 - 2*np.random.ranf(self.n_samples))
+        if log_sampling:
+            # if using log-sampling, we (sample the forward cosine spectrum heavily (towards u = 0)
+            phi_rnd = 2*pi*np.random.ranf(self.n_samples)
+            logu = np.random.uniform(-12, 0, self.n_samples)
+            theta_rnd = arccos(1 - 2*power(10, logu))
+        else:
+            phi_rnd = 2*pi*np.random.ranf(self.n_samples)
+            theta_rnd = arccos(1 - 2*np.random.ranf(self.n_samples))
 
         # Declare momenta and energy in the CM frame
         cm_p4 = self.lv_p1 + self.lv_p2
@@ -189,7 +195,12 @@ class Scatter2to2MC:
 
         t_rnd = self.m1**2 + self.m3**2 + 2*(p1_cm*p3_cm*cos(theta_rnd) - e1_cm*e3_cm)
 
-        self.dsigma_dcos_cm_wgts = 4*p1_cm*p3_cm*self.dsigma_dt(s, t_rnd)/self.n_samples
+        if log_sampling:
+            # don't forget to change the monte carlo jacobian factor if we use log sampling
+            mc_volume = power(10, logu)*2*p1_cm*p3_cm/self.n_samples
+        else:
+            mc_volume = 4*p1_cm*p3_cm/self.n_samples
+        self.dsigma_dcos_cm_wgts = mc_volume * self.dsigma_dt(s, t_rnd)
 
         # Boosts back to original frame
         self.p3_cm_4vectors = [LorentzVector(e3_cm,
