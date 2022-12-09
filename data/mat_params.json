@@ -9,11 +9,7 @@
       "cell_volume": 141.0,
       "atomic_radius": [1.84],
       "m": [25.351e3],
-      "density": 2.7,
-      "er_min": 100e-6,
-      "er_max": 10e-3,
-      "bg": 1,
-      "bg_un": 0.1
+      "density": 2.7
     },
   "C":
     {
@@ -25,11 +21,7 @@
       "cell_volume": 181.0,
       "atomic_radius": [1.70],
       "m": [11.27e3],
-      "density": 2.26,
-      "er_min": 100e-6,
-      "er_max": 10e-3,
-      "bg": 1,
-      "bg_un": 0.1
+      "density": 2.26
     },
   "Be":
     {
@@ -41,11 +33,7 @@
       "cell_volume": 181.0,
       "atomic_radius": [1.53],
       "m": [8.442e3],
-      "density": 1.848,
-      "er_min": 100e-6,
-      "er_max": 10e-3,
-      "bg": 1,
-      "bg_un": 0.1
+      "density": 1.848
     },
   "Fe":
     {
@@ -57,11 +45,7 @@
       "cell_volume": 181.0,
       "atomic_radius": [1.26],
       "m": [51.64226e3],
-      "density": 7.874,
-      "er_min": 100e-6,
-      "er_max": 10e-3,
-      "bg": 1,
-      "bg_un": 0.1
+      "density": 7.874
     },
   "Ge":
     {
@@ -73,11 +57,7 @@
       "cell_volume": 181.0,
       "atomic_radius": [0.53],
       "m": [67.92e3],
-      "density": 5.323,
-      "er_min": 100e-6,
-      "er_max": 10e-3,
-      "bg": 1,
-      "bg_un": 0.1
+      "density": 5.323
     },
   "Si":
     {
@@ -89,11 +69,7 @@
       "cell_volume": 160.0,
       "atomic_radius": [0.21],
       "m": [26.06e3, 26.99e3, 27.92e3],
-      "density": 2.329,
-      "er_min": 100e-6,
-      "er_max": 20e-6,
-      "bg": 1,
-      "bg_un": 0.1
+      "density": 2.329
     },
   "Ar":
     {
@@ -105,11 +81,7 @@
       "lattice_const": [],
       "cell_volume": 10.0,
       "atomic_radius": [],
-      "density": 1.3982,
-      "er_min": 1e-4,
-      "er_max": 1e-1,
-      "bg": 5e-3,
-      "bg_un": 0.05
+      "density": 1.3982
     },
   "Hg":
     {
@@ -121,11 +93,7 @@
       "cell_volume": 27.0,
       "atomic_radius": [1.55],
       "m": [200.59e3],
-      "density": 5.43,
-      "er_min": 100e-6,
-      "er_max": 10e-3,
-      "bg": 1,
-      "bg_un": 0.1
+      "density": 5.43
     },
   "CsI":
     {
@@ -137,11 +105,7 @@
       "cell_volume": 22.82,
       "atomic_radius": [2.0, 2.0],
       "m": [123.8e3, 118.21e3],
-      "density": 4.51,
-      "er_min": 4.25e-3,
-      "er_max":26e-3,
-      "bg": 5e-3,
-      "bg_un": 0.05
+      "density": 4.51
     },
   "NaI":
     {
@@ -153,11 +117,7 @@
       "cell_volume": 67.71,
       "atomic_radius": [1.0, 2.0],
       "m": [21.42e3, 118.21e3],
-      "density": 3.67,
-      "er_min": 2e-3,
-      "er_max": 4e-2,
-      "bg": 5e-3,
-      "bg_un": 0.05
+      "density": 3.67
     },
   "Xe":
     {
@@ -169,11 +129,7 @@
       "lattice_const": 2.45,
       "cell_volume": 10.0,
       "atomic_radius": [],
-      "density": 3.0,
-      "er_min": 1e-3,
-      "er_max": 100e-3,
-      "bg": 0,
-      "bg_un": 0.05
+      "density": 3.0
     },
   "W":
     {
@@ -185,11 +141,7 @@
       "lattice_const": 3.1648,
       "cell_volume": 31.7,
       "atomic_radius": [2.1],
-      "density": 19.3,
-      "er_min": 1e-3,
-      "er_max": 100e-3,
-      "bg": 0,
-      "bg_un": 0.05
+      "density": 19.3
     },
   "Th":
     {
@@ -201,11 +153,7 @@
       "lattice_const": 3.0,
       "cell_volume": 100.0,
       "atomic_radius": [5.0],
-      "density": 11.724,
-      "er_min": 1e-3,
-      "er_max": 100e-3,
-      "bg": 0,
-      "bg_un": 0.05
+      "density": 11.724
     },
   "Al2O3":
     {
@@ -217,11 +165,7 @@
       "lattice_const": [4.785, 12.991],
       "cell_volume": 100.0,
       "atomic_radius": [1.84, 1.52],
-      "density": 3.98,
-      "er_min": 1e-3,
-      "er_max": 100e-3,
-      "bg": 0,
-      "bg_un": 0.05
+      "density": 3.98
     },
   "Pb":
     {
@@ -233,11 +177,7 @@
       "lattice_const": 3.1648,
       "cell_volume": 31.7,
       "atomic_radius": [2.1],
-      "density": 11.29,
-      "er_min": 1e-3,
-      "er_max": 100e-3,
-      "bg": 0,
-      "bg_un": 0.05
+      "density": 11.29
     },
   "H2O":
     {
@@ -249,11 +189,7 @@
       "cell_volume": 10.0,
       "atomic_radius": [],
       "m": [0.9389e3, 15.015e3],
-      "density": 1.0,
-      "er_min": 0.8,
-      "er_max": 1000,
-      "bg": 0,
-      "bg_un": 0.05
+      "density": 1.0
     },
   "N2":
     {
@@ -265,11 +201,7 @@
       "cell_volume": 10.0,
       "atomic_radius": [],
       "m": [13.132e3, 13.132e3],
-      "density": 1.16,
-      "er_min": 0.8,
-      "er_max": 1000,
-      "bg": 0,
-      "bg_un": 0.05
+      "density": 1.16
     },
   "O2":
     {
@@ -281,11 +213,7 @@
       "cell_volume": 10.0,
       "atomic_radius": [1.52],
       "m": [15.015e3, 15.015e3],
-      "density": 1.4291,
-      "er_min": 0.8,
-      "er_max": 1000,
-      "bg": 0,
-      "bg_un": 0.05
+      "density": 1.4291
     },
   "Gd-scintillator":
     {
@@ -297,11 +225,7 @@
       "cell_volume": 10.0,
       "atomic_radius": [],
       "m": [12e3, 0.9389e3],
-      "density": 0.85,
-      "er_min": 0.3,
-      "er_max": 3000,
-      "bg": 0,
-      "bg_un": 0.0
+      "density": 0.85
     },
   "CH2":
     {
@@ -313,11 +237,7 @@
       "cell_volume": 10.0,
       "atomic_radius": [],
       "m": [12e3, 0.9389e3],
-      "density": 0.85,
-      "er_min": 0.3,
-      "er_max": 1e6,
-      "bg": 0,
-      "bg_un": 0.0
+      "density": 0.85
     }
   }
   
