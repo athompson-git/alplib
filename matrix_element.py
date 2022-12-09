@@ -175,7 +175,7 @@ class M2PairProduction:
         self.ma = ma
         self.mN = mN
         self.ff2 = AtomicElasticFF(z)
-        self.ml = M_E
+        self.ml = ml
 
     def sub_elements(self, kp1, kp2, kl1, kl2, p1p2, p1l1, p2l1, p1l2, p2l2, case="alp"):
         if case == "alp":
