@@ -247,18 +247,18 @@ class FluxBremIsotropic(AxionFlux):
     Takes in a flux of el
     """
     def __init__(self, electron_flux=[1.,0.], positron_flux=[1.,0.], target=Material("W"),
-                    target_density=19.3, target_radiation_length=6.76, target_length=10.0, det_dist=4.,
-                    det_length=0.2, det_area=0.04, axion_mass=0.1, axion_coupling=1e-3, n_samples=100,
-                    is_isotropic=True, loop_decay=False):
+                    target_length=10.0, det_dist=4., det_length=0.2, det_area=0.04,
+                    axion_mass=0.1, axion_coupling=1e-3, n_samples=100,
+                    is_isotropic=True, loop_decay=False, **kwargs):
         super().__init__(axion_mass, target, det_dist, det_length, det_area)
         # TODO: Replace A = 2*Z with real numbers of nucleons
         self.electron_flux = electron_flux
         self.positron_flux = positron_flux
         self.ge = axion_coupling
-        self.target_density = target_density  # g/cm3
+        self.target_density = target.density  # g/cm3
         self.target_radius = target_length  # cm
-        self.ntargets_by_area = target_length * target_density * AVOGADRO / (2*target.z[0])  # N_T / cm^2
-        self.ntarget_area_density = target_radiation_length * AVOGADRO / (2*target.z[0])
+        self.ntargets_by_area = target_length * target.density * AVOGADRO / (2*target.z[0])  # N_T / cm^2
+        self.ntarget_area_density = target.rad_length * AVOGADRO / (2*target.z[0])
         self.n_samples = n_samples
         self.is_isotropic = is_isotropic
         self.loop_decay = loop_decay
@@ -332,9 +332,8 @@ class FluxResonanceIsotropic(AxionFlux):
     Takes in a flux of positrons
     """
     def __init__(self, positron_flux=[1.,0.], target=Material("W"), target_length=10.0,
-                 target_radiation_length=6.76, det_dist=4., det_length=0.2, det_area=0.04,
-                 axion_mass=0.1, axion_coupling=1e-3, n_samples=100, is_isotropic=True,
-                 loop_decay=False):
+                 det_dist=4., det_length=0.2, det_area=0.04, axion_mass=0.1, axion_coupling=1e-3,
+                 n_samples=100, is_isotropic=True, loop_decay=False, **kwargs):
         # TODO: make flux take in a Detector class and a Target class (possibly Material class?)
         # Replace A = 2*Z with real numbers of nucleons
         super().__init__(axion_mass, target, det_dist, det_length, det_area, n_samples)
@@ -342,7 +341,7 @@ class FluxResonanceIsotropic(AxionFlux):
         self.positron_flux_bin_widths = positron_flux[1:,0] - positron_flux[:-1,0]
         self.ge = axion_coupling
         self.target_radius = target_length  # cm
-        self.ntarget_area_density = target_radiation_length * AVOGADRO / (2*target.z[0])  # N_T / cm^2
+        self.ntarget_area_density = target.rad_length * AVOGADRO / (2*target.z[0])  # N_T / cm^2
         self.is_isotropic = is_isotropic
         self.loop_decay = loop_decay
 
@@ -406,16 +405,16 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
     Takes in a flux of positrons
     """
     def __init__(self, positron_flux=[1.,0.], target=Material("W"),
-                 target_radiation_length=6.76, det_dist=4., det_length=0.2, det_area=0.04,
-                 axion_mass=0.1, axion_coupling=1e-3, n_samples=100, is_isotropic=True,
-                 loop_decay=False):
+                 det_dist=4., det_length=0.2, det_area=0.04, axion_mass=0.1,
+                 axion_coupling=1e-3, n_samples=100, is_isotropic=True,
+                 loop_decay=False, **kwargs):
         # TODO: make flux take in a Detector class and a Target class (possibly Material class?)
         # Replace A = 2*Z with real numbers of nucleons
         super().__init__(axion_mass, target, det_dist, det_length, det_area, n_samples)
         self.positron_flux = positron_flux  # differential positron energy flux dR / dE+ / s
         self.positron_flux_bin_widths = positron_flux[1:,0] - positron_flux[:-1,0]
         self.ge = axion_coupling
-        self.ntarget_area_density = target_radiation_length * AVOGADRO / (2*target.z[0])
+        self.ntarget_area_density = target.rad_length * AVOGADRO / (2*target.z[0])
         self.is_isotropic = is_isotropic
         self.loop_decay = loop_decay
 
@@ -441,15 +440,14 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
 
         # Simulate ALPs produced in the CM frame
         cm_cosines = np.random.uniform(-1, 1, self.n_samples)
-        cm_wgts = (self.ntarget_area_density * HBARC**2) * associated_dsigma_dcos_CM(cm_cosines, ep_lab, self.ma, self.ge, self.target_z)
+        cm_wgts = (self.ntarget_area_density * HBARC**2) \
+            * associated_dsigma_dcos_CM(cm_cosines, ep_lab, self.ma, self.ge, self.target_z)
 
         # Boost the ALPs to the lab frame and multiply weights by jacobian for the boost
-        #jacobian_cm_to_lab = power(2, 1.5) * power(1 + cm_cosines, 0.5)
         s = 2*M_E**2 + 2*M_E*ep_lab
         p3_cm = self.p3_cm(s)
         ea_cm = np.sqrt(p3_cm**2 + self.ma**2)
-        #ea_cm = sqrt(M_E * (ep_lab + M_E) / 2)
-        paz_cm = p3_cm*cm_cosines #sqrt(M_E * (ep_lab + M_E) / 2 - self.ma**2) * cm_cosines
+        paz_cm = p3_cm*cm_cosines
         beta = sqrt(ep_lab**2 - M_E**2) / (M_E + ep_lab)
         gamma = power(1-beta**2, -0.5)
 
