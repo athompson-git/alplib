@@ -36,15 +36,12 @@ class Material:
             self.lattice_const = np.array([mat_info['lattice_const']])  # Angstroms
             self.cell_volume = np.array([mat_info['cell_volume']])  # Angstroms^3
             self.r0 = np.array([mat_info['atomic_radius']])  # Angstroms
-            self.er_min = mat_info['er_min']
-            self.er_max = mat_info['er_max']
-            self.bg = mat_info['bg']
-            self.bg_un = mat_info['bg_un']
             self.density = mat_info['density']  # g/cm^3
             self.fid_mass = fiducial_mass  # kg
             self.volume = volume  # cm^3
             self.ntargets = density * volume / (np.dot(self.m, self.iso*self.frac) / MEV_PER_KG / 1e-3)
             self.ndensity = self.ntargets / self.volume
+            self.rad_length = mat_info['rad_length']
         else:
             raise Exception("No such detector in mat_params.json.")
 
