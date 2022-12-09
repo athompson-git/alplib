@@ -31,10 +31,10 @@ class AxionFlux:
         self.decay_axion_weight = []
         self.scatter_axion_weight = []
         self.n_samples = n_samples
-    
+
     def det_sa(self):
         return arctan(sqrt(self.det_area / pi) / self.det_dist)
-    
+
     def propagate(self, decay_width, rescale_factor=1.0):
         e_a = np.array(self.axion_energy)
         wgt = np.array(self.axion_flux)
@@ -53,7 +53,7 @@ class AxionFlux:
 
         self.decay_axion_weight = np.asarray(rescale_factor * wgt * surv_prob * decay_prob, dtype=np.float32)
         self.scatter_axion_weight = np.asarray(rescale_factor * wgt * surv_prob, dtype=np.float32)
-    
+
     def propagate_iso_vol_int(self, geom: DetectorGeometry, decay_width, rescale_factor=1.0):
         e_a = np.array(self.axion_energy)
         wgt = np.array(self.axion_flux)
@@ -74,7 +74,7 @@ class AxionFlux:
             f = lambda x : (1 / METER_BY_MEV / v_a[i] / tau[i]) \
                 * np.exp(-x / METER_BY_MEV / v_a[i] / tau[i]) / (4*pi*x**2)
             vol_integrals.append(geom.integrate(f_int=f))
-        
+
         self.decay_axion_weight = np.asarray(rescale_factor * wgt * np.array(vol_integrals), dtype=np.float32)
         self.scatter_axion_weight = np.asarray(rescale_factor * wgt * surv_prob, dtype=np.float32)
 
@@ -85,7 +85,7 @@ class FluxPrimakoff(AxionFlux):
     # Generator for ALP flux from 2D photon spectrum (E_\gamma, \theta_\gamma)
     def __init__(self, axion_mass, target_z, det_z, det_dist, det_length, det_area, n_samples=1000):
         super().__init__(axion_mass, target_z, det_z, det_dist, det_length, det_area, n_samples)
-    
+
     def decay_width(self):
         pass
 
@@ -113,7 +113,7 @@ class FluxPrimakoffIsotropic(AxionFlux):
 
     def decay_width(self, gagamma, ma):
         return W_gg(gagamma, ma)
-    
+
     def photon_flux_dN_dE(self, energy):
         return np.interp(energy, self.photon_flux[:,0], self.photon_flux[:,1], left=0.0, right=0.0)
 
@@ -136,7 +136,7 @@ class FluxPrimakoffIsotropic(AxionFlux):
 
         for i, el in enumerate(self.photon_flux):
             self.simulate_single(el)
-    
+
     def propagate(self, new_coupling=None, is_isotropic=True):
         if new_coupling is not None:
             rescale=power(new_coupling/self.gagamma, 2)
@@ -147,7 +147,7 @@ class FluxPrimakoffIsotropic(AxionFlux):
             geom_accept = self.det_area / (4*pi*self.det_dist**2)
             self.decay_axion_weight *= geom_accept
             self.scatter_axion_weight *= geom_accept
-    
+
     def propagate_iso_vol_int(self, geom: DetectorGeometry, new_coupling=None):
         if new_coupling is not None:
             rescale=power(new_coupling/self.gagamma, 2)
@@ -187,7 +187,7 @@ class FluxComptonIsotropic(AxionFlux):
         self.target_photon_xs = AbsCrossSection(target)
         self.is_isotropic = is_isotropic
         self.loop_decay = loop_decay
-    
+
     def decay_width(self, ge, ma):
         if self.loop_decay:
             return W_ee(ge, ma) + W_gg_loop(ge, ma, M_E)
@@ -218,14 +218,14 @@ class FluxComptonIsotropic(AxionFlux):
 
         for i, el in enumerate(self.photon_flux):
             self.simulate_single(el)
-    
+
     def propagate(self, new_coupling=None):
         if new_coupling is not None:
             super().propagate(self.decay_width(new_coupling, self.ma),
                 rescale_factor=power(new_coupling/self.ge, 2))
         else:
             super().propagate(self.decay_width(self.ge, self.ma))
-        
+
         if self.is_isotropic:
             geom_accept = self.det_area / (4*pi*self.det_dist**2)
             self.decay_axion_weight *= geom_accept
@@ -262,19 +262,19 @@ class FluxBremIsotropic(AxionFlux):
         self.n_samples = n_samples
         self.is_isotropic = is_isotropic
         self.loop_decay = loop_decay
-    
+
     def decay_width(self, ge, ma):
         if self.loop_decay:
             return W_ee(ge, ma) + W_gg_loop(ge, ma, M_E)
         else:
             return W_ee(ge, ma)
-    
+
     def electron_flux_dN_dE(self, energy):
         return np.interp(energy, self.electron_flux[:,0], self.electron_flux[:,1], left=0.0, right=0.0)
-    
+
     def positron_flux_dN_dE(self, energy):
         return np.interp(energy, self.positron_flux[:,0], self.positron_flux[:,1], left=0.0, right=0.0)
-    
+
     def electron_flux_attenuated(self, t, E0, E1):
         return (self.electron_flux_dN_dE(E0) + self.positron_flux_dN_dE(E0)) * track_length_prob(E0, E1, t)
 
@@ -310,14 +310,14 @@ class FluxBremIsotropic(AxionFlux):
         """
         for i, el in enumerate(self.electron_flux):
             self.simulate_single(el)
-    
+
     def propagate(self, new_coupling=None):
         if new_coupling is not None:
             super().propagate(self.decay_width(new_coupling, self.ma),
                 rescale_factor=power(new_coupling/self.ge, 2))
         else:
             super().propagate(self.decay_width(self.ge, self.ma))
-        
+
         if self.is_isotropic:
             geom_accept = self.det_area / (4*pi*self.det_dist**2)
             self.decay_axion_weight *= geom_accept
@@ -351,10 +351,10 @@ class FluxResonanceIsotropic(AxionFlux):
             return W_ee(ge, ma) + W_gg_loop(ge, ma, M_E)
         else:
             return W_ee(ge, ma)
-    
+
     def positron_flux_dN_dE(self, energy):
         return np.interp(energy, self.positron_flux[:,0], self.positron_flux[:,1], left=0.0, right=0.0)
-    
+
     def positron_flux_attenuated(self, t, energy_pos, energy_res):
         return self.positron_flux_dN_dE(energy_pos) * track_length_prob(energy_pos, energy_res, t)
 
@@ -367,30 +367,30 @@ class FluxResonanceIsotropic(AxionFlux):
         resonant_energy = -M_E + self.ma**2 / (2 * M_E)
         if resonant_energy + M_E < self.ma:
             return
-        
+
         if resonant_energy < M_E:
             return
-        
+
         if resonant_energy > max(self.positron_flux[:,0]):
             return
-        
+
         e_rnd = np.random.uniform(resonant_energy, max(self.positron_flux[:,0]), self.n_samples)
         t_rnd = np.random.uniform(0.0, 5.0, self.n_samples)
         mc_vol = (5.0 - 0.0)*(max(self.positron_flux[:,0]) - resonant_energy)
 
         attenuated_flux = mc_vol*np.sum(self.positron_flux_attenuated(t_rnd, e_rnd, resonant_energy))/self.n_samples
         wgt = self.target_z * (self.ntarget_area_density * HBARC**2) * resonance_peak(self.ge, self.ma) * attenuated_flux
-        
+
         self.axion_energy.append(self.ma**2 / (2 * M_E))
         self.axion_flux.append(wgt)
-    
+
     def propagate(self, new_coupling=None):
         if new_coupling is not None:
             super().propagate(self.decay_width(new_coupling, self.ma),
                 rescale_factor=power(new_coupling/self.ge, 2))
         else:
             super().propagate(self.decay_width(self.ge, self.ma))
-        
+
         if self.is_isotropic:
             geom_accept = self.det_area / (4*pi*self.det_dist**2)
             self.decay_axion_weight *= geom_accept
@@ -418,13 +418,13 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
         self.ntarget_area_density = target_radiation_length * AVOGADRO / (2*target.z[0])
         self.is_isotropic = is_isotropic
         self.loop_decay = loop_decay
-    
+
     def decay_width(self, ge, ma):
         if self.loop_decay:
             return W_ee(ge, ma) + W_gg_loop(ge, ma, M_E)
         else:
             return W_ee(ge, ma)
-    
+
     def p1_cm(self, s):
         return np.sqrt((np.power(s - 2*M_E**2, 2) - np.power(2*M_E**2, 2))/(4*s))
 
@@ -438,7 +438,7 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
         if ep_lab < max((self.ma**2 - M_E**2)/(2*M_E), M_E):
             # Threshold check
             return
-        
+
         # Simulate ALPs produced in the CM frame
         cm_cosines = np.random.uniform(-1, 1, self.n_samples)
         cm_wgts = (self.ntarget_area_density * HBARC**2) * associated_dsigma_dcos_CM(cm_cosines, ep_lab, self.ma, self.ge, self.target_z)
@@ -461,7 +461,7 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
             self.axion_energy.append(ea_lab[i])
             self.axion_flux.append(pos_wgt * cm_wgts[i] * mc_volume)
 
-    
+
     def simulate(self):
         self.axion_energy = []
         self.axion_flux = []
@@ -477,7 +477,7 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
                 rescale_factor=power(new_coupling/self.ge, 2))
         else:
             super().propagate(self.decay_width(self.ge, self.ma))
-        
+
         if self.is_isotropic:
             geom_accept = self.det_area / (4*pi*self.det_dist**2)
             self.decay_axion_weight *= geom_accept
@@ -508,7 +508,7 @@ class FluxNuclearIsotropic(AxionFlux):
         return ((j/(j+1)) / (1 + delta**2) / pi / ALPHA) \
             * power(sqrt(energy**2 - self.ma**2)/energy, 2*j + 1) \
                 * power((self.gann0 * beta + self.gann1)/((mu0-0.5)*beta + (mu1 - eta)), 2)
-    
+
     def decay_width(self):
         return W_ee(self.gae, self.ma) + W_ee(self.gagamma, self.ma)
 
@@ -525,12 +525,12 @@ class FluxNuclearIsotropic(AxionFlux):
 
     def propagate(self, ):
         super().propagate(W_ee(self.gae, self.ma))
-        
+
         if self.is_isotropic:
             geom_accept = self.det_area / (4*pi*self.det_dist**2)
             self.decay_axion_weight *= geom_accept
             self.scatter_axion_weight *= geom_accept
-    
+
     def propagate_iso_vol_int(self, geom: DetectorGeometry):
         super().propagate_iso_vol_int(geom, self.decay_width())
 
@@ -577,29 +577,29 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
 
         if self.ma > e3star:
             return 0.0
-        
+
         m223Max = (e2star + e3star)**2 - (sqrt(e2star**2) - sqrt(e3star**2 - self.ma**2))**2
         m223Min = (e2star + e3star)**2 - (sqrt(e2star**2) + sqrt(e3star**2 - self.ma**2))**2
 
         if ml == M_MU:
             def MatrixElement2(m223):
                 return self.m2_mu(m212, m223, c0=self.c0, coupling=self.gmu)
-            
+
             return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2, m223Min, m223Max)[0]
         elif ml == M_E:
             def MatrixElement2(m223):
                     return self.m2_e(m212, m223, c0=self.c0, coupling=self.gmu)
-            
+
             return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2, m223Min, m223Max)[0]
         else:
             return 0.0
-    
+
     def total_br(self):
         ea_max_mu = (self.mm**2 + self.ma**2 - M_MU**2)/(2*self.mm)
         ea_max_e = (self.mm**2 + self.ma**2 - M_E**2)/(2*self.mm)
         return (quad(self.dGammadEa, self.ma, ea_max_e, args=(M_E,))[0] \
             + quad(self.dGammadEa, self.ma, ea_max_mu, args=(M_MU,))[0]) / self.total_width
-    
+
     def simulate_single(self, meson_p, pion_wgt, cut_on_solid_angle=True, solid_angle_cosine=0.0, ml=M_E):
         ea_min = self.ma
         ea_max = (self.mm**2 + self.ma**2 - ml**2)/(2*self.mm)
@@ -637,7 +637,7 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
             self.cosines.append(cos_theta_lab[i])
             self.axion_flux.append(weights[i]*heaviside(e_lab[i]-self.energy_cut,1.0))
             self.solid_angles.append(solid_angle_cosine)
-    
+
     def simulate(self, cut_on_solid_angle=True):
         self.axion_energy = []
         self.cosines = []
@@ -658,7 +658,7 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
             except:
                 print("umax = ", umax, " decay l = ", decay_l, p[0])
             x = decay_quantile(u, p[0], self.mm, self.total_width)
-            
+
             # Append decay positions and solid angle cosines for the geometric acceptance of each meson decay
             self.decay_pos.append(x)
             solid_angle_cosine = cos(arctan(self.det_length/(self.det_dist-x)/2))
@@ -668,7 +668,7 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
                 if self.ma > self.mm - ml:
                     continue
                 self.simulate_single(p[0], p[2], cut_on_solid_angle, solid_angle_cosine, ml)
-        
+
 
     def propagate(self, decay=None, new_coupling=None):  # propagate to detector
         # decay options: 'photon', 'electron'
@@ -692,7 +692,7 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
 class FluxChargedMeson3BodyIsotropic(AxionFlux):
     def __init__(self, meson_flux=[[0.0, 0.0259]], boson_mass=0.1, coupling=1.0, meson_type="pion",
                  interaction_model="scalar_ib1", det_dist=20, det_length=2, det_area=2,
-                 target=Material("W"), n_samples=50, c0=-0.97, lepton_masses=[M_E, M_MU]):
+                 target=Material("W"), n_samples=50, c0=-0.97, lepton_masses=[M_E, M_MU], abd=(0,0,0)):
         super().__init__(boson_mass, target, det_dist, det_length, det_area, n_samples)
         self.meson_flux = meson_flux
         param_dict = {
@@ -708,12 +708,12 @@ class FluxChargedMeson3BodyIsotropic(AxionFlux):
         self.gmu = coupling
         self.n_samples = n_samples
         self.c0 = c0  # contact model parameter, 0 by default
-        self.m2_e = M2Meson3BodyDecay(boson_mass, meson_type, M_E, interaction_model)
-        self.m2_mu = M2Meson3BodyDecay(boson_mass, meson_type, M_MU, interaction_model)
-    
+        self.m2_e = M2Meson3BodyDecay(boson_mass, meson_type, M_E, interaction_model, abd)
+        self.m2_mu = M2Meson3BodyDecay(boson_mass, meson_type, M_MU, interaction_model, abd)
+
     def lifetime(self, gagamma):
         return 1/W_gg(gagamma, self.ma)
-    
+
     def set_ma(self, ma):
         self.ma = ma
         self.m2_mu.m3 = self.ma
@@ -733,19 +733,19 @@ class FluxChargedMeson3BodyIsotropic(AxionFlux):
         if ml == M_MU:
             def MatrixElement2(m223):
                 return self.m2_mu(m212, m223, c0=self.c0, coupling=self.gmu)
-            
+
             return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2, m223Min, m223Max)[0]
         elif ml == M_E:
             def MatrixElement2(m223):
                     return self.m2_e(m212, m223, c0=self.c0, coupling=self.gmu)
-                
+
             return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2, m223Min, m223Max)[0]
         else:
             return 0.0
 
     def total_br(self):
         return np.sum([quad(self.dGammadEa, self.ma,  (self.mm**2 + self.ma**2 - ml**2)/(2*self.mm), args=(ml,))[0] for ml in self.lepton_masses]) / self.total_width
-    
+
     def diff_br(self):
         ea_min = self.ma
         ea_max = (self.mm**2 + self.ma**2 - self.m_lepton**2)/(2*self.mm)
@@ -754,7 +754,7 @@ class FluxChargedMeson3BodyIsotropic(AxionFlux):
         weights = np.array([mc_vol*self.dGammadEa(ea)/self.total_width/self.n_samples \
             for ea in energies])
         return energies, weights
-    
+
     def simulate_single(self, meson_p, pion_wgt, ml=M_E):
         ea_min = self.ma
         ea_max = (self.mm**2 + self.ma**2 - ml**2)/(2*self.mm)
@@ -782,7 +782,7 @@ class FluxChargedMeson3BodyIsotropic(AxionFlux):
         for i in range(self.n_samples):
             self.axion_energy.append(e_lab[i])
             self.axion_flux.append(weights[i])
-    
+
     def simulate(self):
         self.axion_energy = []
         self.axion_flux = []
@@ -815,10 +815,10 @@ class FluxPi0Isotropic(AxionFlux):
         self.g = coupling
         self.boson_mass = boson_mass
         self.mm = M_PI0
-    
+
     def br(self):
         return 2 * (self.g)**2 * (1 - power(self.ma / M_PI0, 2))**3 / sqrt(4*pi*ALPHA)
-    
+
     def simulate_flux(self, pi0_flux, energy_cut=0.0, angle_cut=np.pi):
         # pi0_flux = momenta array, normalized to pi0 rate
 
@@ -848,7 +848,7 @@ class FluxPi0Isotropic(AxionFlux):
                 continue
             self.axion_energy.append(e_lab)
             self.axion_flux.append(self.meson_rate*self.br()/pi0_flux.shape[0])
-    
+
     def simulate(self):
         self.axion_energy = []
         self.axion_flux = []
@@ -865,7 +865,7 @@ class FluxPi0Isotropic(AxionFlux):
 
         self.axion_energy.extend(e1_cm*np.ones(self.n_samples))
         self.axion_flux.extend(self.meson_rate * self.br() * np.ones(self.n_samples)/np.sum(self.n_samples))
-        
+
 
     def propagate(self, is_isotropic=True):
         if is_isotropic:
@@ -881,7 +881,7 @@ class FluxPi0Isotropic(AxionFlux):
 
 
 class FluxNeutralMeson2BodyDecay(AxionFlux):
-    def __init__(self, meson_flux, flux_weight, boson_mass=0.1, coupling=1.0, meson_mass=M_PI0, 
+    def __init__(self, meson_flux, flux_weight, boson_mass=0.1, coupling=1.0, meson_mass=M_PI0,
                  det_dist=20.0, det_area=2.0, det_length=1.0, apply_angle_cut=False,
                  n_samples=10, off_axis_angle=0.0):
         super().__init__(boson_mass, Material("Be"), det_dist, det_length, det_area)
@@ -899,12 +899,12 @@ class FluxNeutralMeson2BodyDecay(AxionFlux):
         self.phi_range = 2*pi
         if off_axis_angle > 0.0:
             self.phi_range = self.det_sa()
-    
+
     def br(self):
         if self.ma > self.m_meson:
             return 0.0
         return 2 * (self.g)**2 * (1 - power(self.ma / self.m_meson, 2))**3 / 4*pi*ALPHA
-    
+
     def simulate(self):
         for m in self.meson_flux:
             pi0_p4 = LorentzVector(m[3], m[0], m[1], m[2])
@@ -954,17 +954,17 @@ class FluxPairAnnihilationGamma(AxionFlux):
         self.is_isotropic = is_isotropic
         self.positron_flux_smeared_wgts = []
         self.positron_flux_smeared_energies = []
-    
+
     def track_length_prob(self, Ei, Ef, t):
         b = 4/3
         return heaviside(Ei-Ef, 0.0) * abs(power(log(Ei/Ef), b*t - 1) / (Ei * gamma(b*t)))
-    
+
     def positron_flux_dN_dE(self, energy):
         return np.interp(energy, self.positron_flux[:,0], self.positron_flux[:,1], left=0.0, right=0.0)
-    
+
     def positron_flux_attenuated(self, t, energy_pos, energy_res):
         return self.positron_flux_dN_dE(energy_pos) * self.track_length_prob(energy_pos, energy_res, t)
-    
+
     def simulate_positron_flux(self):
         self.positron_flux_smeared_energies = []
         self.positron_flux_smeared_wgts = []
@@ -981,7 +981,7 @@ class FluxPairAnnihilationGamma(AxionFlux):
             flux_wgts = self.positron_flux_attenuated(t_depths, ep_lab, smeared_energies)
             self.positron_flux_smeared_wgts.extend(self.positron_flux_bin_widths[i] * 5.0 * (ep_lab-ep_min) * flux_wgts / self.n_samples)
             self.positron_flux_smeared_energies.extend(smeared_energies)
-    
+
     def simulate(self):
         self.axion_energy = []
         self.axion_flux = []
@@ -1003,11 +1003,11 @@ class FluxPairAnnihilationGamma(AxionFlux):
             es_max = gamma*(es_cm + ps_cm*beta)
             alp_energies = np.random.uniform(es_min, es_max, 1)
             mc_volume_diffxs = 2 * gamma * beta * ps_cm
-            
+
             cm_wgts = (self.ntarget_area_density * HBARC**2) \
                 * epem_to_alp_photon_dsigma_de(alp_energies, ep, self.gagamma, self.ma, self.target_z)
 
-            
+
             self.axion_energy.extend(alp_energies)
             self.axion_flux.extend(cm_wgts * pos_flux * mc_volume_diffxs)
 
@@ -1016,7 +1016,7 @@ class FluxPairAnnihilationGamma(AxionFlux):
             super().propagate(W_gg(new_coupling, self.ma), rescale_factor=power(new_coupling/self.gagamma, 2))
         else:
             super().propagate(W_gg(self.gagamma, self.ma))
-        
+
         if self.is_isotropic:
             geom_accept = self.det_area / (4*pi*self.det_dist**2)
             self.decay_axion_weight *= geom_accept
