@@ -171,10 +171,11 @@ class M2PairProduction:
     """
     a + N -> e+ e- N    ALP-driven pair production
     """
-    def __init__(self, ma, mN, n, z):
+    def __init__(self, ma, mN, n, z, ml=M_E):
         self.ma = ma
         self.mN = mN
         self.ff2 = AtomicElasticFF(z)
+        self.ml = M_E
     
     def sub_elements(self, kp1, kp2, kl1, kl2, p1p2, p1l1, p2l1, p1l2, p2l2, case="alp"):
         if case == "alp":
@@ -295,7 +296,46 @@ class M2PairProduction:
         return prefactor * m1_2 / power(propagator1, 2), \
                 prefactor * m2_2 / power(propagator2, 2), \
                 prefactor * 2 * m2_m1 / (propagator2*propagator1)
+    
+    def m2_v2(self, Ea, Ep, tp, tm, phi, coupling=1.0):
+        # k: ALP momentum
+        # p1: positron momentum
+        # p2: electron momentum
+        # l1: initial nucleus momentum
+        # l2: final nucleus momentum
+        c1 = cos(tp)
+        c2 = cos(tm)
+        s1 = sin(tp)
+        s2 = sin(tm)
+        cphi = cos(phi)
 
+        p1 = sqrt(Ep**2 - M_E**2)
+        Em = Ea - Ep
+        p2 = sqrt(Em**2 - M_E**2)
+        k = sqrt(Ea**2 - self.ma**2)
+
+        # 3-vector dot products
+        l2_dot_k = self.ma**2 - k*p1*c1 - k*p2*c2
+        l2_dot_p1 = k*p1*c1 - M_E**2 - p1*p2*(s1*s2*cphi + c1*c2)
+        l2_dot_p2 = k*p2*c2 - M_E**2 - p1*p2*(s1*s2*cphi + c1*c2)
+        p1_dot_p2 = p1*p2*(s1*s2*cphi + c1*c2)
+
+        # 4-vector scalar products
+        kl1 = Ea*Ep - k*p1*c1
+        kl2 = Ea*Em - k*p2*c2
+        kp1 = Ea*self.mN
+        kp2 = Ea*self.mN - l2_dot_k
+        l1l2 = Ep*Em - p1_dot_p2
+        l1p1 = Ep*self.mN
+        l2p1 = Em*self.mN
+        l1p2 = Ep*self.mN - l2_dot_p1
+        l2p2 = Em*self.mN - l2_dot_p2
+        p1p2 = self.mN**2
+
+        q2 = self.ma**2 + 2*M_E**2 - 2*kp1 - 2*kp2 + 2*p1p2
+        prefactor = power(4*pi*ALPHA*coupling / q2, 2) * self.ff2(sqrt(abs(q2)))
+        lh = (1/((self.ma**2-2*kl1)**2*(self.ma**2-2*kl2)**2))*16*((2*((p1p2-3*self.mN**2)*M_E**2+2*l1p1*(l2p1+l2p2)-l1l2*(self.mN**2+p1p2))*self.ma**2+Ea*self.mN*(2*(self.mN**2-p1p2)*M_E**2+l1p1*(l2p2-l2p1))+kp2*(2*(self.mN**2-p1p2)*M_E**2+l1p1*(l2p1-l2p2)+4*Ea*(M_E**2+l1l2)*self.mN))*self.ma**4-2*kl2*((2*(p1p2-3*self.mN**2)*M_E**2+l1p1*(self.mN**2+4*l2p1+4*l2p2-p1p2)-2*l1l2*(self.mN**2+p1p2))*self.ma**2+kp2*(-l2p1*M_E**2-p1p2*M_E**2+self.mN*(4*Ea*(M_E**2+l1l2)-l1l2*self.mN)+l1p1*(M_E**2+2*self.ma**2+3*l2p1-l2p2))+Ea*self.mN*(-(-4*self.mN**2+l2p2+3*p1p2)*M_E**2+l1l2*self.mN**2+l1p1*(M_E**2+2*self.ma**2-2*l2p1)))*self.ma**2+4*kl2**3*(M_E**2-l1p1)*self.mN**2+4*kl1**3*(M_E**2+2*kl2-l2p2)*self.mN**2-2*kl1**2*(7*self.mN**2*self.ma**2*M_E**2+2*Ea*l1p1*self.mN*M_E**2-8*kl2**2*self.mN**2+2*l1l2*self.mN**2*self.ma**2-3*l2p2*self.mN**2*self.ma**2-2*l1p1*l2p1*self.ma**2-2*l1p1*l2p2*self.ma**2-2*Ea*l2p2*self.mN*self.ma**2-2*Ea*l1p1*l2p2*self.mN+(l2p2-3*M_E**2)*self.ma**2*p1p2+2*kl2*(2*kp2*(l1p1+l2p1)+self.mN*(2*Ea*(l1p1+l2p2)+self.mN*(M_E**2+4*self.ma**2+l2p2))-(l1p1+l2p2)*p1p2)+2*kp2*(p1p2*M_E**2-(2*M_E**2+l1l2)*self.mN**2-l2p1*self.ma**2+l1p1*(M_E**2+l2p1)))+2*kl2**2*((3*p1p2*M_E**2-(7*M_E**2+2*l1l2)*self.mN**2+l1p1*(3*self.mN**2+2*l2p1+2*l2p2-p1p2))*self.ma**2+2*kp2*(l1p1*(self.ma**2+l2p1)-l2p1*M_E**2)+2*Ea*self.mN*(-(-2*self.mN**2+l2p2+p1p2)*M_E**2+l1l2*self.mN**2+l1p1*(self.ma**2-l2p1)))+kl1*(8*self.mN**2*kl2**3-4*((M_E**2+4*self.ma**2+l1p1+l2p1-l2p2)*self.mN**2+2*Ea*(l1p1+l2p2)*self.mN+2*kp2*(l1p1+l2p1)-(l1p1+l2p1)*p1p2)*kl2**2+2*(((2*M_E**2+4*self.ma**2+2*l2p1-l2p2)*self.mN**2+l1p1*(self.mN**2+4*l2p1+4*l2p2-3*p1p2)-(2*M_E**2+4*l1l2+2*l2p1+l2p2)*p1p2)*self.ma**2+2*Ea*self.mN*(-p1p2*M_E**2-l1l2*self.mN**2+(l1p1+l2p2)*(M_E**2+3*self.ma**2))+2*kp2*(-p1p2*M_E**2+self.mN*(4*Ea*(M_E**2+l1l2)-l1l2*self.mN)+l2p1*(M_E**2+3*self.ma**2)+l1p1*(M_E**2+3*self.ma**2+l2p1-l2p2)))*kl2-self.ma**2*(((-12*M_E**2-4*l1l2+l2p1+l2p2)*self.mN**2+8*l1p1*(l2p1+l2p2)-(-4*M_E**2+4*l1l2+l2p1+l2p2)*p1p2)*self.ma**2+2*kp2*(-3*p1p2*M_E**2-l1p1*(M_E**2+l2p1+l2p2)+4*Ea*l1l2*self.mN+self.mN*(4*(Ea+self.mN)*M_E**2+l1l2*self.mN)+l2p1*(M_E**2+2*self.ma**2))-2*Ea*self.mN*(p1p2*M_E**2+l1l2*self.mN**2+l1p1*(M_E**2-2*l2p2)-l2p2*(M_E*2+2*self.ma**2)))))
+        return prefactor * lh
 
 
 
