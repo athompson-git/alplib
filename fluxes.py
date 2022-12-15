@@ -618,13 +618,13 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
         cos_theta_lab = pz_lab / sqrt(e_lab**2 - self.ma**2)
 
         # Jacobian for transforming d2Gamma/(dEa * dOmega) to lab frame:
-        #jacobian = sqrt(e_lab**2 - self.ma**2) / momenta
+        jacobian = sqrt(e_lab**2 - self.ma**2) / momenta
         # Monte Carlo volume, making sure to use the lab frame energy range
-        mc_vol = (ea_max - ea_min)*(1-min_cm_cos)
-        #mc_vol_lab = boost*(ea_max - sqrt(ea_max**2 - self.ma**2)*beta) - boost*(ea_min + sqrt(ea_min**2 - self.ma**2)*beta)
+        #mc_vol = (ea_max - ea_min)*(1-min_cm_cos)
+        mc_vol_lab = boost*(ea_max - sqrt(ea_max**2 - self.ma**2)*beta) - boost*(ea_min + sqrt(ea_min**2 - self.ma**2)*beta)
 
         # Draw weights from the PDF
-        weights = np.array([pion_wgt*mc_vol*self.dGammadEa(ea, ml)/self.total_width/self.n_samples \
+        weights = np.array([pion_wgt*jacobian*mc_vol_lab*self.dGammadEa(ea, ml)/self.total_width/self.n_samples \
             for ea in energies])
 
         for i in range(self.n_samples):
