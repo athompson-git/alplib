@@ -290,9 +290,8 @@ class FluxBremIsotropic(AxionFlux):
         mc_vol = np.log(10) * ea_rnd * (np.log10(ea_max) - np.log10(self.ma))/self.n_samples
         diff_br = (self.ntarget_area_density * HBARC**2) * mc_vol * brem_dsigma_dea(ea_rnd, el_energy, self.ge, self.ma, self.target_z)
 
-        for i in range(self.n_samples):
-            self.axion_energy.append(ea_rnd[i])
-            self.axion_flux.append(el_wgt * diff_br[i])
+        self.axion_energy.extend(ea_rnd)
+        self.axion_flux.extend(el_wgt * diff_br)
 
     def simulate(self):
         self.axion_energy = []
@@ -455,9 +454,8 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
         ea_lab = gamma*(ea_cm + beta*paz_cm)
         mc_volume = 2 / self.n_samples  # we integrated over cosThetaLab from -1 to 1
 
-        for i in range(self.n_samples):
-            self.axion_energy.append(ea_lab[i])
-            self.axion_flux.append(pos_wgt * cm_wgts[i] * mc_volume)
+        self.axion_energy.extend(ea_lab)
+        self.axion_flux.extend(pos_wgt * cm_wgts * mc_volume)
 
 
     def simulate(self):
@@ -774,10 +772,9 @@ class FluxChargedMeson3BodyIsotropic(AxionFlux):
         mc_vol = ea_max - ea_min
         weights = np.array([pion_wgt*mc_vol*self.dGammadEa(ea, ml)/self.total_width/self.n_samples \
             for ea in energies])
-
-        for i in range(self.n_samples):
-            self.axion_energy.append(e_lab[i])
-            self.axion_flux.append(weights[i])
+        
+        self.axion_energy.extend(e_lab)
+        self.axion_flux.extend(weights)
 
     def simulate(self):
         self.axion_energy = []
@@ -904,7 +901,6 @@ class FluxNeutralMeson2BodyDecay(AxionFlux):
     def simulate(self):
         for m in self.meson_flux:
             pi0_p4 = LorentzVector(m[3], m[0], m[1], m[2])
-            print(str(pi0_p4))
             mc = Decay2Body(pi0_p4, m1=self.boson_mass, m2=0.0, n_samples=self.n_samples)
             mc.decay()
 
