@@ -174,7 +174,7 @@ class Scatter2to2MC:
             # if using log-sampling, we (sample the forward cosine spectrum heavily (towards u = 0)
             phi_rnd = 2*pi*np.random.ranf(self.n_samples)
             logu = np.random.uniform(-12, 0, self.n_samples)
-            theta_rnd = arccos(1 - 2*power(10, logu))
+            theta_rnd = arccos(1 - 2*exp(logu))
         else:
             phi_rnd = 2*pi*np.random.ranf(self.n_samples)
             theta_rnd = arccos(1 - 2*np.random.ranf(self.n_samples))
@@ -197,7 +197,7 @@ class Scatter2to2MC:
 
         if log_sampling:
             # don't forget to change the monte carlo jacobian factor if we use log sampling
-            mc_volume = power(10, logu)*2*p1_cm*p3_cm/self.n_samples
+            mc_volume = exp(logu)*2*p1_cm*p3_cm/self.n_samples
         else:
             mc_volume = 4*p1_cm*p3_cm/self.n_samples
         self.dsigma_dcos_cm_wgts = mc_volume * self.dsigma_dt(s, t_rnd)
