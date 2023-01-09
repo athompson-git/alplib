@@ -141,7 +141,7 @@ class DarkPrimakoffGenerator:
                 e3, dsde = this_mc.get_e3_lab_weights()
                 energy_list.extend(e3)
                 cosine_list.extend(cosines)
-                weight_prefactor = self.det.frac[j]*power(lam*gphi, 2)*eff(self.energies[i])*self.weights[i]*n_e*power(METER_BY_MEV*100, 2)
+                weight_prefactor = power(lam*gphi, 2)*eff(self.energies[i])*self.weights[i]*n_e*power(METER_BY_MEV*100, 2)
                 energy_weights_list.extend(weight_prefactor*dsde)
                 cosine_weights_list.extend(weight_prefactor*dsdcos)
         return np.array(energy_list), np.array(energy_weights_list), np.array(cosine_list), np.array(cosine_weights_list)
