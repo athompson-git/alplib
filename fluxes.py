@@ -912,8 +912,10 @@ class FluxNeutralMeson2BodyDecay(AxionFlux):
                 theta_mask = (ap_thetas < self.det_sa() + self.off_axis_angle) \
                     * (ap_thetas > self.off_axis_angle - self.det_sa())
                 ap_energies = ap_energies[theta_mask]
-                weights = self.br() * weights[theta_mask] * self.phi_range/(2*pi)  # Assume azimuthal symmetry
+                weights = weights[theta_mask] * self.phi_range/(2*pi)  # Assume azimuthal symmetry
                 ap_thetas = ap_thetas[theta_mask]
+            else:
+                weights = self.det_area * weights / (4*pi*self.det_dist**2)
 
             self.axion_flux.extend(weights)
             self.axion_energy.extend(ap_energies)
