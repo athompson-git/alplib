@@ -145,7 +145,7 @@ class M2VectorScalarPrimakoff(MatrixElement2):
         self.ff2 = NuclearHelmFF(n, z)
 
     def __call__(self, s, t, coupling_product=1.0):
-        return self.ff2(np.sqrt(abs(t))) * coupling_product**2 * (2*self.mN**2 - t) * power((self.mZp**2 - t)/(2*(self.mphi**2 - t)),2)
+        return 1.5*abs(self.ff2(np.sqrt(abs(t))) * coupling_product**2 * (4*self.mN**2 - t) * power((self.mZp**2 - t)/(2*(self.mphi**2 - t)),2))
 
 
 
@@ -162,7 +162,7 @@ class M2VectorPseudoscalarPrimakoff(MatrixElement2):
         self.ff2 = NuclearHelmFF(n, z)
 
     def __call__(self, s, t, coupling_product=1.0):
-        return - self.ff2(np.sqrt(abs(t))) * coupling_product**2 * t * power((self.mZp**2 - t)/(2*(self.mphi**2 - t)),2)
+        return abs(self.ff2(np.sqrt(abs(t))) * coupling_product**2 * (4*self.mN**2 - t) * power((self.mZp**2 - t)/(2*(self.mphi**2 - t)),2))
 
 
 
