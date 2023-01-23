@@ -53,7 +53,7 @@ class BraggPrimakoff:
     def FA(self, q2, k):
         # energy in keV
         # q2 in A^-2
-        return power(self.z * sqrt(4*pi*ALPHA) * (k/HBARC_KEV_ANG)**2 / (q2 + power(self.r0, -2)), 2)
+        return np.sum(power(self.z * sqrt(4*pi*ALPHA) * (k/HBARC_KEV_ANG)**2 / (q2 + power(self.r0, -2)), 2))
 
     # Structure function squared
     def S2(self, mList):
@@ -132,6 +132,8 @@ class BraggPrimakoff:
         def Rate(phi):
             rate = 0.0
             for m in mList:
+                if np.dot(self.vecU(theta_z, phi), self.vecG(m)) == 0.0:
+                    continue
                 ea = abs(self.Ea(theta_z, phi, m))
                 sineThetaBy2 = np.dot(self.vecU(theta_z, phi), self.vecG(m)) / sqrt(np.dot(self.vecG(m),self.vecG(m)))
                 sineSquaredTheta = 4 * sineThetaBy2**2 * (1 - sineThetaBy2**2)
