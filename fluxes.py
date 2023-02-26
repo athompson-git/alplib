@@ -438,7 +438,8 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
             return
 
         # Simulate ALPs produced in the CM frame
-        cm_cosines = np.random.uniform(-1, 1, self.n_samples)
+        #cm_cosines = np.random.uniform(-1, 1, self.n_samples)
+        cm_cosines = 1 - 10**np.random.uniform(-10,np.log10(2), self.n_samples)
         cm_wgts = (self.ntarget_area_density * HBARC**2) \
             * associated_dsigma_dcos_CM(cm_cosines, ep_lab, self.ma, self.ge, self.target_z)
 
@@ -452,8 +453,8 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
 
         # Get the lab frame energy distribution
         ea_lab = gamma*(ea_cm + beta*paz_cm)
-        mc_volume = 2 / self.n_samples  # we integrated over cosThetaLab from -1 to 1
-
+        #mc_volume = 2 / self.n_samples  # we integrated over cosThetaLab from -1 to 1
+        mc_volume = np.heaviside(sqrt(ea_lab**2 - self.ma**2)/ea_lab - 0.5, 0.0) * (np.log10(2) + 10) / self.n_samples
         self.axion_energy.extend(ea_lab)
         self.axion_flux.extend(pos_wgt * cm_wgts * mc_volume)
 
@@ -596,12 +597,13 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
         return (quad(self.dGammadEa, self.ma, ea_max_e, args=(M_E,))[0] \
             + quad(self.dGammadEa, self.ma, ea_max_mu, args=(M_MU,))[0]) / self.total_width
 
-    def simulate_single(self, meson_p, pion_wgt, cut_on_solid_angle=True, solid_angle_cosine=0.0, ml=M_E):
+    def simulate_single(self, meson, cut_on_solid_angle=True, solid_angle_cosine=0.0, ml=M_E):
+        # takes in meson = [p, theta, wgt]
         ea_min = self.ma
         ea_max = (self.mm**2 + self.ma**2 - ml**2)/(2*self.mm)
 
         # Boost to lab frame
-        beta = meson_p / sqrt(meson_p**2 + self.mm**2)
+        beta = meson[0] / sqrt(meson[0]**2 + self.mm**2)
         boost = power(1-beta**2, -0.5)
 
         min_cm_cos = cos(min(boost * arccos(solid_angle_cosine), pi))
@@ -611,31 +613,37 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
         cosines = np.random.uniform(min_cm_cos, 1, self.n_samples)
         pz = momenta*cosines
 
+        # get energy, momentum, and angles along pion direction
         e_lab = boost*(energies + beta*pz)
         pz_lab = boost*(pz + beta*energies)
-        cos_theta_lab = pz_lab / sqrt(e_lab**2 - self.ma**2)
+        theta_lab = arccos(pz_lab / sqrt(e_lab**2 - self.ma**2))
+        phi_lab = np.random.uniform(0, 2*pi, self.n_samples)
+
+        # get theta along beam direction
+        thetas_z = arccos(cos(theta_lab)*cos(meson[1]) + cos(phi_lab)*sin(theta_lab)*sin(meson[1]))
 
         # Monte Carlo volume, making sure to use the lab frame energy range
         #mc_vol = (ea_max - ea_min)*(1-min_cm_cos)
         mc_vol_lab = 2 * boost * beta * sqrt(e_lab**2 - self.ma**2)  # uses jacobian factor
 
         # Draw weights from the PDF
-        weights = np.array([pion_wgt*mc_vol_lab[i]*self.dGammadEa(energies[i], ml)/self.total_width/self.n_samples \
+        weights = np.array([meson[2]*mc_vol_lab[i]*self.dGammadEa(energies[i], ml)/self.total_width/self.n_samples \
             for i in range(energies.shape[0])])
 
         for i in range(self.n_samples):
-            solid_angle_acceptance = heaviside(cos_theta_lab[i] - solid_angle_cosine, 0.0)
+            solid_angle_acceptance = heaviside(cos(theta_lab[i]) - solid_angle_cosine, 0.0)
             if solid_angle_acceptance == 0.0 and cut_on_solid_angle:
                 continue
             self.axion_energy.append(e_lab[i])
-            self.cosines.append(cos_theta_lab[i])
+            self.cosines.append(cos(theta_lab[i]))
             self.axion_flux.append(weights[i]*heaviside(e_lab[i]-self.energy_cut,1.0))
+            self.axion_angle.append(thetas_z[i])
             self.solid_angles.append(solid_angle_cosine)
 
     def simulate(self, cut_on_solid_angle=True):
         self.axion_energy = []
         self.cosines = []
-        self.axion_flux = []
+        self.axion_flux = []    
         self.scatter_axion_weight = []
         self.decay_axion_weight = []
         self.decay_pos = []
@@ -661,7 +669,7 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
             for ml in self.lepton_masses:
                 if self.ma > self.mm - ml:
                     continue
-                self.simulate_single(p[0], p[2], cut_on_solid_angle, solid_angle_cosine, ml)
+                self.simulate_single(p, cut_on_solid_angle, solid_angle_cosine, ml)
 
 
     def propagate(self, decay=None, new_coupling=None):  # propagate to detector

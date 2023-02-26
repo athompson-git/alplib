@@ -40,7 +40,7 @@ class Material:
             self.fid_mass = fiducial_mass  # kg
             self.volume = volume  # cm^3
             self.ntargets = density * volume / (np.dot(self.m, self.iso*self.frac) / MEV_PER_KG / 1e-3)
-            self.ndensity = self.ntargets / self.volume
+            self.ndensity = density / (np.dot(self.m, self.iso*self.frac) / MEV_PER_KG / 1e-3)
             self.rad_length = mat_info['rad_length']
         else:
             raise Exception("No such detector in mat_params.json.")
