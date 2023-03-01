@@ -258,6 +258,19 @@
       "m": [12e3, 0.9389e3],
       "density": 0.85,
       "rad_length": 56.26
+    },
+  "TeO2":
+    {
+      "iso": 3,
+      "z": [52, 8],
+      "n": [74, 8],
+      "frac": [0.34, 0.66],
+      "lattice_const": 5.42,
+      "cell_volume": 375.26,
+      "atomic_radius": [],
+      "m": [118.3014e3, 15.015e3],
+      "density": 5.65,
+      "rad_length": 56.26
     }
   }
   

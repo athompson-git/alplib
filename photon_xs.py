@@ -34,6 +34,8 @@ class AbsCrossSection:
             self.xs_dim = 28.0 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
         elif self.mat_name == "O2":
             self.xs_dim = 32.0 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
+        elif self.mat_name == "TeO2":
+            self.xs_dim = 32.0 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
         
         self.cleanPEData()
     
@@ -65,6 +67,8 @@ class PairProdutionCrossSection:
         elif self.mat_name == "CsI":
             self.xs_dim = 259.81 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
         elif self.mat_name == "CH2":
+            self.xs_dim = 14.027 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
+        elif self.mat_name == "TeO2":
             self.xs_dim = 14.027 / AVOGADRO  # (cm2 / g  * g / mol  * mol / N)
         
         self.cleanPEData()
