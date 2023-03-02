@@ -166,7 +166,7 @@ class AbsorptionSum:
             m2 += np.exp(-abs(dot_product) / (2*mfp))
         return m2
     
-    def get_atten_factor(self, mfp=1e-3, hkl=[2,2,0], kVec=[5.0,0.0,0.0]):
+    def get_atten_factor(self, mfp=1e-3, hkl=[2,2,0], kVec=[5.0,0.0,0.0], n_workers=8):
         # scale mfp
         toy_mfp = mfp * (self.cube_length / self.physical_length)
 
@@ -174,9 +174,9 @@ class AbsorptionSum:
         kprime = kVec - Gvec
         kprime_hat = kprime / np.sqrt(np.dot(kprime, kprime))
 
-        p = Pool(8)
+        p = Pool(n_workers)
 
-        chunk_size = int(self.N**2 / 10)
+        chunk_size = int(self.N**2 / n_workers)
         start_indices = np.arange(0,self.N**2+chunk_size,chunk_size)
         results = []
 
