@@ -6,6 +6,8 @@ from .constants import *
 from .fmath import *
 from .photon_xs import AbsCrossSection
 from .crystal import *
+import multiprocessing
+from multiprocessing import Pool
 
 
 # read in the ff data
@@ -113,3 +115,74 @@ class HydrogenicWaveFunction:
 
 
 
+class AbsorptionSum:
+    def __init__(self, material: Material, n_atoms_side=10, physical_length=5.0):
+        """
+        physical_length: physical length of crystal cube in cm
+        """
+        self.physical_length = physical_length
+        self.crystal = get_crystal(material.mat_name, volume=physical_length**3)
+        
+        # Non-physical length of sample atomic positions
+        self.cube_length = n_atoms_side * np.sqrt(np.dot(self.crystal.a3,self.crystal.a3))  # length of cube in angstroms, for comparison to MFP / Lz
+
+        hs = np.arange(0,n_atoms_side,1)
+        ks = np.arange(0,n_atoms_side,1)
+        ls = np.arange(0,n_atoms_side,1)
+
+        # generate list of position vectors
+        self.position_vectors = []
+        self.idx = []
+
+        # initialize basis vectors for cube
+        for h in hs:
+            for k in ks:
+                for l in ls:
+                    self.position_vectors.append(self.crystal.a1 * h + self.crystal.a2 * k + self.crystal.a3 * l + self.crystal.alpha[0])  # alpha0 primitive (0,0,0)
+                    self.position_vectors.append(self.crystal.a1 * h + self.crystal.a2 * k + self.crystal.a3 * l + self.crystal.alpha[1])  # alpha1 primitive
+
+        # make map of (i,j) pairs
+        self.N = len(self.position_vectors)
+        indices = np.arange(0, self.N)
+        PI, PJ = np.meshgrid(indices, indices)
+        self.idx = PI.flatten()
+        del PI
+        self.jdx = PJ.flatten()
+        del PJ
+    
+    def parallel_sum(self, start, end, kprime_hat, mfp=0.1):
+        # coherent double sum over i,j pairs
+        m2 = 0.0
+        for k in range(start, end):
+            if k >= self.N**2:
+                continue
+            
+            ri_rj = self.position_vectors[self.idx[k]] - self.position_vectors[self.jdx[k]]
+            
+            if np.dot(ri_rj, ri_rj) == 0.0:
+                continue
+            
+            dot_product = np.dot(kprime_hat, ri_rj)
+            m2 += np.exp(-abs(dot_product) / (2*mfp))
+        return m2
+    
+    def get_atten_factor(self, mfp=1e-3, hkl=[2,2,0], kVec=[5.0,0.0,0.0]):
+        # scale mfp
+        toy_mfp = mfp * (self.cube_length / self.physical_length)
+
+        Gvec = HBARC_KEV_ANG * (hkl[0]*self.crystal.b1 + hkl[1]*self.crystal.b2 + hkl[2]*self.crystal.b3)  # angstroms^-1 to keV
+        kprime = kVec - Gvec
+        kprime_hat = kprime / np.sqrt(np.dot(kprime, kprime))
+
+        p = Pool(8)
+
+        chunk_size = int(self.N**2 / 10)
+        start_indices = np.arange(0,self.N**2+chunk_size,chunk_size)
+        results = []
+
+        for i in range(start_indices.shape[0]-1):
+            results.append(p.apply_async(self.parallel_sum, (start_indices[i], start_indices[i+1], kprime_hat, toy_mfp)))
+
+
+        totals = [res.get() for res in results]
+        return np.sum(totals)/self.N**2

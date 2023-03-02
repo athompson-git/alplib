@@ -48,6 +48,7 @@ CM_PER_ANG = 1e-8  # cm to angstroms
 KEV_CM = HBARC / keV / ang
 MEV2_CM2 = (METER_BY_MEV * 100)**2
 S_PER_DAY = 3600*24
+HBARC_KEV_ANG = 1.97
 
 # SM parameters
 SSW = 0.2312  # Sine-squared of the Weinberg angle
