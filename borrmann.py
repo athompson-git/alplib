@@ -185,4 +185,6 @@ class AbsorptionSum:
 
 
         totals = [res.get() for res in results]
+        p.close()
+        p.join()
         return np.sum(totals)/self.N**2
