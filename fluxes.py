@@ -438,8 +438,7 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
             return
 
         # Simulate ALPs produced in the CM frame
-        #cm_cosines = np.random.uniform(-1, 1, self.n_samples)
-        cm_cosines = 1 - 10**np.random.uniform(-10,np.log10(2), self.n_samples)
+        cm_cosines = np.random.uniform(-1, 1, self.n_samples)
         cm_wgts = (self.ntarget_area_density * HBARC**2) \
             * associated_dsigma_dcos_CM(cm_cosines, ep_lab, self.ma, self.ge, self.target_z)
 
@@ -453,8 +452,7 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
 
         # Get the lab frame energy distribution
         ea_lab = gamma*(ea_cm + beta*paz_cm)
-        #mc_volume = 2 / self.n_samples  # we integrated over cosThetaLab from -1 to 1
-        mc_volume = np.heaviside(sqrt(ea_lab**2 - self.ma**2)/ea_lab - 0.5, 0.0) * (np.log10(2) + 10) / self.n_samples
+        mc_volume = 2 / self.n_samples  # we integrated over cosThetaLab from -1 to 1
         self.axion_energy.extend(ea_lab)
         self.axion_flux.extend(pos_wgt * cm_wgts * mc_volume)
 
