@@ -6,6 +6,7 @@ from alplib.constants import *
 from alplib.fmath import *
 from alplib.matrix_element import *
 
+#import vegas
 
 
 
@@ -241,6 +242,140 @@ class Scatter2to2MC:
 
 
 
+class Scatter2to3MC:
+    """
+    2 -> 3 scattering for general masses in fixed target frame
+    Based on Byckling, Kajantie ch. V.4
+    """
+    def __init__(self, mtrx2: MatrixElement2to3, p1=LorentzVector(), p2=LorentzVector(), n_samples=1000):
+        self.mtrx2 = mtrx2
+
+        self.ma = mtrx2.ma
+        self.mb = mtrx2.mb
+        self.m1 = mtrx2.m1
+        self.m2 = mtrx2.m2
+        self.m3 = mtrx2.m3
+
+        self.lv_p1 = p1
+        self.lv_p2 = p2
+
+        self.n_samples = n_samples
+
+        self.p1_lab_4vectors = []
+        self.p1_lab_energies = []
+        self.p1_lab_angles = []
+        self.dsigma = []
+
+    def cayley_det(self, x, y, z, u, v, w):
+        # Gramm-Schmidt det but with invariants
+        return -0.5 * np.linalg.det([[0, 1, 1, 1, 1],
+                                    [1, 0, v, x, z],
+                                    [1, v, 0, u, y],
+                                    [1, x, u, 0, w],
+                                    [1, z, y, w, 0]])
+
+    def kallen(self, x, y, z):
+        return np.power((x - y - z), 2) - 4*y*z
+    
+    def s2MaxMin(self, s):
+        return (sqrt(s) - self.m1)**2, (self.m2 + self.m3)**2
+    
+    def t1MaxMin(self, s, s2):
+        return self.ma**2 + self.m1**2 - ((s + self.ma**2 - self.mb**2)*(s - s2 + self.m1**2) \
+            - np.nan_to_num(sqrt(self.kallen(s, self.ma**2, self.mb**2)*self.kallen(s, s2, self.m1**2))))/(2*s), \
+                self.ma**2 + self.m1**2 - ((s + self.ma**2 - self.mb**2)*(s - s2 + self.m1**2) \
+            + np.nan_to_num(sqrt(self.kallen(s, self.ma**2, self.mb**2)*self.kallen(s, s2, self.m1**2))))/(2*s)
+    
+    def phase_space_heaviside(self, s, t1, s2):
+        return np.heaviside(-np.nan_to_num(self.cayley_det(s, t1, s2, self.ma**2, self.mb**2, self.m1**2)), 0.0) \
+            * np.heaviside(self.kallen(s, self.m1**2, s2), 0.0) \
+            * np.heaviside(self.kallen(s2, self.m2**2, self.m3**2), 0.0)
+    
+    def t2_from_angle(self, cosThetab3, t1, s2):
+        # In R23 frame
+        return self.mb**2 + self.m3**2 - (s2 + self.mb**2 - t1)*(s2 + self.m3**2 - self.m2**2)/(2*s2) \
+            + cosThetab3 * np.nan_to_num(sqrt(self.kallen(s2, self.mb**2, t1)*self.kallen(s2, self.m3**2, self.m2**2)))/(2*s2)
+
+    def s1_from_angle(self, phib, s, t1, s2, t2):
+        # in R23 frame
+        return s + self.m3**2 - (1/self.kallen(s2, t1, self.mb**2)) \
+            * (np.linalg.det([[2*self.mb**2, s2-t1+self.mb**2, self.mb**2 + self.m3**2 - t2],
+                             [s2-t1+self.mb**2, 2*s2, s2-self.m2**2 + self.m3**2],
+                             [s-self.ma**2 + self.mb**2, s+s2-self.m1**2, 0.0]]) \
+                + 2*np.nan_to_num(sqrt(self.cayley_det(s,t1,s2,self.ma**2,self.mb**2,self.m1**2)*self.cayley_det(s2,t2,self.m3**2,t1,self.mb**2,self.m2**2)))*cos(phib))
+
+    def dsigma_ds2dt1dOmega3(self, s, s2, t1, cosThetab3, phib):
+        t2 = self.t2_from_angle(cosThetab3, t1, s2)
+        s1 = self.s1_from_angle(phib, s, t1, s2, t2)
+        return pi * self.phase_space_heaviside(s, t1, s2) * self.mtrx2(s, s2, t1, s1, t2) \
+            * power(2*sqrt((s - (self.ma + self.mb)**2)*(s - (self.ma - self.mb)**2)), -1) \
+            * np.nan_to_num(sqrt(self.kallen(s, self.ma**2, self.mb**2)/self.kallen(s2, self.m2**2, self.m3**2)))/(16*s2)
+
+    def r23_velocity(self, s2, t1):
+        # boost from R23 velocity to lab frame velocity
+        return Vector3(0.0, 0.0, -sqrt(self.kallen(s2, self.mb**2, t1))/(s2 + self.mb**2 - t1))
+
+    def get_total_xs(self, s, nitn=30, neval=1000):
+        def f(x):
+            dsigma = self.dsigma_ds2dt1dOmega3(s, x[0], x[1], x[2], x[3])
+            return dsigma
+        
+        s2Max, s2Min = self.s2MaxMin(s)
+        t1Max1, t1Min1 = self.t1MaxMin(s, s2Min)
+        t1Max2, t1Min2 = self.t1MaxMin(s, s2Max)
+        t1Max = max(t1Max1, t1Max2)
+        t1Min = min(t1Min1, t1Min2)
+        integ = vegas.Integrator([[s2Min, s2Max], [t1Min, t1Max], [-1.0, 1.0], [0.0, 2*pi]])
+
+        integ(f, nitn=nitn, neval=neval)
+        result = integ(f, nitn=nitn, neval=neval)
+        
+        return float(result.mean)
+    
+    def dsigma_ds2dt1(self, s, s2, t1, nitn=30, neval=1000):
+        def f(x):
+            dsigma = self.dsigma_ds2dt1dOmega3(s, s2, t1, x[0], x[1])
+            return dsigma
+        
+        integ = vegas.Integrator([[-1.0, 1.0], [0.0, 2*pi]])
+
+        integ(f, nitn=nitn, neval=neval)
+        result = integ(f, nitn=nitn, neval=neval)
+        
+        return float(result.mean)
+
+    def simulate_particle1(self, s):
+        s2Max, s2Min = self.s2MaxMin(s)
+        t1Max1, t1Min1 = self.t1MaxMin(s, s2Min)
+        t1Max2, t1Min2 = self.t1MaxMin(s, s2Max)
+        t1Max = max(t1Max1, t1Max2)
+        t1Min = min(t1Min1, t1Min2)
+
+        s2_rnd = np.random.uniform(s2Min, s2Max, self.n_samples)
+        t1_rnd = np.random.uniform(t1Min, t1Max, self.n_samples)
+        cos_rnd = np.random.uniform(-1, 1, self.n_samples)
+        phi_rnd = np.random.uniform(0.0, 2*pi, self.n_samples)
+        
+        mc_volume = (t1Max - t1Min)*(s2Max - s2Min)*4*pi / self.n_samples
+        
+        # Get particle 1's CM spectra
+        for i in range(self.n_samples):
+            weights = self.dsigma_ds2dt1dOmega3(s, s2_rnd[i], t1_rnd[i], cos_rnd[i], phi_rnd[i])
+            e1_cm = (s + self.m1**2 - s2_rnd[i])/(2*sqrt(s))
+            p1_cm = np.sqrt(e1_cm**2 - self.m1**2)
+            theta_b1_cm = arcsin(sqrt(-4*s2_rnd[i]*self.cayley_det(s, t1_rnd[i], s2_rnd[i], self.ma**2, self.mb**2, self.m1**2) \
+                / (self.kallen(s2_rnd[i], self.mb**2, t1_rnd[i])*self.kallen(s, s2_rnd[i], self.m1**2))))
+            lorentz_vector_p1_cm = LorentzVector(e1_cm, p1_cm*sin(theta_b1_cm), 0.0, p1_cm*cos(theta_b1_cm))
+            v_cm_to_lab = self.r23_velocity(s2_rnd[i], t1_rnd[i])
+            lorentz_vector_p1_lab = lorentz_boost(lorentz_vector_p1_cm, v_cm_to_lab)
+            self.p1_lab_4vectors.append(lorentz_vector_p1_lab)
+            self.p1_lab_energies.append(lorentz_vector_p1_lab.p0)
+            self.p1_lab_angles.append(lorentz_vector_p1_lab.theta())
+            self.dsigma.append(weights * mc_volume)
+
+
+
+    
 class Decay2Body:
     def __init__(self, p_parent: LorentzVector, m1, m2, n_samples=1000):
         self.mp = p_parent.mass()  # parent particle
