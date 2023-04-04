@@ -417,6 +417,9 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
         self.is_isotropic = is_isotropic
         self.loop_decay = loop_decay
 
+        self.m2 = M2AssociatedProduction(axion_mass)
+        self.mc = Scatter2to2MC(self.m2, p2=LorentzVector(M_E, 0.0, 0.0, 0.0), n_samples=n_samples)
+
     def decay_width(self, ge, ma):
         if self.loop_decay:
             return W_ee(ge, ma) + W_gg_loop(ge, ma, M_E)
@@ -433,28 +436,18 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
         ep_lab = positron[0]
         pos_wgt = positron[1]
 
-        if ep_lab < max((self.ma**2 - M_E**2)/(2*M_E), M_E):
+        if ep_lab < 1.2*max((self.ma**2 - M_E**2)/(2*M_E), M_E):
             # Threshold check
+            # ATTN: USING 20% CUTOFF TO CURB IR DIVERGENCE
             return
 
         # Simulate ALPs produced in the CM frame
-        cm_cosines = np.random.uniform(-1, 1, self.n_samples)
-        cm_wgts = (self.ntarget_area_density * HBARC**2) \
-            * associated_dsigma_dcos_CM(cm_cosines, ep_lab, self.ma, self.ge, self.target_z)
+        self.mc.lv_p1 = LorentzVector(ep_lab, 0.0, 0.0, np.sqrt(ep_lab**2 - M_E**2))
+        self.mc.scatter_sim()
+        ea_lab, lab_weights = self.mc.get_e3_lab_weights()
 
-        # Boost the ALPs to the lab frame and multiply weights by jacobian for the boost
-        s = 2*M_E**2 + 2*M_E*ep_lab
-        p3_cm = self.p3_cm(s)
-        ea_cm = np.sqrt(p3_cm**2 + self.ma**2)
-        paz_cm = p3_cm*cm_cosines
-        beta = sqrt(ep_lab**2 - M_E**2) / (M_E + ep_lab)
-        gamma = power(1-beta**2, -0.5)
-
-        # Get the lab frame energy distribution
-        ea_lab = gamma*(ea_cm + beta*paz_cm)
-        mc_volume = 2 / self.n_samples  # we integrated over cosThetaLab from -1 to 1
         self.axion_energy.extend(ea_lab)
-        self.axion_flux.extend(pos_wgt * cm_wgts * mc_volume)
+        self.axion_flux.extend(pos_wgt * self.target_z * self.ge**2 * self.ntarget_area_density * HBARC**2 * lab_weights)
 
 
     def simulate(self):
