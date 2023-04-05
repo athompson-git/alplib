@@ -654,15 +654,14 @@ class M2AssociatedProduction(MatrixElement2):
     def __call__(self, s, t, coupling_product=1.0):
         u_prop = (M_E**2 + self.ma**2 - s - t)
         t_prop = (M_E**2 - t)
-        tmast = t * (-self.ma**2 + s + t)
 
-        Mt2 = -4*((-M_E**2 * (s + self.ma**2)) + 3*M_E**4 + tmast)/t_prop**2
-        Mu2 = -4*((M_E**2 * (self.ma**2 - 3*s - 4*t)) + 7*M_E**4 + tmast)/u_prop**2
-        MtMu = 4*((M_E**2 * (s - 2*t)) - 3*M_E**4 + tmast)/(u_prop*t_prop)
+        Mt2 = -4*(3*M_E**4 - M_E**2 * (self.ma**2 + s) + t*(-self.ma**2 + s + t))/t_prop**2
+        Mu2 = -4*(7*M_E**4 + M_E**2 * (self.ma**2-3*s-4*t) + t*(-self.ma**2+s+t))/u_prop**2
+        MtMu = 8*(-3*M_E**4 + M_E**2 * (s-2*t) + t*(-self.ma^2+s+t))/(u_prop*t_prop)
 
         M2 = Mt2 + Mu2 + 2*MtMu
 
-        prefactor = (4*pi*ALPHA) * coupling_product**2
+        prefactor = (pi*ALPHA) * coupling_product**2
         
         return prefactor * M2
 
