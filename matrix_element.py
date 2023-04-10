@@ -657,7 +657,7 @@ class M2AssociatedProduction(MatrixElement2):
 
         Mt2 = -4*(3*M_E**4 - M_E**2 * (self.ma**2 + s) + t*(-self.ma**2 + s + t))/t_prop**2
         Mu2 = -4*(7*M_E**4 + M_E**2 * (self.ma**2-3*s-4*t) + t*(-self.ma**2+s+t))/u_prop**2
-        MtMu = 8*(-3*M_E**4 + M_E**2 * (s-2*t) + t*(-self.ma^2+s+t))/(u_prop*t_prop)
+        MtMu = 8*(-3*M_E**4 + M_E**2 * (s-2*t) + t*(-self.ma**2+s+t))/(u_prop*t_prop)
 
         M2 = Mt2 + Mu2 + 2*MtMu
 

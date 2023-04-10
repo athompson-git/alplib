@@ -417,8 +417,7 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
         self.is_isotropic = is_isotropic
         self.loop_decay = loop_decay
 
-        self.m2 = M2AssociatedProduction(axion_mass)
-        self.mc = Scatter2to2MC(self.m2, p2=LorentzVector(M_E, 0.0, 0.0, 0.0), n_samples=n_samples)
+        self.mc = Scatter2to2MC(M2AssociatedProduction(axion_mass), p2=LorentzVector(M_E, 0.0, 0.0, 0.0), n_samples=n_samples)
 
     def decay_width(self, ge, ma):
         if self.loop_decay:
@@ -455,6 +454,8 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
         self.axion_flux = []
         self.scatter_axion_weight = []
         self.decay_axion_weight = []
+
+        self.mc = Scatter2to2MC(M2AssociatedProduction(self.ma), p2=LorentzVector(M_E, 0.0, 0.0, 0.0), n_samples=self.n_samples)
 
         for i, el in enumerate(self.positron_flux):
             self.simulate_single(el)
