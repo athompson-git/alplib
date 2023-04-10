@@ -56,7 +56,7 @@ class Crystal(Material):
 
 
 # Namelist
-cryslist = ["Ge", "Si", "NaI", "CsI"]
+cryslist = ["Ge", "Si", "NaI", "CsI", "TeO2"]
 
 
 def get_crystal(name, volume):
@@ -104,8 +104,15 @@ def get_crystal(name, volume):
         A3 = [0.5, 0.5, 0.0]
         return Crystal(name, Primitives, A1, A2, A3, volume=volume)
 
+    if name == "TeO2":
+        # D4(422) space group
+        Primatives_O = [[0.998, 0.916, 1.480], [1.481, 3.396, 3.386], [1.399, 3.314, 0.426], [0.916, 0.998, 6.145],
+                        [3.797, 3.879, 5.293], [3.314, 1.399, 7.199], [3.396, 1.481, 4.239], [3.879, 3.797, 2.332]]
+        Primitives_Te = [[0.093, 0.093, 0.000],[4.702, 4.702, 3.813], [2.304, 2.491 , 1.906], [2.491, 2.304, 5.719]]
+        A1 = [0.0, 0.5, 0.5]
+        A2 = [0.5, 0.0, 0.5]
+        A3 = [0.5, 0.5, 0.0]
+        return Crystal(name, Primitives_Te+Primatives_O, A1, A2, A3, volume=volume)
+
     return
-
-
-
 
