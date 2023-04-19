@@ -65,7 +65,7 @@ def charged_meson_flux_mc(meson_type, p_min, p_max, theta_min, theta_max,
     xs_wgt = meson_production_d2SdpdOmega(p_list, theta_list, p_proton, meson_type=meson_type) * sin(theta_list)
     probability_decay = p_decay(p_list*1e3, meson_mass, meson_lifetime, 50)
     pi_plus_wgts = probability_decay * (2*pi*(theta_max-theta_min) * (p_max-p_min)) * n_pot * xs_wgt / n_samples / sigmap(p_proton)
-    return np.array([p_list*1000.0, theta_list, 4*pi_plus_wgts]).transpose()
+    return np.array([p_list*1000.0, theta_list, pi_plus_wgts]).transpose()
 
 
 
