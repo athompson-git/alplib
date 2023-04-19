@@ -435,7 +435,7 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
         ep_lab = positron[0]
         pos_wgt = positron[1]
 
-        if ep_lab < 1.2*max((self.ma**2 - M_E**2)/(2*M_E), M_E):
+        if ep_lab < max((self.ma**2 - M_E**2)/(2*M_E), M_E):
             # Threshold check
             # ATTN: USING 20% CUTOFF TO CURB IR DIVERGENCE
             return
@@ -528,8 +528,8 @@ class FluxNuclearIsotropic(AxionFlux):
 
 class FluxChargedMeson3BodyDecay(AxionFlux):
     def __init__(self, meson_flux, boson_mass=0.1, coupling=1.0, n_samples=50, meson_type="pion",
-                 interaction_model="scalar_ib1", energy_cut=140.0, det_dist=541, det_length=12,
-                 det_area=36*pi, c0=-0.95, lepton_masses=[M_E, M_MU]):
+                 interaction_model="scalar_ib1", energy_cut=140.0, det_dist=541, det_length=10.0,
+                 det_area=25.0*pi, c0=-0.95, lepton_masses=[M_E, M_MU]):
         super().__init__(boson_mass, Material("Be"), det_dist, det_length, det_area, n_samples)
         self.meson_flux = meson_flux
         param_dict = {
@@ -615,8 +615,8 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
         thetas_z = arccos(cos(theta_lab)*cos(meson[1]) + cos(phi_lab)*sin(theta_lab)*sin(meson[1]))
 
         # Monte Carlo volume, making sure to use the lab frame energy range
-        #mc_vol = (ea_max - ea_min)*(1-min_cm_cos)
-        mc_vol_lab = 2 * boost * beta * sqrt(e_lab**2 - self.ma**2)  # uses jacobian factor
+        # V = 2pi * (1-min_cm_cos) * (Ea^max - Ea^min) / N
+        mc_vol_lab = (1.0-min_cm_cos) * boost * beta * sqrt(e_lab**2 - self.ma**2)  # uses jacobian factor
 
         # Draw weights from the PDF
         weights = np.array([meson[2]*mc_vol_lab[i]*self.dGammadEa(energies[i], ml)/self.total_width/self.n_samples \

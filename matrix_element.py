@@ -136,13 +136,14 @@ class M2DarkPrimakoff(MatrixElement2):
         self.mN = mN
         self.ma = ma
         self.z = z
-        self.ff2 = ProtonFF() #NuclearHelmFF(n, z)
+        self.ff2 = NuclearHelmFF(n, z)
+        self.ffp = ProtonFF()
 
     def __call__(self, s, t, coupling_product=1.0):
         prefactor = coupling_product**2
         propagator = power(t - self.mZp**2, 2)
         numerator = -t*(2*self.mN**2 * (self.ma**2 - 2*s - t) + 2*self.mN**4 - 2*self.ma**2 * (s + t) + self.ma**4 + 2*s**2 + 2*s*t + t**2)
-        return self.z * self.ff2(t) * prefactor * numerator / propagator
+        return (self.ff2(np.sqrt(abs(t)))) * prefactor * numerator / propagator
 
 
 
@@ -156,10 +157,12 @@ class M2VectorScalarPrimakoff(MatrixElement2):
         self.mZp = mZp
         self.mN = mN
         self.mphi = mphi
+        self.z = z
         self.ff2 = NuclearHelmFF(n, z)
+        self.ffp = ProtonFF()
 
     def __call__(self, s, t, coupling_product=1.0):
-        return 1.5*abs(self.ff2(np.sqrt(abs(t))) * coupling_product**2 * (4*self.mN**2 - t) * power((self.mZp**2 - t)/(2*(self.mphi**2 - t)),2))
+        return 1.5*abs((self.ff2(np.sqrt(abs(t)))) * coupling_product**2 * (4*self.mN**2 - t) * power((self.mZp**2 - t)/(2*(self.mphi**2 - t)),2))
 
 
 
@@ -173,10 +176,12 @@ class M2VectorPseudoscalarPrimakoff(MatrixElement2):
         self.mZp = mZp
         self.mN = mN
         self.mphi = mphi
+        self.z = z
         self.ff2 = NuclearHelmFF(n, z)
+        self.ffp = ProtonFF()
 
     def __call__(self, s, t, coupling_product=1.0):
-        return abs(self.ff2(np.sqrt(abs(t))) * coupling_product**2 * (4*self.mN**2 - t) * power((self.mZp**2 - t)/(2*(self.mphi**2 - t)),2))
+        return abs((self.ff2(np.sqrt(abs(t))))  * coupling_product**2 * (4*self.mN**2 - t) * power((self.mZp**2 - t)/(2*(self.mphi**2 - t)),2))
 
 
 
@@ -662,8 +667,13 @@ class M2AssociatedProduction(MatrixElement2):
         M2 = Mt2 + Mu2 + 2*MtMu
 
         prefactor = (pi*ALPHA) * coupling_product**2
+
+        # Phase space cutoff
+        p_pos_cm = sqrt((np.power(s - 2*M_E**2, 2) - 4*np.power(M_E, 4))/(4*s))
+        e_pos_cm = sqrt(p_pos_cm**2 + M_E**2)
+        tmax = M_E**2 - 2*0.01*e_pos_cm*(e_pos_cm)  # soft-photon cutoff at 1%
         
-        return prefactor * M2
+        return prefactor * M2 * heaviside(tmax-t, 0.0)
 
 
 
@@ -687,12 +697,13 @@ class M2NeutronAxionBrem(MatrixElement2to3):
 
 class M2AxionPairProduction(MatrixElement2to3):
     def __init__(self, ma, mN, n, z, ml=M_E):
-        super().__init__(ma, mN, ml, ml, mN)
+        super().__init__(mN, ma, mN, ml, ml)
         self.ff2 = AtomicPlusNuclearFF(n, z)
+        self.ffp = ProtonFF()
     
     def __call__(self, s, s2, t1, s1, t2, gae=1.0):
-        ma = self.ma
-        m = self.m1
-        M = self.mb
-        prefactor = self.ff2(sqrt(abs(t2))) * power(gae * 4*pi*ALPHA, 2.0) * power(t2**2 * (m**2-t1)**2 * (m**2+ma**2-s1-t1+t2)**2, -1.0)
-        return prefactor * 4*(m**4*(2*M**4*(ma**2+t2)+2*M**2*(3*ma**4+ma**2*(3*t2-2*(s+s1))-t2*(2*s+s1)+s1**2)+2*(ma**3-ma*s)**2+t2*(ma**4+2*ma**2*(s1-s)+2*s**2-2*s*s1+s1**2)+2*t2**2*(s-s1)+t2**3)+m**2*(2*M**4*(2*ma**4+ma**2*(3*t2-2*(s1+t1))+t2*(-s1-2*t1+t2))+2*M**2*(3*ma**6-ma**4*(2*s+5*s1+2*s2+4*t1-5*t2)+ma**2*(2*s*(s1+2*t1-2*t2)+3*s1**2+2*s1*(s2+t1)-5*s1*t2+2*t2*(-s2-2*t1+t2))-(s1**2-t2*(2*s+s1))*(s1+2*t1-t2))+ma**6*(t2-4*s2)+ma**4*(4*s*(s2+t1)+s1*(4*s2-4*t1-t2)+t2*(-4*s2+2*t1+3*t2))+ma**2*(2*s**2*(t2-2*t1)-2*s*s1*(2*s2-2*t1+t2)+2*s*t2*(2*s2+t2)+s1**2*t2-4*s1*t2*(t1+t2)+3*t2**3)-t2*(2*s**2+2*s*(t2-s1)+(s1-t2)**2)*(s1+2*t1-t2))+2*M**4*(ma**2-s1-t1+t2)*(ma**4-ma**2*(s1+t1-t2)-t1*t2)-2*M**2*(t2**2*(2*ma**2*s2-t1*(2*s+s1))+(ma**2-s1-t1)*(ma**4*(2*s2+t1)-2*ma**2*(s*t1+s1*s2)+s1**2*t1)+t2*(ma**4*(4*s2+t1)-ma**2*(t1*(4*s+2*s2+t1)+s1*(4*s2+t1))+t1*(2*s*(s1+t1)+s1*(2*s1+t1))))+2*ma**2*(ma**2*s2-s*t1+s1*(t1-s2))**2+t2**4*(ma**2-t1)+t2*(2*ma**2*s2*(ma**2-s1)*(ma**2-s1+2*s2)+t1*(-4*ma**2*s2*(ma**2+s-2*s1)-(ma**2-s1)*(ma**4+2*s**2-2*s*s1+s1**2))+t1**2*(ma**4-2*s1*(ma**2+s)+2*ma**2*s+2*s**2+s1**2))+t2**3*(2*ma**4+ma**2*(-2*s1+2*s2-3*t1)+t1*(-2*s+3*s1+t1))+t2**2*(ma**6+ma**4*(-2*s1+4*s2-3*t1)+ma**2*(-2*s*t1+s1**2+4*s1*(t1-s2)+2*(s2-t1)**2)+t1*(-2*s**2+2*s*(2*s1+t1)-s1*(3*s1+2*t1))))
+        mA = self.mb
+        m = self.m2
+        M = self.ma
+        prefactor = self.ffp(t1) * self.ff2(sqrt(abs(t1))) * power(gae * 4*pi*ALPHA, 2.0) / power(t2 * (m**2-t2) * (m**2+mA**2-s2-t2+t1), 2)
+        return prefactor * 4*(m**4*(2*M**4*(mA**2+t1)+2*M**2*(3*mA**4+mA**2*(3*t1-2*(s+s2))-t1*(2*s+s2)+s2**2)+2*(mA**3-mA*s)**2+t1*(mA**4+2*mA**2*(s2-s)+2*s**2-2*s*s2+s2**2)+2*t1**2*(s-s2)+t1**3)+m**2*(2*M**4*((2*mA**2+t1)*(mA**2-s2+t1)-2*t2*(mA**2+t1))+2*M**2*((mA**2-s2+t1)*(3*mA**4-2*mA**2*(s+s1+s2-t1)-t1*(2*s+s2)+s2**2)+2*t2*(-2*mA**4+mA**2*(2*s+s2-2*t1)+2*s*t1+s2*(t1-s2)))+mA**6*(t1-4*s1)+mA**4*(4*s*(s1+t2)+4*s1*s2-4*s1*t1-s2*t1-4*s2*t2+3*t1**2+2*t1*t2)+mA**2*(2*s**2*(t1-2*t2)-2*s*(2*s1+t1)*(s2-t1)+4*s*s2*t2+t1*(s2**2-4*s2*(t1+t2)+3*t1**2))+t1*(2*s**2+2*s*(t1-s2)+(s2-t1)**2)*(-s2+t1-2*t2))+2*M**4*(mA**2-s2+t1-t2)*(mA**4-mA**2*(s2-t1+t2)-t1*t2)-2*M**2*(2*mA**2*s1*(mA**2-s2+t1)**2+t2*(mA**2-s2+t1)*(mA**4-2*mA**2*(s+s1)-t1*(2*s+s2)+s2**2)-t2**2*(mA**4+mA**2*(t1-2*s)-t1*(2*s+s2)+s2**2))+mA**2*(2*s1**2+2*s1*t1+t1**2)*(mA**2-s2+t1)**2-t2*(mA**2-s2+t1)*(mA**4*t1+2*mA**2*(2*s*s1-2*s1*s2+2*s1*t1+t1**2)+t1*(2*s**2+2*s*(t1-s2)+(s2-t1)**2))+t2**2*(mA**4*t1+2*mA**2*(t1*(s-s2)+(s-s2)**2+t1**2)+t1*(2*s**2+2*s*(t1-s2)+(s2-t1)**2)))
