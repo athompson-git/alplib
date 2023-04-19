@@ -94,7 +94,7 @@ class AtomicPlusNuclearFF:
         a = 184.15*np.power(2.718, -1/2)*np.power(self.z, -1/3) / M_E
         ff_a = abs(self.z*(t*a**2) / (1 + t*a**2))
         ff_helm = abs(self.z * 3*spherical_jn(1, q*self.r1) / (q*self.r1) * exp((-(q*self.s)**2)/2))
-        return np.power(ff_a - self.z + ff_helm, 2)
+        return np.heaviside(q - 1e-9, 0.0) * np.power(ff_a - self.z + ff_helm, 2)
 
 
 
@@ -106,8 +106,8 @@ class ProtonFF:
         pass
 
     def __call__(self, t):
-        g_e = power(1 - t/0.71e6, -2)
-        return power((g_e - t/(4*M_P**2))/(1 - t/(4*M_P**2)), 2)
+        GE = power(1 - t/0.71e6, -2)
+        return power(GE * (1 - 4.706*t/(4*M_P**2))/(1 - t/(4*M_P**2)), 2)
 
 
 
