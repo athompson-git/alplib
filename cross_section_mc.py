@@ -6,7 +6,7 @@ from alplib.constants import *
 from alplib.fmath import *
 from alplib.matrix_element import *
 
-#import vegas
+import vegas
 
 
 
@@ -323,13 +323,16 @@ class Scatter2to3MC:
         s2Max, s2Min = self.s2MaxMin(s)
         t1Max1, t1Min1 = self.t1MaxMin(s, s2Min)
         t1Max2, t1Min2 = self.t1MaxMin(s, s2Max)
-        t1Max = max(t1Max1, t1Max2)
-        t1Min = min(t1Min1, t1Min2)
-        integ = vegas.Integrator([[s2Min, s2Max], [t1Min, t1Max], [-1.0, 1.0], [0.0, 2*pi]])
+        t1_crit_points = [t1Max1, t1Min1, t1Max2, t1Min2]
+        t1Max = max(t1_crit_points)
+        t1Min = min(t1_crit_points)
+        s2_cutoff = (s2Max - s2Min)*0.000001
+
+        integ = vegas.Integrator([[s2Min, s2Max], [t1Min, t1Max], [-0.99, 0.99], [-pi+0.01, pi-0.01]])
 
         integ(f, nitn=nitn, neval=neval)
         result = integ(f, nitn=nitn, neval=neval)
-        
+
         return float(result.mean)
     
     def dsigma_ds2dt1(self, s, s2, t1, nitn=30, neval=1000):
@@ -337,7 +340,7 @@ class Scatter2to3MC:
             dsigma = self.dsigma_ds2dt1dOmega3(s, s2, t1, x[0], x[1])
             return dsigma
         
-        integ = vegas.Integrator([[-1.0, 1.0], [0.0, 2*pi]])
+        integ = vegas.Integrator([[-0.95, 0.95], [-pi, pi]])
 
         integ(f, nitn=nitn, neval=neval)
         result = integ(f, nitn=nitn, neval=neval)
