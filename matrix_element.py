@@ -128,22 +128,44 @@ class M2DMUpscatter(MatrixElement2):
 
 class M2DarkPrimakoff(MatrixElement2):
     """
-    Dark Primakoff scattering (a + N -> gamma + N) via heavy mediator Zprime
+    Dark Primakoff scattering (a + N -> gamma + N) of a scalar/pseudoscalar via heavy mediator Zprime
     """
     def __init__(self, ma, mZp, mN, n, z):
-        super().__init__(ma, mN, 0, mN)
+        super().__init__(ma, mN, 0.0, mN)
         self.mZp = mZp
         self.mN = mN
         self.ma = ma
         self.z = z
         self.ff2 = NuclearHelmFF(n, z)
-        self.ffp = ProtonFF()
 
     def __call__(self, s, t, coupling_product=1.0):
         prefactor = coupling_product**2
         propagator = power(t - self.mZp**2, 2)
-        numerator = -t*(2*self.mN**2 * (self.ma**2 - 2*s - t) + 2*self.mN**4 - 2*self.ma**2 * (s + t) + self.ma**4 + 2*s**2 + 2*s*t + t**2)
-        return (self.ff2(np.sqrt(abs(t)))) * prefactor * numerator / propagator
+        numerator_coh = self.ff2(np.sqrt(abs(t))) * (-t*(2*self.mN**2 * (self.ma**2 - 2*s - t) + 2*self.mN**4 \
+            - 2*self.ma**2 * (s + t) + self.ma**4 + 2*s**2 + 2*s*t + t**2) - 2*self.mN**2 * (self.ma**2 - t)**2)
+        return prefactor * (numerator_coh) / propagator
+
+
+
+
+class M2DarkPrimakoffIncoherent(MatrixElement2):
+    """
+    Dark Primakoff scattering (a + N -> gamma + N) of a scalar/pseudoscalar via heavy mediator Zprime
+    """
+    def __init__(self, ma, mZp, n, z):
+        super().__init__(ma, M_P, 0, M_P)
+        self.mZp = mZp
+        self.ma = ma
+        self.z = z
+        self.ffp = ProtonFF()
+
+    def __call__(self, s, t, coupling_product=1.0):
+        prefactor = self.z * coupling_product**2
+        propagator = power(t - self.mZp**2, 2)
+        numerator = -t*(2*M_P**2 * (self.ma**2 - 2*s - t) + 2*M_P**4 \
+            - 2*self.ma**2 * (s + t) + self.ma**4 + 2*s**2 + 2*s*t + t**2) - 2*M_P**2 * (self.ma**2 - t)**2
+        return (self.ffp(t)) * prefactor * numerator / propagator
+
 
 
 
@@ -162,14 +184,15 @@ class M2VectorScalarPrimakoff(MatrixElement2):
         self.ffp = ProtonFF()
 
     def __call__(self, s, t, coupling_product=1.0):
-        return 1.5*abs((self.ff2(np.sqrt(abs(t)))) * coupling_product**2 * (4*self.mN**2 - t) * power((self.mZp**2 - t)/(2*(self.mphi**2 - t)),2))
+        return (3/16)*abs((self.ff2(np.sqrt(abs(t)))) * coupling_product**2 \
+            * (4*self.mN**2 - t) * power((self.mZp**2 - t)/((self.mphi**2 - t)),2))
 
 
 
 
 class M2VectorPseudoscalarPrimakoff(MatrixElement2):
     """
-    Zp + N -> gamma + N via massive scalar mediator
+    Zp + N -> gamma + N via massive pseudoscalar mediator
     """
     def __init__(self, mphi, mZp, mN, n, z):
         super().__init__(mZp, mN, 0, mN)
@@ -181,7 +204,8 @@ class M2VectorPseudoscalarPrimakoff(MatrixElement2):
         self.ffp = ProtonFF()
 
     def __call__(self, s, t, coupling_product=1.0):
-        return abs((self.ff2(np.sqrt(abs(t))))  * coupling_product**2 * (4*self.mN**2 - t) * power((self.mZp**2 - t)/(2*(self.mphi**2 - t)),2))
+        return abs((self.ff2(np.sqrt(abs(t))))  * coupling_product**2 \
+            * (4*self.mN**2 - t) * power((self.mZp**2 - t)/((self.mphi**2 - t)),2)) / 8
 
 
 
