@@ -65,7 +65,7 @@ class Borrmann:
         return 1.0
 
     def sf_ratio(self, h, k, l):  # structure function ratio
-        return sqrt(self.crystal.S2(h, k, l)/self.crystal.S2(0, 0, 0))
+        return sqrt(self.crystal.SF2(h, k, l)/self.crystal.SF2(0, 0, 0))
     
     def f_L1(self, sinThetaByLambda):
         return np.interp(sinThetaByLambda, self.ge_l1[:,0], self.ge_l1[:,1])
@@ -97,36 +97,6 @@ class Borrmann:
 
     def anomalous_depth(self, energy, h, k, l):
         return 1/self.anomalous_abs(energy, h, k, l)
-
-
-
-class ImaginaryFormFactorBragg:
-    def __init__(self, imff_full_datfile, imff_quad_datfile, material="Ge"):
-        self.mat = material
-        # data files in [GeV, xxx]
-        self.full_dat = np.genfromtxt(imff_full_datfile)
-        self.quad_dat = np.genfromtxt(imff_quad_datfile)
-
-        self.prefactor = np.pi * (1e-3 * HBAR)**2 * (1e-3 * M_E)  # pi hbar^2 m_e in GeV^3 s^2
-
-        #self.crystal = get_crystal(material)
-    
-    def imff(self, k):
-        # return imff given k in keV
-        return np.interp(k * 1e-6, self.full_dat[:,0], self.full_dat[:,1])
-    
-    def imff_quad(self, k):
-        # return Quadrupole moment imff given k in keV
-        return np.interp(k * 1e-6, self.quad_dat[:,0], self.quad_dat[:,1])
-    
-    def imff_ratio(self, k):
-        return self.imff_quad(k) / self.imff(k)
-    
-    def borrmann_factor(self, sinThetaByLambda, k):
-        return 1 - 2 * (sinThetaByLambda * 2*pi*HBARC_KEV_ANG/k)**2 * self.imff_ratio(k)*0.4
-    
-    def cross_section(self, k):
-        return self.prefactor * self.imff(k) / k
 
 
 
