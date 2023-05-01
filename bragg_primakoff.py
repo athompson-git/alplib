@@ -6,20 +6,15 @@ from .fmath import *
 from .det_xs import iprimakoff_sigma
 from .materials import Material
 from .crystal import Crystal
-from .borrmann import Borrmann, AbsorptionSum
+from .borrmann import *
 
 # Global Constants in keV angstroms
 M_E_KeV = 1e3 * M_E
-HBARC_KEV_ANG = 1.97
-
-# Crystal constants
-zGe = 32
-r0Ge = 0.53
-vCrys = 1e12  # 1 cubic micron in cubic angstroms
 
 class BraggPrimakoff:
-    def __init__(self, crys: Crystal, nsamples=100, energy_res=0.73):
+    def __init__(self, crys: Crystal, ma=0.0001, nsamples=100, energy_res=0.73):
         # Lattice params
+        self.crys = crys
         self.a = crys.a
         self.z = crys.z
         self.r0 = crys.r0
@@ -29,8 +24,11 @@ class BraggPrimakoff:
         self.l_crystal = power(self.volume, 1/3)
         self.fwhm = energy_res
 
+        self.ma = ma  # in keV
+
         self.borrmann = Borrmann(Material(crys.mat_name))
-        self.absorption_sum = AbsorptionSum(Material(crys.mat_name), n_atoms_side=4, physical_length=power(self.volume,1/3))
+        #self.absorption_sum = AbsorptionSum(Material(crys.mat_name), n_atoms_side=4, physical_length=power(self.volume,1/3))
+        self.absorption_sum = AbsorptionSumTable()
 
         # Primitive basis vectors
         self.a0 = crys.a0 #np.array([0,0,0])
@@ -58,13 +56,7 @@ class BraggPrimakoff:
 
     # Structure function squared
     def S2(self, mList):
-        return 4 * (cos(np.dot(self.a1, self.vecG(mList)) / 2))**2
-
-    def S2Expanded(self, mList):
-        h = mList[0]
-        k = mList[1]
-        l = mList[2]
-        return 4 * cos(pi/4 * (h+k+l))**2 * (cos(pi*h)*(cos(pi*k)+cos(pi*l)) + cos(pi*k)*cos(pi*l) + 1)
+        return self.crys.SF2(mList[0], mList[1], mList[2])
 
     # Energy resolution function
     def FW(self, Ea, E1, E2):
@@ -79,10 +71,19 @@ class BraggPrimakoff:
         return HBARC_KEV_ANG * abs(np.dot(self.vecG(mList), self.vecG(mList)) \
             / (2 * np.dot(self.vecU(theta_z, phi), self.vecG(mList))))
 
-    # Solar ALP flux in keV^-1 cm^-2 s^-1
     def SolarFlux(self, Ea, gagamma):
+        # Solar ALP flux in keV^-1 cm^-2 s^-1
         return (gagamma * 1e8)**2 * (5.95e14 / 1.103) * (Ea / 1.103)**3 / (exp(Ea / 1.103) - 1)
 
+    def SolarFluxMassiveALP(self, Ea, gagamma):
+        # Solar ALP flux in keV^-1 cm^-2 s^-1
+        # Ea in keV, gagamma in GeV^-1
+        if Ea <= self.ma:
+            return 0.0
+        # Primakoff + Photon Coalescence (0006327v3)
+        primakoff_flux = 4.20e10*(gagamma*1e10)**2 * Ea*(Ea**2 - self.ma**2)*(1+0.02 * self.ma)/(np.exp(Ea/1.1) - 0.7)
+        coalescence_flux = 1.68e9*(gagamma*1e10)**2 * self.ma**4 * sqrt(Ea**2 - self.ma**2)*(1+0.0006*Ea**3 + 10/(0.2 + Ea**2))*np.exp(-Ea)
+        return primakoff_flux + coalescence_flux
 
     # Getter for the list of reciprocal vectors
     def GetReciprocalLattice(self, nmax=5):
@@ -95,7 +96,7 @@ class BraggPrimakoff:
         return np.array(g)
 
     # Bragg-Primakoff event rate
-    def PrimakoffRate(self, theta_z, phi, E1=2.0, E2=2.5, gagamma=1e-10, use_att=False, use_borrmann=False, days_exposure=1.0):
+    def PrimakoffRate(self, theta_z, phi, E1=2.0, E2=2.5, gagamma=1e-10, use_borrmann=False, days_exposure=1.0):
         rate = 0.0
         #prefactor = (gagamma / 1e6)**2 * HBARC_KEV_ANG**2 * (self.volume / self.va**2) / 4  # 1e6 to convert to keV^-1
         prefactor = pi*(S_PER_DAY*days_exposure) * (gagamma / 1e6)**2 * HBARC_KEV_ANG**3 \
@@ -109,14 +110,13 @@ class BraggPrimakoff:
             formFactorSquared = self.FA(sqrt(np.dot(self.vecG(mList), self.vecG(mList))), ea)
             atten_factor = 1
             if use_borrmann:
-                l_borrmann = 1e8*self.borrmann.anomalous_depth(ea, mList[0], mList[1], mList[2])  # 1e8: cm to A conversion
-                atten_factor = self.absorption_sum.get_atten_factor(mfp=l_borrmann, hkl=mList, kVec=ea*self.vecU(theta_z, phi))
-            elif use_att:
-                l_att = 1e8/(self.borrmann.n * self.borrmann.abs_xs.sigma_cm2(1e-3*ea))
-                atten_factor = self.absorption_sum.get_atten_factor(mfp=l_att, hkl=mList, kVec=ea*self.vecU(theta_z, phi))
+                #l_borrmann = 1e8*self.borrmann.anomalous_depth(ea, mList[0], mList[1], mList[2])  # 1e8: cm to A conversion
+                #atten_factor = self.absorption_sum.get_atten_factor(mfp=l_borrmann, hkl=mList, kVec=ea*self.vecU(theta_z, phi))
+                atten_factor = self.absorption_sum.read_atten_factor_table(theta_z, phi, hkl=mList)
+
             rate += np.sum(heaviside(ea, 0.0) \
                     * self.SolarFlux(ea, gagamma) * sineSquaredTheta \
-                    * formFactorSquared * self.S2Expanded(mList) \
+                    * formFactorSquared * self.S2(mList) \
                     * self.FW(ea, E1, E2) * (1 / np.dot(self.vecG(mList), self.vecG(mList)))) \
                     * atten_factor
         
@@ -148,7 +148,7 @@ class BraggPrimakoff:
                     l_factor = 1e8/(self.borrmann.n * self.borrmann.abs_xs.sigma_cm2(1e-3*ea))
                 rate += np.sum(heaviside(ea, 0.0) \
                     * self.SolarFlux(ea, gagamma) * sineSquaredTheta \
-                    * formFactorSquared * self.S2Expanded(m) \
+                    * formFactorSquared * self.S2(m) \
                     * self.FW(ea, E1, E2) * (1 / np.dot(self.vecG(m), self.vecG(m)))) \
                     * l_factor / power(self.volume, 1/3)
 

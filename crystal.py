@@ -52,6 +52,9 @@ class Crystal(Material):
     def sfunc(self, h, k, l):
         return abs((1+exp(-1j * dot(self.alpha[1], self.G(h, k, l)))) \
             * sum([exp(-2*pi*1j*dot(self.miller(h, k, l), avec/self.a)) for avec in self.basis]))
+    
+    def SF2(self, h, k, l):
+        return np.real(self.sfunc(h,k,l) * np.conjugate(self.sfunc(h,k,l)))
 
 
 
