@@ -32,24 +32,28 @@ cell_density: No. unit cells per volume cm^-3
 abs_coeff: absorption coefficient in cm^-1
 """
 class Borrmann:
-    def __init__(self, material: Material, verbose=False):
+    def __init__(self, material: Material, verbose=False, cryogenic=True):
         # Set coefficients from Peng et al. Assumes Cryogenic temps
         self.a_coeffs = []
         self.b_coeffs = []
 
-        if material.name == "Ge":
+        if material.mat_name == "Ge":
             # At cryogenic temps
             self.a_coeffs = [-0.0099, 0.0514, 0.0351, 0.0238, 0.0044]
             self.b_coeffs = [0.0267, 0.1536, 0.4845, 1.3795, 5.4966]
-        elif material.name == "NaI":
-            # At room temp
-            self.a_coeffs = [-0.0015, -0.0145, 0.0953, 0.0113, 0.0041]
-            self.b_coeffs = [0.2083, 0.9749, 4.3959, 8.7251, 36.0870]
-        elif material.name == "Si":
+        elif material.mat_name == "NaI":
+            if cryogenic:
+                self.a_coeffs = [-0.0068, 0.0569, 0.0251, -0.0211, 0.0055]
+                self.b_coeffs = [0.2277, 1.7152, 9.4654, 13.1051, 32.9902]
+            else:
+                # At room temp
+                self.a_coeffs = [-0.0015, -0.0145, 0.0953, 0.0113, 0.0041]
+                self.b_coeffs = [0.2083, 0.9749, 4.3959, 8.7251, 36.0870]
+        elif material.mat_name == "Si":
             # At cryogenic temps
             self.a_coeffs = [-0.0028, 0.0127, 0.0108, 0.0058, 0.0024]
             self.b_coeffs = [0.0382, 0.2025, 0.5845, 1.7728, 10.6593]
-        elif material.name == "CsI":
+        elif material.mat_name == "CsI":
             # At room temps
             self.a_coeffs = [-0.0314, -0.0827, -0.1396, 2.0856, 0.0988]
             self.b_coeffs = [0.4061, 1.6180, 2.5843, 10.5874, 35.9707]
@@ -77,6 +81,9 @@ class Borrmann:
         gvec = self.crystal.G(h, k, l)
         sinThetaByLambda = sqrt(np.dot(gvec, gvec))/4/pi
         return self.sf_ratio(h,k,l) * self.imff(sinThetaByLambda) / self.imff(0.0)
+    
+    def imff_ratio(self, sinThetaByLambda):
+        return self.imff(sinThetaByLambda) / self.imff(0.0)
 
     def anomalous_abs(self, energy, h, k, l):
         mu = self.n * self.abs_xs.sigma_cm2(1e-3*energy)
