@@ -150,17 +150,17 @@ class M2DarkPrimakoff(MatrixElement2):
 
 class M2DarkPrimakoffIncoherent(MatrixElement2):
     """
-    Dark Primakoff scattering (a + N -> gamma + N) of a scalar/pseudoscalar via heavy mediator Zprime
+    Dark Primakoff scattering on single nucleons (a + n -> gamma + n) of a scalar/pseudoscalar via heavy mediator Zprime
     """
-    def __init__(self, ma, mZp, n, z):
+    def __init__(self, ma, mZp, n_nucleons):
         super().__init__(ma, M_P, 0, M_P)
         self.mZp = mZp
         self.ma = ma
-        self.z = z
+        self.NN = n_nucleons
         self.ffp = ProtonFF()
 
     def __call__(self, s, t, coupling_product=1.0):
-        prefactor = self.z * coupling_product**2
+        prefactor = self.NN * coupling_product**2
         propagator = power(t - self.mZp**2, 2)
         numerator = -t*(2*M_P**2 * (self.ma**2 - 2*s - t) + 2*M_P**4 \
             - 2*self.ma**2 * (s + t) + self.ma**4 + 2*s**2 + 2*s*t + t**2) - 2*M_P**2 * (self.ma**2 - t)**2
@@ -181,7 +181,6 @@ class M2VectorScalarPrimakoff(MatrixElement2):
         self.mphi = mphi
         self.z = z
         self.ff2 = NuclearHelmFF(n, z)
-        self.ffp = ProtonFF()
 
     def __call__(self, s, t, coupling_product=1.0):
         return (3/16)*abs((self.ff2(np.sqrt(abs(t)))) * coupling_product**2 \
@@ -201,11 +200,28 @@ class M2VectorPseudoscalarPrimakoff(MatrixElement2):
         self.mphi = mphi
         self.z = z
         self.ff2 = NuclearHelmFF(n, z)
-        self.ffp = ProtonFF()
 
     def __call__(self, s, t, coupling_product=1.0):
         return abs((self.ff2(np.sqrt(abs(t))))  * coupling_product**2 \
             * (4*self.mN**2 - t) * power((self.mZp**2 - t)/((self.mphi**2 - t)),2)) / 8
+
+
+
+
+class M2VectorPseudoscalarPrimakoffIncoherent(MatrixElement2):
+    """
+    Zp + N -> gamma + N via massive pseudoscalar mediator
+    """
+    def __init__(self, mphi, mZp, n_nucleons):
+        super().__init__(mZp, M_P, 0, M_P)
+        self.mZp = mZp
+        self.mphi = mphi
+        self.NN = n_nucleons
+        self.ffp = ProtonFF()
+
+    def __call__(self, s, t, coupling_product=1.0):
+        return self.NN * abs((self.ffp(t))  * coupling_product**2 \
+            * (4*M_P**2 - t) * power((self.mZp**2 - t)/((self.mphi**2 - t)),2)) / 8
 
 
 
