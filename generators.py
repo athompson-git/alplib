@@ -109,6 +109,10 @@ class DarkPrimakoffGenerator:
         self.energy_threshold = None  # TODO: add threshold as member var
         self.n_samples = n_samples
         self.mediator_type = mediator
+        if mediator == "Pi0":
+            self.target_masses = detector.m.shape[0] * [M_P]
+        else:
+            self.target_masses = detector.m
 
     def get_weights(self, lam, gphi, mphi, n_e=3.2e26, eff=Efficiency()):
         # Simulate using the MatrixElement method
@@ -121,10 +125,13 @@ class DarkPrimakoffGenerator:
         if self.mediator_type == "V":
             m2_dp = [M2DarkPrimakoff(self.mx, mphi, self.det.m[i], self.det.n[i], self.det.z[i]) \
                 for i in range(len(self.det.frac))]
+        if self.mediator_type == "Pi0":
+            m2_dp = [M2VectorPseudoscalarPrimakoffIncoherent(M_PI0, self.mx, self.det.n[i] + self.det.z[i])
+                for i in range(len(self.det.frac))]
 
-        # Declare initial vectors
-        mc = [Scatter2to2MC(m2, LorentzVector(), LorentzVector(), n_samples=self.n_samples) for m2 in m2_dp]
-
+        # Initiate list of monte carlo protocols for each atom in the material compound
+        mc = [Scatter2to2MC(m2, p2=LorentzVector(self.target_masses[j], 0.0, 0.0, 0.0), n_samples=self.n_samples) for j, m2 in enumerate(m2_dp)]
+        
         cosine_list = []
         cosine_weights_list = []
         energy_list = []
@@ -135,7 +142,6 @@ class DarkPrimakoffGenerator:
                 continue
             for j, this_mc in enumerate(mc):  # loop over elements in compound material
                 this_mc.lv_p1 = LorentzVector(Ea0, 0.0, 0.0, np.sqrt(Ea0**2 - self.mx**2))
-                this_mc.lv_p2 = LorentzVector(self.det.m[j], 0.0, 0.0, 0.0)
                 this_mc.scatter_sim()
                 cosines, dsdcos = this_mc.get_cosine_lab_weights()
                 e3, dsde = this_mc.get_e3_lab_weights()
