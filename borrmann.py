@@ -33,6 +33,64 @@ abs_coeff: absorption coefficient in cm^-1
 """
 class Borrmann:
     def __init__(self, material: Material, verbose=False):
+        # Set coefficients from Peng et al. Assumes Cryogenic temps
+        self.a_coeffs = []
+        self.b_coeffs = []
+
+        if material.name == "Ge":
+            # At cryogenic temps
+            self.a_coeffs = [-0.0099, 0.0514, 0.0351, 0.0238, 0.0044]
+            self.b_coeffs = [0.0267, 0.1536, 0.4845, 1.3795, 5.4966]
+        elif material.name == "NaI":
+            # At room temp
+            self.a_coeffs = [-0.0015, -0.0145, 0.0953, 0.0113, 0.0041]
+            self.b_coeffs = [0.2083, 0.9749, 4.3959, 8.7251, 36.0870]
+        elif material.name == "Si":
+            # At cryogenic temps
+            self.a_coeffs = [-0.0028, 0.0127, 0.0108, 0.0058, 0.0024]
+            self.b_coeffs = [0.0382, 0.2025, 0.5845, 1.7728, 10.6593]
+        elif material.name == "CsI":
+            # At room temps
+            self.a_coeffs = [-0.0314, -0.0827, -0.1396, 2.0856, 0.0988]
+            self.b_coeffs = [0.4061, 1.6180, 2.5843, 10.5874, 35.9707]
+        else:
+            # Assume Ge
+            self.a_coeffs = [-0.0099, 0.0514, 0.0351, 0.0238, 0.0044]
+            self.b_coeffs = [0.0267, 0.1536, 0.4845, 1.3795, 5.4966]
+
+        # Constants and cross sections
+        self.n = material.ndensity # cm^-3
+        self.abs_xs = AbsCrossSection(material)
+        self.crystal = get_crystal(material.mat_name, volume=1000)
+        self.verbose = verbose
+
+    def debye_waller(self):
+        return 1.0
+    
+    def imff(self, s):
+        return np.sum([self.a_coeffs[i] * np.exp(-self.b_coeffs[i]*s**2) for i in range(5)])
+
+    def sf_ratio(self, h, k, l):  # structure function ratio
+        return sqrt(self.crystal.SF2(h, k, l)/self.crystal.SF2(0, 0, 0))
+    
+    def borrmann_factor(self, h, k, l):
+        gvec = self.crystal.G(h, k, l)
+        sinThetaByLambda = sqrt(np.dot(gvec, gvec))/4/pi
+        return self.sf_ratio(h,k,l) * self.imff(sinThetaByLambda) / self.imff(0.0)
+
+    def anomalous_abs(self, energy, h, k, l):
+        mu = self.n * self.abs_xs.sigma_cm2(1e-3*energy)
+        return mu * (1 - self.borrmann_factor(h, k, l))
+
+    def anomalous_depth(self, energy, h, k, l):
+        return 1/self.anomalous_abs(energy, h, k, l)
+
+
+
+
+# Old Borrmann calculation based on Batterman + Wagenfield calcs
+class BattermanBorrmannFactor:
+    def __init__(self, material: Material, verbose=False):
         # Batterman files
         ge_l1_path = pkg_resources.resource_filename(__name__, "data/borrmann/Ge_L1_f.txt")
         ge_l23_path = pkg_resources.resource_filename(__name__, "data/borrmann/Ge_L23_f.txt")

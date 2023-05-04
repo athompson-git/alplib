@@ -96,34 +96,35 @@ class BraggPrimakoff:
         return np.array(g)
 
     # Bragg-Primakoff event rate
-    def PrimakoffRate(self, theta_z, phi, E1=2.0, E2=2.5, gagamma=1e-10, use_borrmann=False, days_exposure=1.0):
+    def PrimakoffRate(self, theta_z, phi, E1=2.0, E2=2.5, gagamma=1e-10, use_borrmann=False, days_exposure=1.0, fixed_hkl=None):
         rate = 0.0
         #prefactor = (gagamma / 1e6)**2 * HBARC_KEV_ANG**2 * (self.volume / self.va**2) / 4  # 1e6 to convert to keV^-1
         prefactor = pi*(S_PER_DAY*days_exposure) * (gagamma / 1e6)**2 * HBARC_KEV_ANG**3 \
             * (self.volume / self.va**2) * 1e-16 # 1e6 to convert to keV^-1
-        for mList in self.GetReciprocalLattice():
-            if np.dot(self.vecU(theta_z, phi), self.vecG(mList)) == 0.0:
+        for hkl in self.GetReciprocalLattice():
+            if fixed_hkl is not None:
+                if hkl[0] != fixed_hkl[0] or hkl[1] != fixed_hkl[1] or hkl[2] != fixed_hkl[2]:
+                    continue
+            if np.dot(self.vecU(theta_z, phi), self.vecG(hkl)) == 0.0:
                 continue
-            ea = abs(self.Ea(theta_z, phi, mList))
-            sineThetaBy2 = np.dot(self.vecU(theta_z, phi), self.vecG(mList)) / sqrt(np.dot(self.vecG(mList),self.vecG(mList)))
+            ea = abs(self.Ea(theta_z, phi, hkl))
+            sineThetaBy2 = np.dot(self.vecU(theta_z, phi), self.vecG(hkl)) / sqrt(np.dot(self.vecG(hkl),self.vecG(hkl)))
             sineSquaredTheta = 4 * sineThetaBy2**2 * (1 - sineThetaBy2**2)
-            formFactorSquared = self.FA(sqrt(np.dot(self.vecG(mList), self.vecG(mList))), ea)
-            atten_factor = 1
+            formFactorSquared = self.FA(sqrt(np.dot(self.vecG(hkl), self.vecG(hkl))), ea)
+            atten_factor = 1.0
             if use_borrmann:
-                #l_borrmann = 1e8*self.borrmann.anomalous_depth(ea, mList[0], mList[1], mList[2])  # 1e8: cm to A conversion
-                #atten_factor = self.absorption_sum.get_atten_factor(mfp=l_borrmann, hkl=mList, kVec=ea*self.vecU(theta_z, phi))
-                atten_factor = self.absorption_sum.read_atten_factor_table(theta_z, phi, hkl=mList)
+                atten_factor = self.absorption_sum.read_atten_factor_table(theta_z, phi, hkl=hkl)
 
             rate += np.sum(heaviside(ea, 0.0) \
-                    * self.SolarFlux(ea, gagamma) * sineSquaredTheta \
-                    * formFactorSquared * self.S2(mList) \
-                    * self.FW(ea, E1, E2) * (1 / np.dot(self.vecG(mList), self.vecG(mList)))) \
+                    * self.SolarFluxMassiveALP(ea, gagamma) * sineSquaredTheta \
+                    * formFactorSquared * self.S2(hkl) \
+                    * self.FW(ea, E1, E2) * (1 / np.dot(self.vecG(hkl), self.vecG(hkl)))) \
                     * atten_factor
         
         return prefactor * rate
 
     def BraggPrimakoffAvgPhi(self, theta_z, E1=2.0, E2=2.5, gagamma=1e-10, days_exposure=1.0,
-                                use_borrmann=False, use_att=False):
+                                use_borrmann=False, fixed_hkl=None):
         # Bragg-Primakoff event rate after averaging over polar angle
         # theta_z: in rad
         # E1, E2 in keV
@@ -131,26 +132,26 @@ class BraggPrimakoff:
         # days_exposure in days
         prefactor = pi *(S_PER_DAY*days_exposure) * (gagamma / 1e6)**2 * HBARC_KEV_ANG**3 \
             * (self.volume / self.va**2) * 1e-16 # 1e6 to convert to keV^-1
-        mList = self.GetReciprocalLattice()
         def Rate(phi):
             rate = 0.0
-            for m in mList:
-                if np.dot(self.vecU(theta_z, phi), self.vecG(m)) == 0.0:
+            for hkl in self.GetReciprocalLattice():
+                if fixed_hkl is not None:
+                    if hkl[0] != fixed_hkl[0] or hkl[1] != fixed_hkl[1] or hkl[2] != fixed_hkl[2]:
+                        continue
+                if np.dot(self.vecU(theta_z, phi), self.vecG(hkl)) == 0.0:
                     continue
-                ea = abs(self.Ea(theta_z, phi, m))
-                sineThetaBy2 = np.dot(self.vecU(theta_z, phi), self.vecG(m)) / sqrt(np.dot(self.vecG(m),self.vecG(m)))
+                ea = abs(self.Ea(theta_z, phi, hkl))
+                sineThetaBy2 = np.dot(self.vecU(theta_z, phi), self.vecG(hkl)) / sqrt(np.dot(self.vecG(hkl),self.vecG(hkl)))
                 sineSquaredTheta = 4 * sineThetaBy2**2 * (1 - sineThetaBy2**2)
-                formFactorSquared = self.FA(sqrt(np.dot(self.vecG(m), self.vecG(m))), ea)
-                l_factor = power(self.volume, 1/3)
+                formFactorSquared = self.FA(sqrt(np.dot(self.vecG(hkl), self.vecG(hkl))), ea)
+                atten_factor = 1.0
                 if use_borrmann:
-                    l_factor = 1e8*self.borrmann.anomalous_depth(ea, m[0], m[1], m[2])  # 1e8: cm to A conversion
-                elif use_att:
-                    l_factor = 1e8/(self.borrmann.n * self.borrmann.abs_xs.sigma_cm2(1e-3*ea))
+                    atten_factor = self.absorption_sum.read_atten_factor_table(theta_z, phi, hkl=hkl)
                 rate += np.sum(heaviside(ea, 0.0) \
-                    * self.SolarFlux(ea, gagamma) * sineSquaredTheta \
-                    * formFactorSquared * self.S2(m) \
-                    * self.FW(ea, E1, E2) * (1 / np.dot(self.vecG(m), self.vecG(m)))) \
-                    * l_factor / power(self.volume, 1/3)
+                    * self.SolarFluxMassiveALP(ea, gagamma) * sineSquaredTheta \
+                    * formFactorSquared * self.S2(hkl) \
+                    * self.FW(ea, E1, E2) * (1 / np.dot(self.vecG(hkl), self.vecG(hkl)))) \
+                    * atten_factor
 
             return rate
         
