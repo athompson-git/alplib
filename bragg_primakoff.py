@@ -116,7 +116,6 @@ class BraggPrimakoff:
     def PrimakoffRate(self, theta_z, phi, E1=2.0, E2=2.5, gagamma=1e-10, use_borrmann=False, days_exposure=1.0,
                         fixed_hkl=None, hkl_max=6, calc_abs_insitu=True):
         rate = 0.0
-        t1 = time.time()
         prefactor = pi*(S_PER_DAY*days_exposure) * (gagamma / 1e6)**2 * HBARC_KEV_ANG**3 \
             * (self.volume / self.va**2) * 1e-16 # 1e6 to convert to keV^-1, 1e-16 to convert A^2 to cm^2 (see 1/|G|^2 factor)
         if use_borrmann:
@@ -141,9 +140,6 @@ class BraggPrimakoff:
                     * self.FA_SF_2(hkl, ea) \
                     * self.FW(ea, E1, E2) * (1 / np.dot(self.vecG(hkl), self.vecG(hkl)))) \
                     * atten_factor
-            
-        t2 = time.time()
-        print("abs calc took ", t2-t1)
 
         return prefactor * rate
 
