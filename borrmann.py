@@ -287,7 +287,7 @@ class AbsorptionSumTable:
         self.interp_400 = RegularGridInterpolator((self.theta_arr, self.phi_arr), self.data_400, bounds_error=False)
 
     def read_atten_factor_table(self, theta, phi, hkl=[1,1,1]):
-        hkl_str = ''.join(map(str, hkl))
+        hkl_str = ''.join(map(str, hkl)).replace('-','')
         if hkl_str == '111':
             return self.interp_111([theta, phi])[0]
         elif hkl_str == '220':

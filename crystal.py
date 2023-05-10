@@ -50,8 +50,8 @@ class Crystal(Material):
         return np.array([h, k, l])
     
     def sfunc(self, h, k, l):
-        return abs((1+exp(-1j * dot(self.alpha[1], self.G(h, k, l)))) \
-            * sum([exp(-2*pi*1j*dot(self.miller(h, k, l), avec/self.a)) for avec in self.basis]))
+        return (1+exp(-1j * dot(self.alpha[1], self.G(h, k, l)))) \
+            * np.sum([exp(-1j*dot(self.G(h, k, l), avec)) for avec in self.basis])
     
     def SF2(self, h, k, l):
         return np.real(self.sfunc(h,k,l) * np.conjugate(self.sfunc(h,k,l)))
@@ -85,7 +85,7 @@ def get_crystal(name, volume):
         A1 = [0.0, 0.5, 0.5]
         A2 = [0.5, 0.0, 0.5]
         A3 = [0.5, 0.5, 0.0]
-        return Crystal(name, Primitives, A1, A2, A3)
+        return Crystal(name, Primitives, A1, A2, A3, volume=volume)
     
     if name == "NaI":
         # Diamond cubic, sodium iodide
@@ -95,7 +95,7 @@ def get_crystal(name, volume):
         A1 = [0.0, 0.5, 0.5]
         A2 = [0.5, 0.0, 0.5]
         A3 = [0.5, 0.5, 0.0]
-        return Crystal(name, Primitives, A1, A2, A3)
+        return Crystal(name, Primitives, A1, A2, A3, volume=volume)
 
     if name == "CsI":
         # Diamond cubic, cesium iodide
