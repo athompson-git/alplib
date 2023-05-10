@@ -33,9 +33,9 @@ class Material:
             self.n = np.array(mat_info['n'])
             self.m = np.array(mat_info['m'])
             self.frac = np.array(mat_info['frac'])
-            self.lattice_const = np.array([mat_info['lattice_const']])  # Angstroms
-            self.cell_volume = np.array([mat_info['cell_volume']])  # Angstroms^3
-            self.r0 = np.array([mat_info['atomic_radius']])  # Angstroms
+            self.lattice_const = np.array(mat_info['lattice_const'])  # Angstroms
+            self.cell_volume = np.array(mat_info['cell_volume'])  # Angstroms^3
+            self.r0 = np.array(mat_info['atomic_radius'])  # Angstroms
             self.density = mat_info['density']  # g/cm^3
             self.fid_mass = fiducial_mass  # kg
             self.volume = volume  # cm^3
