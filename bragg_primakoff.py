@@ -107,6 +107,13 @@ class BraggPrimakoff:
         primakoff_flux = 4.20e10*(gagamma*1e10)**2 * Ea*(Ea**2 - self.ma**2)*(1+0.02 * self.ma)/(np.exp(Ea/1.1) - 0.7)
         coalescence_flux = 1.68e9*(gagamma*1e10)**2 * self.ma**4 * sqrt(Ea**2 - self.ma**2)*(1+0.0006*Ea**3 + 10/(0.2 + Ea**2))*np.exp(-Ea)
         return primakoff_flux + coalescence_flux
+    
+    def Fe57Flux(self, Ea, gan):
+        # Ea in keV
+        # gan dimensionless
+        # returns flux in keV^-1 cm^-2 s^-1
+        # peak at 14.4 is 4.56e23
+        return 4.56e23 * np.exp(-0.5*power((Ea-14.4)/2e-3, 2)) * gan**2
 
     # Getter for the list of reciprocal vectors
     def GetReciprocalLattice(self, nmax=5):
@@ -140,8 +147,8 @@ class BraggPrimakoff:
                 l_borrmann = 1e8*self.borrmann.anomalous_depth(ea, hkl[0], hkl[1], hkl[2])
                 atten_factor = self.absorption_sum.get_atten_factor(l_borrmann, hkl, ea*self.vecU(theta_z, phi), n_workers=12)
 
-            rate += np.sum(heaviside(ea-self.ma, 0.0) \
-                    * self.SolarFluxMassiveALP(ea, gagamma) * sineSquared2Theta \
+            rate += 4 * np.sum(heaviside(ea-self.ma, 0.0) \
+                    * self.SolarFluxMassiveALP(ea, gagamma) * sineSquared2Theta * sineTheta**2 \
                     * self.FA_SF_2(hkl, ea) \
                     * self.FW(ea, E1, E2) * (1 / np.dot(self.vecG(hkl), self.vecG(hkl)))) \
                     * atten_factor

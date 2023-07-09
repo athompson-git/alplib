@@ -217,7 +217,7 @@ class AbsorptionSum:
             m2 += np.exp(-abs(dot_product) / (2*mfp))
         return m2
     
-    def get_atten_factor(self, mfp=1e-3, hkl=[2,2,0], kVec=[5.0,0.0,0.0], n_workers=8):
+    def get_atten_factor(self, mfp=1e-3, hkl=[2,2,0], kVec=[5.0,0.0,0.0], n_workers=4):
         # scale mfp
         toy_mfp = mfp * (self.cube_length / self.physical_length)
 
