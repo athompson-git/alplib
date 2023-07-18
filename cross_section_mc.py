@@ -6,7 +6,7 @@ from alplib.constants import *
 from alplib.fmath import *
 from alplib.matrix_element import *
 
-import vegas
+#import vegas
 
 
 
@@ -51,6 +51,12 @@ class Vector3:
     
     def mag(self):
         return np.sqrt(np.dot(self.vec, self.vec))
+
+    def phi(self):
+        return arctan2(self.v2, self.v1)
+    
+    def theta(self):
+        return arccos(self.v3 / self.mag())
     
     def set_v3(self, v1, v2, v3):
         self.v1 = v1
@@ -107,7 +113,7 @@ class LorentzVector:
         return self.p3 / self.momentum()
     
     def phi(self):
-        return arctan(self.p2 / self.p1)
+        return arctan2(self.p2, self.p1)
     
     def theta(self):
         return arccos(self.p3 / self.momentum())
