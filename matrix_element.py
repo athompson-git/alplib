@@ -747,3 +747,43 @@ class M2AxionPairProduction(MatrixElement2to3):
         M = self.ma
         prefactor = self.ffp(t1) * self.ff2(sqrt(abs(t1))) * power(gae * 4*pi*ALPHA, 2.0) / power(t2 * (m**2-t2) * (m**2+mA**2-s2-t2+t1), 2)
         return prefactor * 4*(m**4*(2*M**4*(mA**2+t1)+2*M**2*(3*mA**4+mA**2*(3*t1-2*(s+s2))-t1*(2*s+s2)+s2**2)+2*(mA**3-mA*s)**2+t1*(mA**4+2*mA**2*(s2-s)+2*s**2-2*s*s2+s2**2)+2*t1**2*(s-s2)+t1**3)+m**2*(2*M**4*((2*mA**2+t1)*(mA**2-s2+t1)-2*t2*(mA**2+t1))+2*M**2*((mA**2-s2+t1)*(3*mA**4-2*mA**2*(s+s1+s2-t1)-t1*(2*s+s2)+s2**2)+2*t2*(-2*mA**4+mA**2*(2*s+s2-2*t1)+2*s*t1+s2*(t1-s2)))+mA**6*(t1-4*s1)+mA**4*(4*s*(s1+t2)+4*s1*s2-4*s1*t1-s2*t1-4*s2*t2+3*t1**2+2*t1*t2)+mA**2*(2*s**2*(t1-2*t2)-2*s*(2*s1+t1)*(s2-t1)+4*s*s2*t2+t1*(s2**2-4*s2*(t1+t2)+3*t1**2))+t1*(2*s**2+2*s*(t1-s2)+(s2-t1)**2)*(-s2+t1-2*t2))+2*M**4*(mA**2-s2+t1-t2)*(mA**4-mA**2*(s2-t1+t2)-t1*t2)-2*M**2*(2*mA**2*s1*(mA**2-s2+t1)**2+t2*(mA**2-s2+t1)*(mA**4-2*mA**2*(s+s1)-t1*(2*s+s2)+s2**2)-t2**2*(mA**4+mA**2*(t1-2*s)-t1*(2*s+s2)+s2**2))+mA**2*(2*s1**2+2*s1*t1+t1**2)*(mA**2-s2+t1)**2-t2*(mA**2-s2+t1)*(mA**4*t1+2*mA**2*(2*s*s1-2*s1*s2+2*s1*t1+t1**2)+t1*(2*s**2+2*s*(t1-s2)+(s2-t1)**2))+t2**2*(mA**4*t1+2*mA**2*(t1*(s-s2)+(s-s2)**2+t1**2)+t1*(2*s**2+2*s*(t1-s2)+(s2-t1)**2)))
+
+
+
+
+class M2DMFourFermi(MatrixElement2):
+    def __init__(self, mDM=1.0e3):
+        super().__init__(M_P, mDM, mDM, M_P)
+        self.mPsi = mDM
+
+    def __call__(self, s, t, lamByMx=0.1):
+        return power(lamByMx, 4) * ((s+t)**2 - 4*(M_P**2 - self.mPsi**2)**2)
+
+
+
+class M2NeutrinoBrem(MatrixElement2to3):
+    def __init__(self, mf=1.0, mi=0.0, MTarget=M_P, z=6, LamScale=1.0e6):
+        super().__init__(MTarget, mi, 0.0, mf, MTarget)
+        self.mf = mf
+        self.mi = mi
+        self.M = MTarget
+        self.ff = AtomicElasticFF(z)
+        self.Lam = LamScale
+    """
+    def __call__(self, s, s2, t1, s1, t2):
+        prefactor = self.ff(sqrt(abs(-2*self.M**2+s-s1+t2)))*(2*pi*ALPHA)/(self.Lam**6 * power(-2*self.M**2+s-s1+t2, 2))
+        return prefactor*abs((self.M**2+2*self.mf*self.mi-s2+t1-t2)*\
+                             (1/8*(s1-self.mf**2)*(-(self.mf**2+s-s1-s2)*(self.M**2+self.mi**2-s+s1+t1-t2)+(self.M**2-t1)\
+                                                   *(2*self.M**2+self.mf**2+self.mi**2-s2-t2)+4*self.M**2*(self.M**2-s+s2-t1)) \
+                                                    +1/8*(-self.M**2+s-s2+t1)*((self.mf**2+s-s1-s2)*(self.M**2+self.mi**2-s+s1+t1-t2) \
+                                                                               -(self.M**2-t1)*(2*self.M**2+self.mf**2+self.mi**2-s2-t2)) \
+                                                                                +1/4*self.mi*(self.M**2-t1)*(self.mf**2+s-s1-s2)+1/4*(self.M**2-t1)\
+                                                                                    *(self.M**2-s2+t1-t2)*(self.mf**2+s-s1-s2)+1/4*self.mf**2 \
+                                                                                        *(self.M**2-t1)*(self.mf**2+s-s1-s2)+1/4*self.M**2*(self.mf**2-s1)**2+1/4*self.M**2*(self.M**2-s+s2-t1)**2))
+    """
+    def __call__(self, s, s2, t1, s1, t2):
+        prefactor = self.ff(sqrt(abs(-2*self.M**2+s-s1+t2)))*(2*pi*ALPHA)/(self.Lam**6 * power(-2*self.M**2+s-s1+t2, 2))
+        return prefactor*abs((self.M**2 - s2 + t1 - t2)*(2*self.M**2 * (2*self.mf**2*(2*s - 2*(s1 + s2) + t1) + 2*self.mf**4 + 2*s**2 - \
+                                                        4*s*(s1 + s2) + 3*s*t1 + 2*s1**2 + 4*s1*s2 - 3*s1*t1 + 2*s2**2 - \
+                                                        2*s2*t1 + 2*t1**2 + t1*t2) - self.M**4 * (4*self.mf**2 + 5*s - 5*s1 - 4*s2 + 8*t1 + t2) + \
+                                                            4*self.M**6 - (s - s1 + t2)*((self.mf**2 + s - s1 - s2)**2 + t1**2)))

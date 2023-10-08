@@ -293,22 +293,23 @@ class FluxBremIsotropic(AxionFlux):
         self.axion_energy.extend(ea_rnd)
         self.axion_flux.extend(el_wgt * diff_br)
 
-    def simulate(self):
+    def simulate(self, use_track_length=False):
         self.axion_energy = []
         self.axion_flux = []
         self.scatter_axion_weight = []
         self.decay_axion_weight = []
 
-        """
-        ep_min = max((self.ma**2 - M_E**2)/(2*M_E), M_E)
-        for i, el in enumerate(self.electron_flux):
-            t_depth = np.random.uniform(0.0, 5.0)
-            new_energy = np.random.uniform(ep_min, el[0])
-            flux_weight = self.electron_flux_attenuated(t_depth, el[0], new_energy) * 5.0 * (el[0] - ep_min)
-            self.simulate_single([new_energy, flux_weight])
-        """
-        for i, el in enumerate(self.electron_flux):
-            self.simulate_single(el)
+        if use_track_length:
+            ep_min = max((self.ma**2 - M_E**2)/(2*M_E), M_E)
+            for i, el in enumerate(self.electron_flux):
+                t_depth = np.random.uniform(0.01, 5.0)
+                new_energy = np.random.uniform(ep_min, el[0])
+                flux_weight = self.electron_flux_attenuated(t_depth, el[0], new_energy) * 5.0 * (el[0] - ep_min)
+                self.simulate_single([new_energy, el[1] * flux_weight])
+            
+        else:
+            for i, el in enumerate(self.electron_flux):
+                self.simulate_single(el)
 
     def propagate(self, new_coupling=None):
         if new_coupling is not None:

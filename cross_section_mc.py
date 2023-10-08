@@ -252,8 +252,10 @@ class Scatter2to3MC:
     """
     2 -> 3 scattering for general masses in fixed target frame
     Based on Byckling, Kajantie ch. V.4
+    
+    ATTN: assumes particle A is at rest.
     """
-    def __init__(self, mtrx2: MatrixElement2to3, p1=LorentzVector(), p2=LorentzVector(), n_samples=1000):
+    def __init__(self, mtrx2: MatrixElement2to3, p1=LorentzVector(), p2=LorentzVector(), n_samples=100):
         self.mtrx2 = mtrx2
 
         self.ma = mtrx2.ma
@@ -274,6 +276,7 @@ class Scatter2to3MC:
 
     def cayley_det(self, x, y, z, u, v, w):
         # Gramm-Schmidt det but with invariants
+        # Eq. 5.24 of Byckling, Kajantie
         return -0.5 * np.linalg.det([[0, 1, 1, 1, 1],
                                     [1, 0, v, x, z],
                                     [1, v, 0, u, y],
@@ -282,6 +285,9 @@ class Scatter2to3MC:
 
     def kallen(self, x, y, z):
         return np.power((x - y - z), 2) - 4*y*z
+    
+    def flux_factor(self, s):
+        return power(2*sqrt(self.kallen(s, self.ma**2, self.mb**2))*(2*pi)**5, -1)
     
     def s2MaxMin(self, s):
         return (sqrt(s) - self.m1)**2, (self.m2 + self.m3)**2
@@ -293,7 +299,7 @@ class Scatter2to3MC:
             + np.nan_to_num(sqrt(self.kallen(s, self.ma**2, self.mb**2)*self.kallen(s, s2, self.m1**2))))/(2*s)
     
     def phase_space_heaviside(self, s, t1, s2):
-        return np.heaviside(-np.nan_to_num(self.cayley_det(s, t1, s2, self.ma**2, self.mb**2, self.m1**2)), 0.0) \
+        return np.heaviside(np.nan_to_num(-self.cayley_det(s, t1, s2, self.ma**2, self.mb**2, self.m1**2)), 0.0) \
             * np.heaviside(self.kallen(s, self.m1**2, s2), 0.0) \
             * np.heaviside(self.kallen(s2, self.m2**2, self.m3**2), 0.0)
     
@@ -310,11 +316,30 @@ class Scatter2to3MC:
                              [s-self.ma**2 + self.mb**2, s+s2-self.m1**2, 0.0]]) \
                 + 2*np.nan_to_num(sqrt(self.cayley_det(s,t1,s2,self.ma**2,self.mb**2,self.m1**2)*self.cayley_det(s2,t2,self.m3**2,t1,self.mb**2,self.m2**2)))*cos(phib))
 
+    def paR23(self, s, t1, s2):
+        return sqrt(((s + t1 - self.mb**2 - self.m1**2)/(2*sqrt(s2)))**2 - self.ma**2)
+    
+    def pbR23(self, s2, t1):
+        return sqrt(self.kallen(s2, self.mb**2, t1)/s2) / 2
+    
+    def p1R23(self, s, s2):
+        e1_cm = (s + self.m1**2 - s2)/(2*sqrt(s))
+        return np.sqrt(e1_cm**2 - self.m1**2)
+
+    def sinTheta_b1(self, s, t1, s2):
+        # R23 frame
+        return -4 * s2 * self.cayley_det(s, t1, s2, self.ma**2, self.mb**2, self.m1**2) \
+            / (self.kallen(s2, self.mb**2, t1)*self.kallen(s, s2, self.m1**2))
+    
+    def cosTheta_ab(self, s, s2, t1):
+        sinTheta_b1 = self.sinTheta_b1(s, t1, s2)
+        cosTheta_b1 = sqrt(1 - sinTheta_b1**2)
+        return (self.p1R23(s, s2)*self.pbR23(s2, t1)*cosTheta_b1 - self.pbR23(s2, t1)**2) / (self.pbR23(s2, t1)*self.paR23(s, t1, s2))
+
     def dsigma_ds2dt1dOmega3(self, s, s2, t1, cosThetab3, phib):
         t2 = self.t2_from_angle(cosThetab3, t1, s2)
         s1 = self.s1_from_angle(phib, s, t1, s2, t2)
-        return pi * self.phase_space_heaviside(s, t1, s2) * self.mtrx2(s, s2, t1, s1, t2) \
-            * power(2*sqrt((s - (self.ma + self.mb)**2)*(s - (self.ma - self.mb)**2)), -1) \
+        return pi * self.phase_space_heaviside(s, t1, s2) * self.mtrx2(s, s2, t1, s1, t2) * self.flux_factor(s) \
             * np.nan_to_num(sqrt(self.kallen(s, self.ma**2, self.mb**2)/self.kallen(s2, self.m2**2, self.m3**2)))/(16*s2)
 
     def r23_velocity(self, s2, t1):
@@ -364,23 +389,76 @@ class Scatter2to3MC:
         t1_rnd = np.random.uniform(t1Min, t1Max, self.n_samples)
         cos_rnd = np.random.uniform(-1, 1, self.n_samples)
         phi_rnd = np.random.uniform(0.0, 2*pi, self.n_samples)
+
+        print("t1 min, max = ", t1Min, t1Max)
+        print("s2 min, max = ", s2Min, s2Max)
         
         mc_volume = (t1Max - t1Min)*(s2Max - s2Min)*4*pi / self.n_samples
         
         # Get particle 1's CM spectra
         for i in range(self.n_samples):
+            if self.phase_space_heaviside(s, t1_rnd[i], s2_rnd[i]) < 1.0:
+                continue
+
             weights = self.dsigma_ds2dt1dOmega3(s, s2_rnd[i], t1_rnd[i], cos_rnd[i], phi_rnd[i])
             e1_cm = (s + self.m1**2 - s2_rnd[i])/(2*sqrt(s))
             p1_cm = np.sqrt(e1_cm**2 - self.m1**2)
             theta_b1_cm = arcsin(sqrt(-4*s2_rnd[i]*self.cayley_det(s, t1_rnd[i], s2_rnd[i], self.ma**2, self.mb**2, self.m1**2) \
                 / (self.kallen(s2_rnd[i], self.mb**2, t1_rnd[i])*self.kallen(s, s2_rnd[i], self.m1**2))))
             lorentz_vector_p1_cm = LorentzVector(e1_cm, p1_cm*sin(theta_b1_cm), 0.0, p1_cm*cos(theta_b1_cm))
-            v_cm_to_lab = self.r23_velocity(s2_rnd[i], t1_rnd[i])
-            lorentz_vector_p1_lab = lorentz_boost(lorentz_vector_p1_cm, v_cm_to_lab)
+
+            # Boost to lab frame: use pa velocity assuming pa is at rest
+            pa_R23 = self.paR23(s, t1_rnd[i], s2_rnd[i])
+            ea_R23 = sqrt(pa_R23**2 + self.ma**2)
+            cosTheta_ab_R23 = self.cosTheta_ab(s, s2_rnd[i], t1_rnd[i])
+            va_R23_3vec = Vector3(-pa_R23*sqrt(1-cosTheta_ab_R23**2)/ea_R23, 0.0, -pa_R23*cosTheta_ab_R23/ea_R23)
+
+            #v_cm_to_lab = self.r23_velocity(s2_rnd[i], t1_rnd[i])
+            lorentz_vector_p1_lab = lorentz_boost(lorentz_vector_p1_cm, va_R23_3vec)
             self.p1_lab_4vectors.append(lorentz_vector_p1_lab)
             self.p1_lab_energies.append(lorentz_vector_p1_lab.p0)
+            #print("dsigma = {}, CM energy = {}, Lab energy = {}".format(weights, lorentz_vector_p1_cm.p0, lorentz_vector_p1_lab.p0))
             self.p1_lab_angles.append(lorentz_vector_p1_lab.theta())
             self.dsigma.append(weights * mc_volume)
+    
+    def simulate_particle1_phase_space_sampled(self, s):
+        s2Max, s2Min = self.s2MaxMin(s)
+
+        s2_grid = np.linspace(s2Min, s2Max, self.n_samples)
+        s2_points = (s2_grid[1:] + s2_grid[:-1])/2
+        delta_s2 = s2_grid[1] - s2_grid[0]
+
+        cos_rnd = np.random.uniform(-1, 1, self.n_samples)
+        phi_rnd = np.random.uniform(0.0, 2*pi, self.n_samples)
+        
+        # Get particle 1's CM spectra
+        for s2 in s2_points:
+            t1Max, t1Min = self.t1MaxMin(s, s2)
+            t1_rnd = np.random.uniform(t1Min, t1Max, self.n_samples)
+            mc_volume = (t1Max - t1Min)*delta_s2*4*pi / self.n_samples
+            for i, t1 in enumerate(t1_rnd):
+                if self.phase_space_heaviside(s, t1, s2) < 1.0:
+                    continue
+
+                weights = self.dsigma_ds2dt1dOmega3(s, s2, t1, cos_rnd[i], phi_rnd[i])
+                e1_cm = (s + self.m1**2 - s2)/(2*sqrt(s))
+                p1_cm = np.sqrt(e1_cm**2 - self.m1**2)
+                theta_b1_cm = arcsin(sqrt(-4*s2*self.cayley_det(s, t1, s2, self.ma**2, self.mb**2, self.m1**2) \
+                    / (self.kallen(s2, self.mb**2, t1)*self.kallen(s, s2, self.m1**2))))
+                lorentz_vector_p1_cm = LorentzVector(e1_cm, p1_cm*sin(theta_b1_cm), 0.0, p1_cm*cos(theta_b1_cm))
+
+                # Boost to lab frame: use pa velocity assuming pa is at rest
+                pa_R23 = self.paR23(s, t1, s2)
+                ea_R23 = sqrt(pa_R23**2 + self.ma**2)
+                cosTheta_ab_R23 = self.cosTheta_ab(s, s2, t1)
+                va_R23_3vec = Vector3(-pa_R23*sqrt(1-cosTheta_ab_R23**2)/ea_R23, 0.0, -pa_R23*cosTheta_ab_R23/ea_R23)
+
+                lorentz_vector_p1_lab = lorentz_boost(lorentz_vector_p1_cm, va_R23_3vec)
+                self.p1_lab_4vectors.append(lorentz_vector_p1_lab)
+                self.p1_lab_energies.append(lorentz_vector_p1_lab.p0)
+                self.p1_lab_angles.append(lorentz_vector_p1_lab.theta())
+                self.dsigma.append(weights * mc_volume)
+
 
 
 
