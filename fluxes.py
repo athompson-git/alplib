@@ -333,7 +333,7 @@ class FluxResonanceIsotropic(AxionFlux):
     """
     def __init__(self, positron_flux=[1.,0.], target=Material("W"), target_length=10.0,
                  det_dist=4., det_length=0.2, det_area=0.04, axion_mass=0.1, axion_coupling=1e-3,
-                 n_samples=100, is_isotropic=True, loop_decay=False, **kwargs):
+                 n_samples=100, is_isotropic=True, loop_decay=False, boson_type="pseudoscalar", **kwargs):
         # TODO: make flux take in a Detector class and a Target class (possibly Material class?)
         # Replace A = 2*Z with real numbers of nucleons
         super().__init__(axion_mass, target, det_dist, det_length, det_area, n_samples)
@@ -344,6 +344,7 @@ class FluxResonanceIsotropic(AxionFlux):
         self.ntarget_area_density = target.rad_length * AVOGADRO / (2*target.z[0])  # N_T / cm^2
         self.is_isotropic = is_isotropic
         self.loop_decay = loop_decay
+        self.boson_type = boson_type
 
     def decay_width(self, ge, ma):
         if self.loop_decay:
@@ -356,6 +357,13 @@ class FluxResonanceIsotropic(AxionFlux):
 
     def positron_flux_attenuated(self, t, energy_pos, energy_res):
         return self.positron_flux_dN_dE(energy_pos) * track_length_prob(energy_pos, energy_res, t)
+    
+    def resonance_peak(self):
+        if self.boson_type == "pseudoscalar":
+            return 2*pi*M_E*power(self.ge / self.ma, 2) / sqrt(1 - power(2*M_E/self.ma, 2))
+        elif self.boson_type == "vector":
+            # based on hand calculation equating 1802.04756 formula in the delta func limit
+            return 12*pi*self.ge**2 * ALPHA / M_E / 6
 
     def simulate(self):
         self.axion_energy = []
@@ -378,7 +386,7 @@ class FluxResonanceIsotropic(AxionFlux):
         mc_vol = (5.0 - 0.0)*(max(self.positron_flux[:,0]) - resonant_energy)
 
         attenuated_flux = mc_vol*np.sum(self.positron_flux_attenuated(t_rnd, e_rnd, resonant_energy))/self.n_samples
-        wgt = self.target_z * (self.ntarget_area_density * HBARC**2) * resonance_peak(self.ge, self.ma) * attenuated_flux
+        wgt = self.target_z * (self.ntarget_area_density * HBARC**2) * self.resonance_peak() * attenuated_flux
 
         self.axion_energy.append(self.ma**2 / (2 * M_E))
         self.axion_flux.append(wgt)
