@@ -203,7 +203,7 @@ class M2VectorPseudoscalarPrimakoff(MatrixElement2):
 
     def __call__(self, s, t, coupling_product=1.0):
         return abs((self.ff2(np.sqrt(abs(t))))  * coupling_product**2 \
-            * (4*self.mN**2 - t) * power((self.mZp**2 - t)/((self.mphi**2 - t)),2)) / 8
+            * (-t) * power((self.mZp**2 - t)/((self.mphi**2 - t)),2)) / 8
 
 
 
@@ -220,8 +220,8 @@ class M2VectorPseudoscalarPrimakoffIncoherent(MatrixElement2):
         self.ffp = ProtonFF()
 
     def __call__(self, s, t, coupling_product=1.0):
-        return self.NN * abs((self.ffp(t))  * coupling_product**2 \
-            * (4*M_P**2 - t) * power((self.mZp**2 - t)/((self.mphi**2 - t)),2)) / 8
+        return self.NN * abs(coupling_product**2 \
+            * (-t) * power((self.mZp**2 - t)/((self.mphi**2 - t)),2)) / 8
 
 
 
