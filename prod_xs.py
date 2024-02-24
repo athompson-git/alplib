@@ -286,3 +286,113 @@ def associated_dsigma_dcos_CM(costheta_cm, ep_lab, ma, g, z=1):
     prefactor = z * (4*pi*ALPHA) * g**2
     
     return heaviside(ep_lab - max((ma**2 - M_E**2)/(2*M_E), M_E), 1.0) * prefactor * jacobian * M2 / (16*pi*(s - 4*M_E**2)*s)
+
+
+
+
+def brem_dsigma_dea_vector(Ea, Ee, coupling, ma, z):
+    # Vector bremsstrahlung from an electron/positron beam with energy Ee
+    # gives dsigma/dEa in the IWW approximation where Ea is the outgoing vector energy [1712.05706]
+    # takes vector coupling and mass ma, and target material proton number z
+    x = Ea / Ee
+    ln_el = log(184*power(z, -1/3))
+    ln_inel = log(1194*power(z, -2/3))
+
+    chi = z**2 * ln_el + z * ln_inel
+    
+    prefactor = chi * (4*ALPHA**3 * coupling**2) / (4*pi)  # using coupling = e * epsilon if you want a dark photon
+    return prefactor * (1 - x + x**2 / 3) / ((ma**2 * (1-x) / x) + x * M_E**2)
+
+
+
+
+def brem_dsigma_dx_vector(x, Ee, coupling, ma, z):
+    # Vector bremsstrahlung from an electron/positron beam with energy Ee
+    # gives dsigma/dx in the IWW approximation where Ea is the outgoing vector energy [1712.05706]
+    # takes vector coupling and mass ma, and target material proton number z
+    ln_el = log(184*power(z, -1/3))
+    ln_inel = log(1194*power(z, -2/3))
+
+    chi = z**2 * ln_el + z * ln_inel
+    
+    prefactor = chi * (4*ALPHA**3 * coupling**2) / (4*pi)  # using coupling = e * epsilon if you want a dark photon
+    return prefactor * (1 - x + x**2 / 3) / ((ma**2 * (1-x) / x) + x * M_E**2)
+
+
+
+
+def dsig_dEv_dcostheta_vector_brem_etl(Ev, costheta, ttilde, Ebeam, mV, MTarget, ZTarget, ATarget):
+    #Exact Tree-Level Dark Photon Bremsstrahlung  
+    #e (ep) + Z -> e (epp) + V (w) + Z
+    #result it dsigma/dx/dcostheta where x=E_darkphoton/E_beam and theta is angle between beam and dark photon
+
+    x = Ev
+    Jacobian = 1.0/Ebeam
+
+    # kinematic boundaries
+    if x*Ebeam < mV:
+        return 0.
+    
+    k = np.sqrt((x * Ebeam)**2 - mV**2)
+    p = np.sqrt(Ebeam**2 - M_E**2)
+    V = np.sqrt(p**2 + k**2 - 2*p*k*costheta)
+    
+    
+    utilde = -2 * (x*Ebeam**2 - k*p*costheta) + mV**2
+    
+    discr = utilde**2 + 4*MTarget*utilde*((1-x)*Ebeam + MTarget) + 4*MTarget**2 * V**2
+    # kinematic boundaries
+    if discr < 0:
+        return 0.
+        
+    Qplus = V * (utilde + 2*MTarget*((1-x)*Ebeam + MTarget)) + ((1-x)*Ebeam + MTarget) * np.sqrt(discr)
+    Qplus = Qplus/(2*((1-x)*Ebeam + MTarget)**2-2*V**2)
+    
+    Qminus = V * (utilde + 2*MTarget*((1-x)*Ebeam + MTarget)) - ((1-x)*Ebeam + MTarget) * np.sqrt(discr)
+    Qminus = Qminus/(2*((1-x)*Ebeam + MTarget)**2-2*V**2)
+    
+    Qplus = np.fabs(Qplus)
+    Qminus = np.fabs(Qminus)
+    
+    tplus = 2*MTarget*(np.sqrt(MTarget**2 + Qplus**2) - MTarget)
+    tminus = 2*MTarget*(np.sqrt(MTarget**2 + Qminus**2) - MTarget)
+
+    # Physical region checks
+    if tplus < tminus:
+        return 0.
+    
+    tconv = (2*MTarget*(MTarget + Ebeam)*np.sqrt(Ebeam**2 + M_E**2)/(MTarget*(MTarget+2*Ebeam) + M_E**2))**2
+    t = ttilde*tconv
+    if t > tplus or t < tminus:
+        return 0.
+            
+    q0 = -t/(2*MTarget)
+    q = np.sqrt(t**2/(4*MTarget**2)+t)
+    costhetaq = -(V**2 + q**2 + M_E**2 -(Ebeam + q0 -x*Ebeam)**2)/(2*V*q)
+
+    # kinematic boundaries
+    if np.fabs(costhetaq) > 1.:
+        return 0.
+    mVsq2mesq = (mV**2 + 2*M_E**2)
+    Am2 = -8 * MTarget * (4*Ebeam**2 * MTarget - t*(2*Ebeam + MTarget)) * mVsq2mesq
+    A1 = 8*MTarget**2/utilde
+    Am1 = (8/utilde) * (MTarget**2 * (2*t*utilde + utilde**2 + 4*Ebeam**2 * (2*(x-1)*mVsq2mesq - t*((x-2)*x+2)) + 2*t*(-mV**2 + 2*M_E**2 + t)) - 2*Ebeam*MTarget*t*((1-x)*utilde + (x-2)*(mVsq2mesq + t)) + t**2*(utilde-mV**2))
+    A0 = (8/utilde**2) * (MTarget**2 * (2*t*utilde + (t-4*Ebeam**2*(x-1)**2)*mVsq2mesq) + 2*Ebeam*MTarget*t*(utilde - (x-1)*mVsq2mesq))
+    Y = -t + 2*q0*Ebeam - 2*q*p*(p - k*costheta)*costhetaq/V 
+    W= Y**2 - 4*q**2 * p**2 * k**2 * (1 - costheta**2)*(1 - costhetaq**2)/V**2
+    
+    if W == 0.:
+        print("x, costheta, t = ", [x, costheta, t])
+        print("Y, q, p, k, costheta, costhetaq, V" ,[Y, q, p, k, costheta, costhetaq, V])
+        
+    # kinematic boundaries
+    if W < 0:
+        return 0.
+    
+    phi_integral = (A0 + Y*A1 + Am1/np.sqrt(W) + Y * Am2/W**1.5)/(8*MTarget**2)
+
+    formfactor_separate_over_tsquared = Gelastic_inelastic_over_tsquared(t, ZTarget, ATarget)
+    
+    ans = formfactor_separate_over_tsquared*np.power(ALPHA, 3) * k * Ebeam * phi_integral/(p*np.sqrt(k**2 + p**2 - 2*p*k*costheta))
+    
+    return(ans*tconv*Jacobian)
