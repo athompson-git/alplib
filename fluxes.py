@@ -230,6 +230,13 @@ class FluxComptonIsotropic(AxionFlux):
             geom_accept = self.det_area / (4*pi*self.det_dist**2)
             self.decay_axion_weight *= geom_accept
             self.scatter_axion_weight *= geom_accept
+    
+    def propagate_iso_vol_int(self, geom: DetectorGeometry, new_coupling=None):
+        if new_coupling is not None:
+            rescale=power(new_coupling/self.ge, 2)
+            super().propagate_iso_vol_int(geom, W_ee(new_coupling, self.ma), rescale)
+        else:
+            super().propagate_iso_vol_int(geom, W_ee(self.ge, self.ma))
 
 
 
@@ -249,11 +256,13 @@ class FluxBremIsotropic(AxionFlux):
     def __init__(self, electron_flux=[1.,0.], positron_flux=[1.,0.], target=Material("W"),
                     target_length=10.0, det_dist=4., det_length=0.2, det_area=0.04,
                     axion_mass=0.1, axion_coupling=1e-3, n_samples=100,
-                    is_isotropic=True, loop_decay=False, **kwargs):
+                    is_isotropic=True, loop_decay=False, boson_type="pseudoscalar",
+                    max_track_length=5.0, **kwargs):
         super().__init__(axion_mass, target, det_dist, det_length, det_area)
         # TODO: Replace A = 2*Z with real numbers of nucleons
         self.electron_flux = electron_flux
         self.positron_flux = positron_flux
+        self.boson_type = boson_type
         self.ge = axion_coupling
         self.target_density = target.density  # g/cm3
         self.target_radius = target_length  # cm
@@ -262,6 +271,7 @@ class FluxBremIsotropic(AxionFlux):
         self.n_samples = n_samples
         self.is_isotropic = is_isotropic
         self.loop_decay = loop_decay
+        self.max_t = max_track_length
 
     def decay_width(self, ge, ma):
         if self.loop_decay:
@@ -285,13 +295,23 @@ class FluxBremIsotropic(AxionFlux):
         ea_max = el_energy * (1 - power(self.ma/el_energy, 2))
         if ea_max <= self.ma:
             return
+        
+        ep_min = max((self.ma**2 - M_E**2)/(2*M_E), M_E)
+        t_rnd = power(10, np.random.uniform(-3, log10(self.max_t), self.n_samples))
+        ea_rnd = power(10, np.random.uniform(np.log10(ep_min), np.log10(ea_max), self.n_samples))
 
-        ea_rnd = power(10, np.random.uniform(np.log10(self.ma), np.log10(ea_max), self.n_samples))
-        mc_vol = np.log(10) * ea_rnd * (np.log10(ea_max) - np.log10(self.ma))/self.n_samples
-        diff_br = (self.ntarget_area_density * HBARC**2) * mc_vol * brem_dsigma_dea(ea_rnd, el_energy, self.ge, self.ma, self.target_z)
+        #ea_rnd = np.random.uniform(ep_min, el_energy, self.n_samples)
+        flux_weight = self.electron_flux_attenuated(t_rnd, el_energy, ea_rnd)
+
+        mc_vol = np.log(10) * ea_rnd *  (np.log10(ea_max) - np.log10(self.ma)) \
+            * np.log(10) * t_rnd * (log10(self.max_t) + 3) /self.n_samples
+        if self.boson_type == "pseudoscalar":
+            diff_br = (self.ntarget_area_density * HBARC**2) * mc_vol * brem_dsigma_dea(ea_rnd, el_energy, self.ge, self.ma, self.target_z)
+        elif self.boson_type == "vector":
+            diff_br = (self.ntarget_area_density * HBARC**2) * mc_vol * brem_dsigma_dea_vector(ea_rnd, el_energy, self.ge, self.ma, self.target_z)
 
         self.axion_energy.extend(ea_rnd)
-        self.axion_flux.extend(el_wgt * diff_br)
+        self.axion_flux.extend(el_wgt * flux_weight * diff_br)
 
     def simulate(self, use_track_length=False):
         self.axion_energy = []
@@ -302,10 +322,12 @@ class FluxBremIsotropic(AxionFlux):
         if use_track_length:
             ep_min = max((self.ma**2 - M_E**2)/(2*M_E), M_E)
             for i, el in enumerate(self.electron_flux):
-                t_depth = np.random.uniform(0.01, 5.0)
-                new_energy = np.random.uniform(ep_min, el[0])
-                flux_weight = self.electron_flux_attenuated(t_depth, el[0], new_energy) * 5.0 * (el[0] - ep_min)
-                self.simulate_single([new_energy, el[1] * flux_weight])
+                if el[0] < ep_min:
+                    continue
+                #t_depth = np.random.uniform(0.0, self.max_t)
+                #new_energy = np.random.uniform(ep_min, el[0])
+                #flux_weight = self.electron_flux_attenuated(t_depth, el[0], new_energy) * self.max_t * (el[0] - ep_min)
+                self.simulate_single(el)
             
         else:
             for i, el in enumerate(self.electron_flux):
@@ -322,6 +344,13 @@ class FluxBremIsotropic(AxionFlux):
             geom_accept = self.det_area / (4*pi*self.det_dist**2)
             self.decay_axion_weight *= geom_accept
             self.scatter_axion_weight *= geom_accept
+    
+    def propagate_iso_vol_int(self, geom: DetectorGeometry, new_coupling=None):
+        if new_coupling is not None:
+            rescale=power(new_coupling/self.ge, 2)
+            super().propagate_iso_vol_int(geom, W_ee(new_coupling, self.ma), rescale)
+        else:
+            super().propagate_iso_vol_int(geom, W_ee(self.ge, self.ma))
 
 
 
@@ -333,7 +362,8 @@ class FluxResonanceIsotropic(AxionFlux):
     """
     def __init__(self, positron_flux=[1.,0.], target=Material("W"), target_length=10.0,
                  det_dist=4., det_length=0.2, det_area=0.04, axion_mass=0.1, axion_coupling=1e-3,
-                 n_samples=100, is_isotropic=True, loop_decay=False, boson_type="pseudoscalar", **kwargs):
+                 n_samples=100, is_isotropic=True, loop_decay=False, boson_type="pseudoscalar",
+                 max_track_length=5.0, **kwargs):
         # TODO: make flux take in a Detector class and a Target class (possibly Material class?)
         # Replace A = 2*Z with real numbers of nucleons
         super().__init__(axion_mass, target, det_dist, det_length, det_area, n_samples)
@@ -345,6 +375,7 @@ class FluxResonanceIsotropic(AxionFlux):
         self.is_isotropic = is_isotropic
         self.loop_decay = loop_decay
         self.boson_type = boson_type
+        self.max_t = max_track_length
 
     def decay_width(self, ge, ma):
         if self.loop_decay:
@@ -382,8 +413,8 @@ class FluxResonanceIsotropic(AxionFlux):
             return
 
         e_rnd = np.random.uniform(resonant_energy, max(self.positron_flux[:,0]), self.n_samples)
-        t_rnd = np.random.uniform(0.0, 5.0, self.n_samples)
-        mc_vol = (5.0 - 0.0)*(max(self.positron_flux[:,0]) - resonant_energy)
+        t_rnd = np.random.uniform(0.0, self.max_t, self.n_samples)
+        mc_vol = self.max_t*(max(self.positron_flux[:,0]) - resonant_energy)
 
         attenuated_flux = mc_vol*np.sum(self.positron_flux_attenuated(t_rnd, e_rnd, resonant_energy))/self.n_samples
         wgt = self.target_z * (self.ntarget_area_density * HBARC**2) * self.resonance_peak() * attenuated_flux
@@ -402,6 +433,13 @@ class FluxResonanceIsotropic(AxionFlux):
             geom_accept = self.det_area / (4*pi*self.det_dist**2)
             self.decay_axion_weight *= geom_accept
             self.scatter_axion_weight *= geom_accept
+    
+    def propagate_iso_vol_int(self, geom: DetectorGeometry, new_coupling=None):
+        if new_coupling is not None:
+            rescale=power(new_coupling/self.ge, 2)
+            super().propagate_iso_vol_int(geom, W_ee(new_coupling, self.ma), rescale)
+        else:
+            super().propagate_iso_vol_int(geom, W_ee(self.ge, self.ma))
 
 
 
@@ -480,6 +518,13 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
             geom_accept = self.det_area / (4*pi*self.det_dist**2)
             self.decay_axion_weight *= geom_accept
             self.scatter_axion_weight *= geom_accept
+    
+    def propagate_iso_vol_int(self, geom: DetectorGeometry, new_coupling=None):
+        if new_coupling is not None:
+            rescale=power(new_coupling/self.ge, 2)
+            super().propagate_iso_vol_int(geom, W_ee(new_coupling, self.ma), rescale)
+        else:
+            super().propagate_iso_vol_int(geom, W_ee(self.ge, self.ma))
 
 
 

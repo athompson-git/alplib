@@ -301,7 +301,7 @@ def brem_dsigma_dea_vector(Ea, Ee, coupling, ma, z):
     chi = z**2 * ln_el + z * ln_inel
     
     prefactor = chi * (4*ALPHA**3 * coupling**2) / (4*pi)  # using coupling = e * epsilon if you want a dark photon
-    return prefactor * (1 - x + x**2 / 3) / ((ma**2 * (1-x) / x) + x * M_E**2)
+    return (1/Ee) * prefactor * (1 - x + x**2 / 3) / ((ma**2 * (1-x) / x) + x * M_E**2)
 
 
 
