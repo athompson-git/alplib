@@ -287,6 +287,9 @@ class FluxBremIsotropic(AxionFlux):
 
     def electron_flux_attenuated(self, t, E0, E1):
         return (self.electron_flux_dN_dE(E0) + self.positron_flux_dN_dE(E0)) * track_length_prob(E0, E1, t)
+    
+    def integrated_flux_by_track_length(self, E0, E1):
+        return quad(self.electron_flux_attenuated, 0.0, self.max_t, args=(E0, E1,))[0]
 
     def simulate_single(self, electron):
         el_energy = electron[0]
@@ -296,38 +299,36 @@ class FluxBremIsotropic(AxionFlux):
         if ea_max <= self.ma:
             return
         
-        ep_min = max((self.ma**2 - M_E**2)/(2*M_E), M_E)
-        t_rnd = power(10, np.random.uniform(-3, log10(self.max_t), self.n_samples))
-        ea_rnd = power(10, np.random.uniform(np.log10(ep_min), np.log10(ea_max), self.n_samples))
+        ea_rnd = power(10, np.random.uniform(np.log10(self.ma), np.log10(ea_max), self.n_samples))
 
-        #ea_rnd = np.random.uniform(ep_min, el_energy, self.n_samples)
-        flux_weight = self.electron_flux_attenuated(t_rnd, el_energy, ea_rnd)
-
-        mc_vol = np.log(10) * ea_rnd *  (np.log10(ea_max) - np.log10(self.ma)) \
-            * np.log(10) * t_rnd * (log10(self.max_t) + 3) /self.n_samples
         if self.boson_type == "pseudoscalar":
+            mc_vol = np.log(10) * ea_rnd *  (np.log10(ea_max) - np.log10(self.ma)) / self.n_samples
             diff_br = (self.ntarget_area_density * HBARC**2) * mc_vol * brem_dsigma_dea(ea_rnd, el_energy, self.ge, self.ma, self.target_z)
         elif self.boson_type == "vector":
-            diff_br = (self.ntarget_area_density * HBARC**2) * mc_vol * brem_dsigma_dea_vector(ea_rnd, el_energy, self.ge, self.ma, self.target_z)
+            x_rnd = ea_rnd / el_energy
+            mc_vol = np.log(10) * x_rnd *  (np.log10(ea_max/el_energy) - np.log10(self.ma/el_energy)) / self.n_samples
+            diff_br = (self.ntarget_area_density * HBARC**2) * mc_vol * brem_dsigma_dx_vector(x_rnd, self.ge, self.ma, self.target_z)
 
         self.axion_energy.extend(ea_rnd)
-        self.axion_flux.extend(el_wgt * flux_weight * diff_br)
+        self.axion_flux.extend(el_wgt * diff_br)
 
-    def simulate(self, use_track_length=False):
+    def simulate(self, use_track_length=True):
         self.axion_energy = []
         self.axion_flux = []
         self.scatter_axion_weight = []
         self.decay_axion_weight = []
 
         if use_track_length:
-            ep_min = max((self.ma**2 - M_E**2)/(2*M_E), M_E)
+            ep_min = max(self.ma, M_E) #max((self.ma**2 - M_E**2)/(2*M_E), M_E)
             for i, el in enumerate(self.electron_flux):
                 if el[0] < ep_min:
                     continue
-                #t_depth = np.random.uniform(0.0, self.max_t)
-                #new_energy = np.random.uniform(ep_min, el[0])
-                #flux_weight = self.electron_flux_attenuated(t_depth, el[0], new_energy) * self.max_t * (el[0] - ep_min)
-                self.simulate_single(el)
+                t_depth = 10**np.random.uniform(-3, np.log10(self.max_t), 5)
+                new_energy = np.random.uniform(ep_min, el[0], 5)
+                for i in range(5):
+                    flux_weight = self.electron_flux_attenuated(t_depth[i], el[0], new_energy[i]) \
+                        * np.log(10) * t_depth[i] * (np.log10(self.max_t*3)) * (el[0] - ep_min) / 5
+                    self.simulate_single([new_energy[i], flux_weight])
             
         else:
             for i, el in enumerate(self.electron_flux):

@@ -300,13 +300,13 @@ def brem_dsigma_dea_vector(Ea, Ee, coupling, ma, z):
 
     chi = z**2 * ln_el + z * ln_inel
     
-    prefactor = chi * (4*ALPHA**3 * coupling**2) / (4*pi)  # using coupling = e * epsilon if you want a dark photon
+    prefactor = chi * (4*ALPHA**2 * coupling**2) / (4*pi)  # using coupling = e * epsilon if you want a dark photon
     return (1/Ee) * prefactor * (1 - x + x**2 / 3) / ((ma**2 * (1-x) / x) + x * M_E**2)
 
 
 
 
-def brem_dsigma_dx_vector(x, Ee, coupling, ma, z):
+def brem_dsigma_dx_vector(x, coupling, ma, z):
     # Vector bremsstrahlung from an electron/positron beam with energy Ee
     # gives dsigma/dx in the IWW approximation where Ea is the outgoing vector energy [1712.05706]
     # takes vector coupling and mass ma, and target material proton number z
@@ -315,7 +315,7 @@ def brem_dsigma_dx_vector(x, Ee, coupling, ma, z):
 
     chi = z**2 * ln_el + z * ln_inel
     
-    prefactor = chi * (4*ALPHA**3 * coupling**2) / (4*pi)  # using coupling = e * epsilon if you want a dark photon
+    prefactor = chi * (4*ALPHA**2 * coupling**2) / (4*pi)  # using coupling = e * epsilon if you want a dark photon
     return prefactor * (1 - x + x**2 / 3) / ((ma**2 * (1-x) / x) + x * M_E**2)
 
 
