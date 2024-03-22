@@ -257,7 +257,7 @@ class FluxBremIsotropic(AxionFlux):
                     target_length=10.0, det_dist=4., det_length=0.2, det_area=0.04,
                     axion_mass=0.1, axion_coupling=1e-3, n_samples=100,
                     is_isotropic=True, loop_decay=False, boson_type="pseudoscalar",
-                    max_track_length=5.0, **kwargs):
+                    max_track_length=5.0, is_monoenergetic=False, **kwargs):
         super().__init__(axion_mass, target, det_dist, det_length, det_area)
         # TODO: Replace A = 2*Z with real numbers of nucleons
         self.electron_flux = electron_flux
@@ -272,6 +272,7 @@ class FluxBremIsotropic(AxionFlux):
         self.is_isotropic = is_isotropic
         self.loop_decay = loop_decay
         self.max_t = max_track_length
+        self.is_monoenergetic = is_monoenergetic
 
     def decay_width(self, ge, ma):
         if self.loop_decay:
@@ -285,11 +286,12 @@ class FluxBremIsotropic(AxionFlux):
     def positron_flux_dN_dE(self, energy):
         return np.interp(energy, self.positron_flux[:,0], self.positron_flux[:,1], left=0.0, right=0.0)
 
-    def electron_flux_attenuated(self, t, E0, E1):
+    def electron_positron_flux_attenuated(self, t, E0, E1):
+        if self.is_monoenergetic:
+            el_flux_att = np.array([self.electron_flux[i,1] * track_length_prob(self.electron_flux[i,0], E1, t) \
+                            for i in range(self.electron_flux.shape[0])])
+            return el_flux_att
         return (self.electron_flux_dN_dE(E0) + self.positron_flux_dN_dE(E0)) * track_length_prob(E0, E1, t)
-    
-    def integrated_flux_by_track_length(self, E0, E1):
-        return quad(self.electron_flux_attenuated, 0.0, self.max_t, args=(E0, E1,))[0]
 
     def simulate_single(self, electron):
         el_energy = electron[0]
@@ -326,7 +328,7 @@ class FluxBremIsotropic(AxionFlux):
                 t_depth = 10**np.random.uniform(-3, np.log10(self.max_t), 5)
                 new_energy = np.random.uniform(ep_min, el[0], 5)
                 for i in range(5):
-                    flux_weight = self.electron_flux_attenuated(t_depth[i], el[0], new_energy[i]) \
+                    flux_weight = self.electron_positron_flux_attenuated(t_depth[i], el[0], new_energy[i]) \
                         * np.log(10) * t_depth[i] * (np.log10(self.max_t*3)) * (el[0] - ep_min) / 5
                     self.simulate_single([new_energy[i], flux_weight])
             
