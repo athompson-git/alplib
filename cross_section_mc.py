@@ -160,7 +160,18 @@ class Scatter2to2MC:
         self.p4_lab_3vectors = []
         self.p4_lab_4vectors = []
         self.dsigma_dcos_cm_wgts = np.array([])
+    
+    def set_new_scattter(self, new_p1: LorentzVector, new_p2: LorentzVector):
+        self.lv_p1 = new_p1
+        self.lv_p2 = new_p2
 
+        self.p3_cm_4vectors = []
+        self.p3_lab_4vectors = []
+        self.p3_cm_3vectors = []
+        self.p3_lab_3vectors = []
+        self.p4_lab_3vectors = []
+        self.p4_lab_4vectors = []
+        self.dsigma_dcos_cm_wgts = np.array([])
 
     def dsigma_dt(self, s, t):
         return self.mtrx2(s, t)/(16*np.pi*(s - (self.m1 + self.m2)**2)*(s - (self.m1 - self.m2)**2))
@@ -243,6 +254,10 @@ class Scatter2to2MC:
     
     def get_e3_lab_weights(self):
         lab_energies = np.array([self.p3_lab_4vectors[i].energy() for i in range(self.n_samples)])
+        return lab_energies, self.dsigma_dcos_cm_wgts  # jacobian * mc volume = 1
+    
+    def get_e4_lab_weights(self):
+        lab_energies = np.array([self.p4_lab_4vectors[i].energy() for i in range(self.n_samples)])
         return lab_energies, self.dsigma_dcos_cm_wgts  # jacobian * mc volume = 1
 
 
@@ -472,6 +487,19 @@ class Decay2Body:
         self.lv_p = p_parent
 
         self.n_samples = n_samples
+        self.p1_cm_4vectors = []
+        self.p1_lab_4vectors = []
+        self.p2_cm_4vectors = []
+        self.p2_lab_4vectors = []
+        self.weights = np.array([])
+    
+    def set_new_decay(self, p_parent: LorentzVector, m1, m2):
+        self.mp = p_parent.mass()  # parent particle
+        self.m1 = m1  # decay body 1
+        self.m2 = m2  # decay body 2
+
+        self.lv_p = p_parent
+
         self.p1_cm_4vectors = []
         self.p1_lab_4vectors = []
         self.p2_cm_4vectors = []
