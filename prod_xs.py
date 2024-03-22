@@ -193,9 +193,13 @@ def brem_dsigma_dea_domega(Ea, thetaa, Ee, g, ma, z):
     tmin = (U / (2*Ee*(1-x)))**2
     a = 111*power(z, -1/3)/M_E
     aPrime = 773*power(z, -2/3)/M_E
-    chi = z**2 * (log((a*M_E*(1+l))**2 / (a**2 * tmin + 1)) - 1)
 
-    prefactor = heaviside(theta_max - thetaa, 0.0) * ((ALPHA * g)**2 / (4*pi**2)) * Ee / U**2
+    # form factor 
+    chi = z**2 * (log(power(a*M_E*(1+l),2) / (a**2 * tmin + 1)) - 1) \
+        + z * (log(power(aPrime*M_E*(1+l),2) / (aPrime**2 * tmin + 1)) - 1)
+
+    prefactor = heaviside(chi, 0.0) * heaviside(theta_max - thetaa, 0.0) * ((ALPHA * g)**2 / (4*pi**2)) * Ee / U**2
+
     return chi * prefactor * (x**3 - 2*(ma*x)**2 * (1-x)/U  \
                                 + 2*(ma/U)**2 * (x*(ma*(1-x))**2 + M_E**2 * x**3 * (1-x)))
 
