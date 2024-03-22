@@ -3,6 +3,7 @@
 # Alternate values provided for common constants
 
 # Set the base units
+GeV = 1.0e3
 MeV = 1.0
 keV = 1e-3
 cm = 1.0
@@ -11,6 +12,7 @@ sec = 1.0
 
 # Dimensionless constants
 ALPHA = 1/137
+E_QED = 0.30282212087
 kPI = 3.14159
 
 # Fundamental constants
@@ -39,6 +41,8 @@ M_ETA = 547.862 * MeV  # eta
 M_N = 939.56 * MeV  # neutron
 M_A = 1014 * MeV  # axial mass
 M_K = 493.677  # charged Kaon
+M_W = 80.377 * GeV  # W boson
+M_Z = 91.1876 * GeV  # Z boson
 
 # conversion between units
 METER_BY_MEV = 6.58212e-22 * 2.998e8  # MeV*m
