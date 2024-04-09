@@ -10,7 +10,8 @@ class Efficiency:
     can take in a (N, 2) array with energies in the first column and efficiencies in the second column
     __call__ returns an efficiency function
     """
-    def __init__(self, control_points=None):
+    def __init__(self, control_points=None, flat_efficiency=1.0):
+        self.flat_eff = flat_efficiency
         if control_points is None:
             self.func_type = 'uniform'
         else:
@@ -19,7 +20,7 @@ class Efficiency:
 
     def __call__(self, energy):
         if self.func_type == 'uniform':
-            return 1.0
+            return self.flat_eff
         elif self.func_type == 'spline':
             return np.clip(np.interp(energy, self.control_points[:,0], self.control_points[:,1]), 0.0, 1.0)
 
