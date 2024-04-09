@@ -12,12 +12,14 @@ from .photon_xs import *
 from .matrix_element import *
 from .cross_section_mc import *
 
+import multiprocessing as multi
 
 
 
 class AxionFlux:
     # Generic superclass for constructing fluxes
-    def __init__(self, axion_mass, target: Material, det_dist, det_length, det_area, n_samples=1000):
+    def __init__(self, axion_mass, target: Material, det_dist, det_length, det_area, n_samples=1000,
+                 off_axis_angle=0.0, timing_window_ns=25.0):
         self.ma = axion_mass
         self.target_z = target.z[0]  # TODO: take z array for compound mats
         self.target_a = target.z[0] + target.n[0]
@@ -31,6 +33,8 @@ class AxionFlux:
         self.decay_axion_weight = []
         self.scatter_axion_weight = []
         self.n_samples = n_samples
+        self.off_axis_angle = off_axis_angle
+        self.timing_window = 1e-9 * timing_window_ns  # acceptable time delay from speed of light particles
 
     def det_sa(self):
         return arctan(sqrt(self.det_area / pi) / self.det_dist)
@@ -45,14 +49,17 @@ class AxionFlux:
         boost = e_a / self.ma
         tau = boost / decay_width if decay_width > 0.0 else np.inf * np.ones_like(boost)
 
-        # Get decay and survival probabilities
-        surv_prob = np.array([np.exp(-self.det_dist / METER_BY_MEV / v_a[i] / tau[i]) \
-                     for i in range(len(v_a))])
-        decay_prob = np.array([(1 - np.exp(-self.det_length / METER_BY_MEV / v_a[i] / tau[i])) \
-                      for i in range(len(v_a))])
+        # Calculate time of flight
+        tof = self.det_dist / (v_a * 1e-2 * C_LIGHT)
+        delta_tof = abs((self.det_dist / (1e-2 * C_LIGHT)) - tof)
+        in_timing_window_wgt = delta_tof < self.timing_window
 
-        self.decay_axion_weight = np.asarray(rescale_factor * wgt * surv_prob * decay_prob, dtype=np.float32)
-        self.scatter_axion_weight = np.asarray(rescale_factor * wgt * surv_prob, dtype=np.float32)
+        # Get decay and survival probabilities
+        surv_prob = np.exp(-self.det_dist / METER_BY_MEV / v_a / tau)
+        decay_prob = (1 - np.exp(-self.det_length / METER_BY_MEV / v_a / tau))
+
+        self.decay_axion_weight = np.asarray(rescale_factor * wgt * in_timing_window_wgt * surv_prob * decay_prob, dtype=np.float32)
+        self.scatter_axion_weight = np.asarray(rescale_factor * wgt * in_timing_window_wgt * surv_prob, dtype=np.float32)
 
     def propagate_iso_vol_int(self, geom: DetectorGeometry, decay_width, rescale_factor=1.0):
         e_a = np.array(self.axion_energy)
@@ -101,9 +108,12 @@ class FluxPrimakoff(AxionFlux):
 class FluxPrimakoffIsotropic(AxionFlux):
     """
     Generator for Primakoff-produced axion flux
-    Takes in a flux of photons
+    Takes in a flux of photons: this should be a list of lists or a numpy array of shape (2,n)
+    Each element in the list should be a list of length 2 carrying [photon_energy, photon_weight]
+    where the weight is in units of counts/second inside the target
+    One may also take in photon flux from a text file of columnated data.
     """
-    def __init__(self, photon_flux=[1,1], target=Material("W"), det_dist=4.0, det_length=0.2,
+    def __init__(self, photon_flux=[[1,1]], target=Material("W"), det_dist=4.0, det_length=0.2,
                     det_area=0.04, axion_mass=0.1, axion_coupling=1e-3, n_samples=1000):
         super().__init__(axion_mass, target, det_dist, det_length, det_area)
         self.photon_flux = photon_flux
@@ -586,8 +596,8 @@ class FluxNuclearIsotropic(AxionFlux):
 class FluxChargedMeson3BodyDecay(AxionFlux):
     def __init__(self, meson_flux, boson_mass=0.1, coupling=1.0, n_samples=50, meson_type="pion",
                  interaction_model="scalar_ib1", energy_cut=140.0, det_dist=541, det_length=10.0,
-                 det_area=25.0*pi, c0=-0.95, lepton_masses=[M_E, M_MU]):
-        super().__init__(boson_mass, Material("Be"), det_dist, det_length, det_area, n_samples)
+                 det_area=25.0*pi, c0=-0.95, lepton_masses=[M_E, M_MU], verbose=False):
+        super().__init__(boson_mass, Material("Be"), det_dist, det_length, det_area, n_samples=n_samples)
         self.meson_flux = meson_flux
         param_dict = {
             "pion": [M_PI, V_UD, F_PI, PION_WIDTH],
@@ -610,6 +620,7 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
         self.c0 = c0  # contact model parameter, 0 by default
         self.m2_e = M2Meson3BodyDecay(boson_mass, meson_type, M_E, interaction_model)
         self.m2_mu = M2Meson3BodyDecay(boson_mass, meson_type, M_MU, interaction_model)
+        self.verbose = verbose
 
     def set_ma(self, ma):
         self.ma = ma
@@ -646,7 +657,14 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
         return (quad(self.dGammadEa, self.ma, ea_max_e, args=(M_E,))[0] \
             + quad(self.dGammadEa, self.ma, ea_max_mu, args=(M_MU,))[0]) / self.total_width
 
-    def simulate_single(self, meson, cut_on_solid_angle=True, solid_angle_cosine=0.0, ml=M_E):
+    def simulate_single(self, meson, cut_on_solid_angle=True, decay_pos=0.0, ml=M_E, multicore=False):
+        # check valid decay position
+        if (decay_pos > 52.0):
+            if multicore:
+                return 0.0, 0.0, 0.0, 0.0, decay_pos, 0.0
+            else:
+                return
+
         # takes in meson = [p, theta, wgt]
         ea_min = self.ma
         ea_max = (self.mm**2 + self.ma**2 - ml**2)/(2*self.mm)
@@ -655,6 +673,8 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
         beta = meson[0] / sqrt(meson[0]**2 + self.mm**2)
         boost = power(1-beta**2, -0.5)
 
+        # compute solid angle acceptance for this decay position
+        solid_angle_cosine = cos(arctan(self.det_length/(self.det_dist-decay_pos)))
         min_cm_cos = cos(min(boost * arccos(solid_angle_cosine), pi))
         # Draw random variate energies and angles in the pion rest frame
         energies = np.random.uniform(ea_min, ea_max, self.n_samples)
@@ -679,17 +699,22 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
         weights = np.array([meson[2]*mc_vol_lab[i]*self.dGammadEa(energies[i], ml)/self.total_width/self.n_samples \
             for i in range(energies.shape[0])])
 
-        for i in range(self.n_samples):
-            solid_angle_acceptance = heaviside(cos(theta_lab[i]) - solid_angle_cosine, 0.0)
-            if solid_angle_acceptance == 0.0 and cut_on_solid_angle:
-                continue
-            self.axion_energy.append(e_lab[i])
-            self.cosines.append(cos(theta_lab[i]))
-            self.axion_flux.append(weights[i]*heaviside(e_lab[i]-self.energy_cut,1.0))
-            self.axion_angle.append(thetas_z[i])
-            self.solid_angles.append(solid_angle_cosine)
+        if multicore:
+            return e_lab, cos(theta_lab), thetas_z, solid_angle_cosine*np.ones(self.n_samples), \
+                    decay_pos*np.ones(self.n_samples), weights*heaviside(e_lab-self.energy_cut,1.0)
+        else:
+            for i in range(self.n_samples):
+                solid_angle_acceptance = heaviside(cos(theta_lab[i]) - solid_angle_cosine, 0.0)
+                if solid_angle_acceptance == 0.0 and cut_on_solid_angle:
+                    continue
+                self.axion_energy.append(e_lab[i])
+                self.cosines.append(cos(theta_lab[i]))
+                self.axion_flux.append(weights[i]*heaviside(e_lab[i]-self.energy_cut,1.0))
+                self.axion_angle.append(thetas_z[i])
+                self.solid_angles.append(solid_angle_cosine)
+                self.decay_pos.append(decay_pos)
 
-    def simulate(self, cut_on_solid_angle=True):
+    def simulate(self, cut_on_solid_angle=True, verbose=False, multicore=False):
         self.axion_energy = []
         self.cosines = []
         self.axion_flux = []    
@@ -698,28 +723,62 @@ class FluxChargedMeson3BodyDecay(AxionFlux):
         self.decay_pos = []
         self.solid_angles = []
 
+        decay_positions = []
         for i, p in enumerate(self.meson_flux):
             # Simulate decay positions between target and dump
             # The quantile is truncated at the dump position via umax
-            decay_l = METER_BY_MEV * p[0] / self.total_width / self.mm
-            umax = exp(-2*self.dump_dist/decay_l) * power(exp(self.dump_dist/decay_l) - 1, 2) \
-                if decay_l > 1.0 else 1.0
-            try:
-                u = np.random.uniform(0.0, min(umax, 1.0))
-            except:
-                print("umax = ", umax, " decay l = ", decay_l, p[0])
-            x = decay_quantile(u, p[0], self.mm, self.total_width)
+            x = expon.rvs(scale=(p[0]*PION_LIFETIME*0.01*C_LIGHT/M_PI))
+            decay_positions.append(x)
 
-            # Append decay positions and solid angle cosines for the geometric acceptance of each meson decay
-            self.decay_pos.append(x)
-            solid_angle_cosine = cos(arctan(self.det_length/(self.det_dist-x)/2))
-
-            # Simulate decays for each charged meson
+            if multicore == False:
+                if verbose:
+                    print("Simulating meson decay for i={}".format(i))
+                for ml in self.lepton_masses:
+                    if self.ma > self.mm - ml:
+                        continue
+                    self.simulate_single(p, cut_on_solid_angle, x, ml, multicore)
+        
+        if multicore == True:
             for ml in self.lepton_masses:
                 if self.ma > self.mm - ml:
                     continue
-                self.simulate_single(p, cut_on_solid_angle, solid_angle_cosine, ml)
+                print("Running NCPU = ", max(1, multi.cpu_count()-1))
+                
+                with multi.Pool(max(1, multi.cpu_count()-1)) as pool:
+                    ntuple = [pool.apply_async(self.simulate_single,
+                                               args=(self.meson_flux[i], cut_on_solid_angle, decay_positions[i], ml, multicore))
+                                                            for i in range(self.meson_flux.shape[0])]                    
+                    for tup in ntuple:
+                        sim_data = tup.get()
+                        self.axion_energy.extend(sim_data[0])
+                        self.cosines.extend(sim_data[1])
+                        self.axion_angle.extend(sim_data[2])
+                        self.solid_angles.extend(sim_data[3])
+                        self.decay_pos.extend(sim_data[4])
+                        self.axion_flux.extend(sim_data[5])
 
+                    pool.close()
+
+
+        #for i, p in enumerate(self.meson_flux):
+        #    if verbose:
+        #        print("Simulating meson decay i={}".format(i))
+        #    # Simulate decay positions between target and dump
+        #    # The quantile is truncated at the dump position via umax
+        #    decay_l = METER_BY_MEV * p[0] / self.total_width / self.mm
+        #    umax = exp(-2*self.dump_dist/decay_l) * power(exp(self.dump_dist/decay_l) - 1, 2) \
+        #        if decay_l > 1.0 else 1.0
+        #    try:
+        #        u = np.random.uniform(0.0, min(umax, 1.0))
+        #    except:
+        #        print("umax = ", umax, " decay l = ", decay_l, p[0])
+        #    x = decay_quantile(u, p[0], self.mm, self.total_width)
+
+        #    # Simulate decays for each charged meson
+        #    for ml in self.lepton_masses:
+        #        if self.ma > self.mm - ml:
+        #            continue
+        #        self.simulate_single(p, cut_on_solid_angle, x, ml)
 
     def propagate(self, decay=None, new_coupling=None):  # propagate to detector
         # decay options: 'photon', 'electron'
