@@ -136,6 +136,8 @@ class DarkPrimakoffGenerator:
         cosine_weights_list = []
         energy_list = []
         energy_weights_list = []
+        self.nucleon_energy_list = []
+
         for i in range(len(self.energies)):
             Ea0 = self.energies[i]
             if Ea0 < self.mx:
@@ -145,11 +147,14 @@ class DarkPrimakoffGenerator:
                 this_mc.scatter_sim()
                 cosines, dsdcos = this_mc.get_cosine_lab_weights()
                 e3, dsde = this_mc.get_e3_lab_weights()
+                e4, dsde = this_mc.get_e4_lab_weights()
                 energy_list.extend(e3)
+                self.nucleon_energy_list.extend(e4)
                 cosine_list.extend(cosines)
                 weight_prefactor = self.det.frac[j]*self.det.iso*power(lam*gphi, 2)*eff(self.energies[i])*self.weights[i]*n_e*power(METER_BY_MEV*100, 2)
                 energy_weights_list.extend(weight_prefactor*dsde)
                 cosine_weights_list.extend(weight_prefactor*dsdcos)
+                
         return np.array(energy_list), np.array(energy_weights_list), np.array(cosine_list), np.array(cosine_weights_list)
 
 
