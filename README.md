@@ -103,8 +103,22 @@ Alternatively, one can perform a 2-body decay monte carlo to obtain the Lorentz 
 p41, p42, wgt = gen.simulate_decay_4vectors(days_exposure=100, n_samples=10000)
 
 ```
+One can then use the methods in the ```LorentzVector()``` class to access the energies, angles, etc. of the outgoing 4-vectors. For example, we can create numpy arrays of the individual energies and polar angles like so,
+```
+energies1 = np.array([p4.energy() for p4 in p41])
+energies2 = np.array([p4.energy() for p4 in p42])
+
+angles1 = np.array([p4.theta() for p4 in p41])
+angles2 = np.array([p4.theta() for p4 in p42])
+```
+where the +z axis points along the beam axis of the flux class.
+
+
 
 ## Production and Detection Cross Sections
+
+
+
 
 ## MatrixElement and Monte Carlo Methods
 The super class `MatrixElement2` and its inheritors offers a way to embed any 2->2 scattering process 1 2 -> 3 4. One simply needs to input the masses `m1`, `m2`, `m3`, `m4`, and the `__call__` method will return the squared matrix element as a function of the Mandelstam variables `s` and `t`. Below we outline the monte carlo simulation algorithm for 2-to-2 scattering as an example;
