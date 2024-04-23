@@ -220,7 +220,7 @@ class M2VectorPseudoscalarPrimakoffIncoherent(MatrixElement2):
         self.ffp = ProtonFF()
 
     def __call__(self, s, t, coupling_product=1.0):
-        return self.NN * abs(coupling_product**2 \
+        return self.ffp(t) * self.NN * abs(coupling_product**2 \
             * (-t) * power((self.mZp**2 - t)/((self.mphi**2 - t)),2)) / 8
 
 
@@ -233,7 +233,7 @@ class M2PairProduction:
     def __init__(self, ma, mN, n, z, ml=M_E):
         self.ma = ma
         self.mN = mN
-        self.ff2 = AtomicElasticFF(z)
+        self.ff2 = AtomicPlusNuclearFF(n, z)
         self.ml = ml
 
     def sub_elements(self, kp1, kp2, kl1, kl2, p1p2, p1l1, p2l1, p1l2, p2l2, case="alp"):
