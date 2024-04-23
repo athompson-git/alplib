@@ -14,7 +14,7 @@ Contact: a.thompson@northwestern.edu
     * numpy
     * scipy
     * mpmath
-    * numba (coming soon)
+    * multiprocessing
 
 
 
@@ -86,6 +86,23 @@ flux_p.propagate()  # propagate gammas to detector, taking into account decays
 One can then pass this simulated flux to an event generator class from `generators.py` to simulate the spectrum at the detector.
 
 ### Detection Classes and Event Rates
+One can use ```PhotonEventGenerator``` and ```ElectronEventGenerator``` to simulate the detection channels of the ALPs in material.
+
+For example, suppose we want to detect the ALPs we simulated in ```flux_p``` above. We may use
+
+```
+gen = PhotonEventGenerator(flux_p, Material("Ar"))
+gen.decays(days_exposure=100, threshold=5.0)
+```
+This will calculate the weights for decays a -> gamma gamma coming from the flux per second into the detector in ```flux_p```, normalized to 100 days of exposure of a liquid argon detector with a threshold of 5 MeV. To access the individual weights per ALP in the flux, use
+```
+weights = gen.decay_weights
+```
+Alternatively, one can perform a 2-body decay monte carlo to obtain the Lorentz vectors of each decay photon, and the event-by-event weights, like so:
+```
+p41, p42, wgt = gen.simulate_decay_4vectors(days_exposure=100, n_samples=10000)
+
+```
 
 ## Production and Detection Cross Sections
 

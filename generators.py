@@ -91,8 +91,42 @@ class PhotonEventGenerator:
         self.decay_weights = days_exposure * S_PER_DAY * self.flux.decay_axion_weight * heaviside(self.axion_energy - threshold, 1.0)
         res = np.sum(self.decay_weights)
         return res
+    
+    def simulate_decay_4vectors(self, days_exposure, n_samples=1):
+        # Returns the 2-body decay simulation results for a -> gamma gamma
+        # 4-vector of gamma 1, 4-vector of gamma 2, and the weights scaled to the days of exposure to the flux
+        event_weight = days_exposure * S_PER_DAY * self.flux.decay_axion_weight / n_samples
+        n_flux = len(self.flux.axion_flux)
 
+        phis = np.random.uniform(0.0, 2*pi, n_flux)
 
+        # set up decay mc
+        alp_p4 = LorentzVector()
+        mc = Decay2Body(alp_p4, m1=0.0, m2=0.0, n_samples=n_samples)
+
+        p4_photon1_list = []
+        p4_photon2_list = []
+        weight_list = []
+
+        # if the angles weren't simulated, assume forward flux
+        if len(self.flux.axion_angle) == 0:
+            thetas = np.zeros(n_flux)
+        else:
+            thetas = np.array(self.flux.axion_angle)
+
+        for i in range(n_flux):
+            ea = self.flux.axion_energy[i]
+            pa = sqrt(ea**2 - self.flux.ma**2)
+
+            alp_p4.set_p4(ea, pa*cos(phis[i])*sin(thetas[i]), pa*sin(phis[i])*sin(thetas[i]), pa*cos(thetas[i]))
+            mc.set_new_decay(alp_p4, m1=0.0, m2=0.0)
+            mc.decay()
+
+            p4_photon1_list.extend([lv for lv in mc.p1_lab_4vectors])
+            p4_photon2_list.extend([lv for lv in mc.p2_lab_4vectors])
+            weight_list.extend(event_weight*np.ones(n_samples))
+
+        return p4_photon1_list, p4_photon2_list, weight_list
 
 
 class DarkPrimakoffGenerator:
