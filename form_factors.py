@@ -31,9 +31,30 @@ def atomic_elastic_ff(t, z):
 
 
 
+
+def Gelastic_inelastic_over_tsquared(t, Z, A):
+    """
+    Form factor squared used for elastic/inelastic contributions to Dark Bremsstrahlung Calculation
+    Rescaled by 1/t^2 to make it easier to integrate over t
+    (Scales like Z^2 in the small-t limit)
+    See Eq. (9) of Gninenko et al (Phys. Lett. B 782 (2018) 406-411)
+    """
+
+    c1 = (111*Z**(-1/3)/M_E)**2
+    c2 = (0.164 * 1e6 * A**(-2/3))
+    Gel =  (1./(1. + c1*t))**2 * (1+t/c2)**(-2)
+    
+    ap2 = (773.*Z**(-2./3) / M_E)**2
+    Ginel = Z/((c1**2 * Z**2)) * np.power((ap2/(1. + ap2*t)), 2.)*((1. + (2.79**2-1.)*t/(4.*M_P**2))/(1. + t/0.71)**4)
+    
+    return Z**2*c1**2*(Gel+Ginel)
+
+
+
+
 class AtomicElasticFF:
     """
-    square of the form factor
+    square of the atomic elastic form factor
     """
     def __init__(self, z):
         self.z = z
