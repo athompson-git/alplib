@@ -187,7 +187,7 @@ class FluxComptonIsotropic(AxionFlux):
     Generator for axion flux from compton-like scattering
     Takes in a flux of photons
     """
-    def __init__(self, photon_flux=[1,1], target=Material("W"), det_dist=4.,
+    def __init__(self, photon_flux=[[1,1]], target=Material("W"), det_dist=4.,
                     det_length=0.2, det_area=0.04, axion_mass=0.1, axion_coupling=1e-3, n_samples=100,
                     is_isotropic=True, loop_decay=False):
         super().__init__(axion_mass, target, det_dist, det_length, det_area)
@@ -263,7 +263,7 @@ class FluxBremIsotropic(AxionFlux):
     Generator for axion-bremsstrahlung flux
     Takes in a flux of el
     """
-    def __init__(self, electron_flux=[1.,0.], positron_flux=[1.,0.], target=Material("W"),
+    def __init__(self, electron_flux=[[1.,0.]], positron_flux=[1.,0.], target=Material("W"),
                     target_length=10.0, det_dist=4., det_length=0.2, det_area=0.04,
                     axion_mass=0.1, axion_coupling=1e-3, n_samples=100,
                     is_isotropic=True, loop_decay=False, boson_type="pseudoscalar",
@@ -373,7 +373,7 @@ class FluxResonanceIsotropic(AxionFlux):
     Generator for e+ e- resonant ALP production flux
     Takes in a flux of positrons
     """
-    def __init__(self, positron_flux=[1.,0.], target=Material("W"), target_length=10.0,
+    def __init__(self, positron_flux=[[1.,0.]], target=Material("W"), target_length=10.0,
                  det_dist=4., det_length=0.2, det_area=0.04, axion_mass=0.1, axion_coupling=1e-3,
                  n_samples=100, is_isotropic=True, loop_decay=False, boson_type="pseudoscalar",
                  max_track_length=5.0, **kwargs):
@@ -463,7 +463,7 @@ class FluxPairAnnihilationIsotropic(AxionFlux):
     (e+ e- -> a gamma)
     Takes in a flux of positrons
     """
-    def __init__(self, positron_flux=[1.,0.], target=Material("W"),
+    def __init__(self, positron_flux=[[1.,0.]], target=Material("W"),
                  det_dist=4., det_length=0.2, det_area=0.04, axion_mass=0.1,
                  axion_coupling=1e-3, n_samples=100, is_isotropic=True,
                  loop_decay=False, **kwargs):
