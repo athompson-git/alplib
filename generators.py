@@ -124,7 +124,7 @@ class PhotonEventGenerator:
 
             p4_photon1_list.extend([lv for lv in mc.p1_lab_4vectors])
             p4_photon2_list.extend([lv for lv in mc.p2_lab_4vectors])
-            weight_list.extend(event_weight*np.ones(n_samples))
+            weight_list.extend(event_weight[i]*np.ones(n_samples))
 
         return p4_photon1_list, p4_photon2_list, weight_list
 
