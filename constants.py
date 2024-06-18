@@ -38,6 +38,7 @@ M_C = 1.280e3 * MeV  # charm quark
 M_PI = 139.57 * MeV  # pi+ / pi-
 M_PI0 = 134.98 * MeV  # pi0
 M_ETA = 547.862 * MeV  # eta
+M_ETA_PRIME = 957.78 * MeV # eta prime
 M_N = 939.56 * MeV  # neutron
 M_A = 1014 * MeV  # axial mass
 M_K = 493.677  # charged Kaon
