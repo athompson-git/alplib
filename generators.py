@@ -28,13 +28,12 @@ class ElectronEventGenerator:
         self.pair_weights = np.zeros_like(flux.scatter_axion_weight)
         self.efficiency = None  # TODO: add efficiency info
         self.energy_threshold = None  # TODO: add threshold as member var
-        self.pair_xs = PairProdutionCrossSection(detector)
+        self.pair_xs = ALPPairProdutionCrossSection(detector, ma=flux.ma)
 
-    def pair_production(self, ge, ma, ntargets, days_exposure, threshold):
-        # TODO: remove this ad hoc XS and replace with real calc
+    def pair_production(self, ge, ntargets, days_exposure, threshold):
         self.axion_energy = np.array(self.flux.axion_energy)
         self.pair_weights = days_exposure * S_PER_DAY * (ntargets / self.flux.det_area) \
-            * power(ge / 0.3, 2)*self.pair_xs.sigma_mev(self.axion_energy) \
+            * power(ge, 2)*self.pair_xs.sigma_mev(self.axion_energy) \
                 * METER_BY_MEV**2 * self.flux.scatter_axion_weight * heaviside(self.axion_energy - threshold, 1.0)
         res = np.sum(self.pair_weights)
         return res
