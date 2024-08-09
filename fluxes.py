@@ -19,7 +19,7 @@ import multiprocessing as multi
 class AxionFlux:
     # Generic superclass for constructing fluxes
     def __init__(self, axion_mass, target: Material, det_dist, det_length, det_area, n_samples=1000,
-                 off_axis_angle=0.0, timing_window_ns=25.0):
+                 off_axis_angle=0.0, timing_window_ns=np.inf):
         self.ma = axion_mass
         self.target_z = target.z[0]  # TODO: take z array for compound mats
         self.target_a = target.z[0] + target.n[0]
@@ -39,7 +39,7 @@ class AxionFlux:
     def det_sa(self):
         return arctan(sqrt(self.det_area / pi) / self.det_dist)
 
-    def propagate(self, decay_width, rescale_factor=1.0):
+    def propagate(self, decay_width, rescale_factor=1.0, time_of_flight_cut=None):
         e_a = np.array(self.axion_energy)
         wgt = np.array(self.axion_flux)
 
@@ -50,16 +50,18 @@ class AxionFlux:
         tau = boost / decay_width if decay_width > 0.0 else np.inf * np.ones_like(boost)
 
         # Calculate time of flight
-        tof = self.det_dist / (v_a * 1e-2 * C_LIGHT)
-        delta_tof = abs((self.det_dist / (1e-2 * C_LIGHT)) - tof)
-        in_timing_window_wgt = delta_tof < self.timing_window
+        if time_of_flight_cut is not None:
+            tof = self.det_dist / (v_a * 1e-2 * C_LIGHT)
+            delta_tof = abs((self.det_dist / (1e-2 * C_LIGHT)) - tof)
+            in_timing_window_wgt = delta_tof < self.timing_window
+            wgt *= in_timing_window_wgt
 
         # Get decay and survival probabilities
         surv_prob = np.exp(-self.det_dist / METER_BY_MEV / v_a / tau)
         decay_prob = (1 - np.exp(-self.det_length / METER_BY_MEV / v_a / tau))
 
-        self.decay_axion_weight = np.asarray(rescale_factor * wgt * in_timing_window_wgt * surv_prob * decay_prob, dtype=np.float32)
-        self.scatter_axion_weight = np.asarray(rescale_factor * wgt * in_timing_window_wgt * surv_prob, dtype=np.float32)
+        self.decay_axion_weight = np.asarray(rescale_factor * wgt * surv_prob * decay_prob, dtype=np.float32)
+        self.scatter_axion_weight = np.asarray(rescale_factor * wgt * surv_prob, dtype=np.float32)
 
     def propagate_iso_vol_int(self, geom: DetectorGeometry, decay_width, rescale_factor=1.0):
         e_a = np.array(self.axion_energy)
@@ -384,7 +386,7 @@ class FluxResonanceIsotropic(AxionFlux):
         self.positron_flux_bin_widths = positron_flux[1:,0] - positron_flux[:-1,0]
         self.ge = axion_coupling
         self.target_radius = target_length  # cm
-        self.ntarget_area_density = target.rad_length * AVOGADRO / (2*target.z[0])  # N_T / cm^2
+        self.ntarget_area_density = target.rad_length * AVOGADRO / (target.z[0] + target.n[0])  # N_T / cm^2
         self.is_isotropic = is_isotropic
         self.loop_decay = loop_decay
         self.boson_type = boson_type
