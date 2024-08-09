@@ -171,12 +171,15 @@ class DarkPrimakoffGenerator:
         energy_weights_list = []
         self.nucleon_energy_list = []
 
+        incoming_p4 = LorentzVector()
         for i in range(len(self.energies)):
+            print("simulating from flux i = {} / {}".format(i, len(self.energies)))
             Ea0 = self.energies[i]
+            incoming_p4.set_p4(Ea0, 0.0, 0.0, np.sqrt(Ea0**2 - self.mx**2))
             if Ea0 < self.mx:
                 continue
             for j, this_mc in enumerate(mc):  # loop over elements in compound material
-                this_mc.lv_p1 = LorentzVector(Ea0, 0.0, 0.0, np.sqrt(Ea0**2 - self.mx**2))
+                this_mc.lv_p1 = incoming_p4
                 this_mc.scatter_sim()
                 cosines, dsdcos = this_mc.get_cosine_lab_weights()
                 e3, dsde = this_mc.get_e3_lab_weights()
