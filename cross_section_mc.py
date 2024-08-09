@@ -576,6 +576,8 @@ def lorentz_boost(momentum: LorentzVector, v: Vector3):
     """
     n = v.unit_vec().vec
     beta = v.mag()
+    if beta == 0.0:
+        return momentum
     gamma = 1/np.sqrt(1-beta**2)
     mat = np.array([[gamma, -gamma*beta*n[0], -gamma*beta*n[1], -gamma*beta*n[2]],
                     [-gamma*beta*n[0], 1+(gamma-1)*n[0]*n[0], (gamma-1)*n[0]*n[1], (gamma-1)*n[0]*n[2]],
