@@ -62,8 +62,19 @@ SSW = 0.2312  # Sine-squared of the Weinberg angle at Z mass
 G_F = 1.16638e-11  # MeV^-2
 CABIBBO = 0.9743  # Cosine of the Cabibbo angle
 R_E = 2.81794e-13  # classical electron radius in cm
-V_UD = 0.9737  # ckm ud
-V_US = 0.2245  # ckm us
+
+# CKM (absolute values)
+V_UD = 0.97373  # ckm u-d
+V_US = 0.2243  # ckm u-s
+V_UB = 0.00382  # ckm u-b
+V_CD = 0.221  # ckm c-d
+V_CS = 0.975  # ckm c-s
+V_CB = 0.0408  # ckm c-b
+V_TD = 0.0086  # ckm t-d
+V_TS = 0.0415  # ckm t-s
+V_TB = 1.014  # ckm t-b
+
+CKM_MATRIX = [[V_UD, V_US, V_UB], [V_CD, V_CS, V_CB], [V_TD, V_TS, V_TB]]
 
 # Decay constants: mesons
 F_PI = 130.2 * MeV  # pion decay constant
