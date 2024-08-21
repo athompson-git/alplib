@@ -55,15 +55,29 @@ MEV2_CM2 = (METER_BY_MEV * 100)**2
 S_PER_DAY = 3600*24
 HBARC_KEV_ANG = 1.97
 
-# SM parameters
-SSW = 0.2312  # Sine-squared of the Weinberg angle
+### SM parameters
+
+# Electroweak physics
+SSW = 0.2312  # Sine-squared of the Weinberg angle at Z mass
 G_F = 1.16638e-11  # MeV^-2
 CABIBBO = 0.9743  # Cosine of the Cabibbo angle
 R_E = 2.81794e-13  # classical electron radius in cm
 V_UD = 0.9737  # ckm ud
 V_US = 0.2245  # ckm us
+
+# Decay constants: mesons
 F_PI = 130.2 * MeV  # pion decay constant
 F_K = 155.7 * MeV  # kaon decay constant
+F_D = 212.0 * MeV  # D meson decay constant
+F_DS = 249.0 * MeV  # D_s meson decay constant
+F_RHO = 0.171e6 * MeV*MeV  # Rho vector meson decay constant
+F_OMEGA = 0.155e6 * MeV*MeV  # Omega vector meson decay constant
+F_PHI = 0.232e6 * MeV*MeV  # Phi vector meson decay constant
+F_KSTAR = 0.178e6 * MeV*MeV  # Kstar vector meson decay constant
+ETA_F_0 = 148.0 * MeV  # Eta^0 decay constant
+ETA_F_8 = 165.0 * MeV  # Eta^8 decay constant
+THETA_0 = -0.12043  # Eta^0 rotation angle to physical basis in rad
+THETA_8 = -0.37001  # Eta^8 rotation angle to physical basis in rad
 
 # Lifetimes
 KAON_LIFETIME = 1.238e-8 * sec
