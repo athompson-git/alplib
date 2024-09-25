@@ -48,6 +48,7 @@ M_PHI = 1019.461 * MeV  # phi vector meson mass
 M_N = 939.56 * MeV  # neutron
 M_A = 1014 * MeV  # axial mass
 M_K = 493.677  # charged Kaon
+M_KSTAR = 891.66  # charged vector Kstar meson
 M_W = 80.377 * GeV  # W boson
 M_Z = 91.1876 * GeV  # Z boson
 
