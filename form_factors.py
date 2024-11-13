@@ -128,7 +128,7 @@ class ProtonFF:
 
     def __call__(self, t):
         GE = power(1 - t/0.71e6, -2)
-        return power(GE * (1 - 4.706*t/(4*M_P**2))/(1 - t/(4*M_P**2)), 2)
+        return power(GE * (1 - 2.79*t/(4*M_P**2))/(1 - t/(4*M_P**2)), 2)
 
 
 

@@ -226,6 +226,24 @@ class M2VectorPseudoscalarPrimakoffIncoherent(MatrixElement2):
 
 
 
+class M2VectorScalarPrimakoffIncoherent(MatrixElement2):
+    """
+    Zp + N -> gamma + N via massive scalar mediator
+    """
+    def __init__(self, mphi, mZp, n_nucleons):
+        super().__init__(mZp, M_P, 0, M_P)
+        self.mZp = mZp
+        self.mphi = mphi
+        self.NN = n_nucleons
+        self.ff2 = ProtonFF()
+
+    def __call__(self, s, t, coupling_product=1.0):
+        return (3/16) * self.NN * abs((self.ff2(t))) * coupling_product**2 \
+            * (4*self.mN**2 - t) * power((self.mZp**2 - t)/((self.mphi**2 - t)),2)
+
+
+
+
 class M2PairProduction:
     """
     a + N -> e+ e- N    ALP-driven pair production

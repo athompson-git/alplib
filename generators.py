@@ -147,17 +147,32 @@ class DarkPrimakoffGenerator:
         else:
             self.target_masses = detector.m
 
-    def get_weights(self, lam, gphi, mphi, n_e=3.2e26, eff=Efficiency()):
+    def get_weights(self, lam, gphi, mphi, n_e=3.2e26, eff=Efficiency(), incoherent=False):
         # Simulate using the MatrixElement method
         if self.mediator_type == "S":
-            m2_dp = [M2VectorScalarPrimakoff(mphi, self.mx, self.det.m[i], self.det.n[i], self.det.z[i]) \
-                for i in range(len(self.det.frac))]
+            if incoherent:
+                m2_dp = [M2VectorScalarPrimakoffIncoherent(mphi, self.mx, self.det.n[i] + self.det.z[i]) \
+                    for i in range(len(self.det.frac))]
+            else:
+                m2_dp = [M2VectorScalarPrimakoff(mphi, self.mx, self.det.m[i], self.det.n[i], self.det.z[i]) \
+                    for i in range(len(self.det.frac))]
+
         if self.mediator_type == "P":
-            m2_dp = [M2VectorPseudoscalarPrimakoff(mphi, self.mx, self.det.m[i], self.det.n[i], self.det.z[i]) \
-                for i in range(len(self.det.frac))]
+            if incoherent:
+                m2_dp = [M2VectorPseudoscalarPrimakoffIncoherent(mphi, self.mx, self.det.n[i] + self.det.z[i]) \
+                    for i in range(len(self.det.frac))]
+            else:
+                m2_dp = [M2VectorPseudoscalarPrimakoff(mphi, self.mx, self.det.m[i], self.det.n[i], self.det.z[i]) \
+                    for i in range(len(self.det.frac))]
+
         if self.mediator_type == "V":
-            m2_dp = [M2DarkPrimakoff(self.mx, mphi, self.det.m[i], self.det.n[i], self.det.z[i]) \
-                for i in range(len(self.det.frac))]
+            if incoherent:
+                m2_dp = [M2DarkPrimakoffIncoherent(self.mx, mphi, self.det.n[i] + self.det.z[i]) \
+                    for i in range(len(self.det.frac))]
+            else:
+                m2_dp = [M2DarkPrimakoff(self.mx, mphi, self.det.m[i], self.det.n[i], self.det.z[i]) \
+                    for i in range(len(self.det.frac))]
+
         if self.mediator_type == "Pi0":
             m2_dp = [M2VectorPseudoscalarPrimakoffIncoherent(M_PI0, self.mx, self.det.n[i] + self.det.z[i])
                 for i in range(len(self.det.frac))]
@@ -173,7 +188,6 @@ class DarkPrimakoffGenerator:
 
         incoming_p4 = LorentzVector()
         for i in range(len(self.energies)):
-            print("simulating from flux i = {} / {}".format(i, len(self.energies)))
             Ea0 = self.energies[i]
             incoming_p4.set_p4(Ea0, 0.0, 0.0, np.sqrt(Ea0**2 - self.mx**2))
             if Ea0 < self.mx:
