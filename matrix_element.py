@@ -239,7 +239,7 @@ class M2VectorScalarPrimakoffIncoherent(MatrixElement2):
 
     def __call__(self, s, t, coupling_product=1.0):
         return (3/16) * self.NN * abs((self.ff2(t))) * coupling_product**2 \
-            * (4*self.mN**2 - t) * power((self.mZp**2 - t)/((self.mphi**2 - t)),2)
+            * (4*M_P**2 - t) * power((self.mZp**2 - t)/((self.mphi**2 - t)),2)
 
 
 
