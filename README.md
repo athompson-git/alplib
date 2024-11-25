@@ -1,5 +1,8 @@
 ﻿# Welcome to ALPlib.
 
+[![DOI](https://zenodo.org/badge/265690633.svg)](https://doi.org/10.5281/zenodo.8419292)
+
+
 ### This is a python library for performing physics calculations for axion-like-particles (ALPs).
 
 Author: Adrian Thompson
