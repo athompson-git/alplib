@@ -1014,7 +1014,7 @@ class FluxNeutralMeson2BodyDecay(AxionFlux):
     def br(self):
         if self.ma > self.m_meson:
             return 0.0
-        return 2 * (self.g)**2 * (1 - power(self.ma / self.m_meson, 2))**3 / 4*pi*ALPHA
+        return 2 * (self.g)**2 * (1 - power(self.ma / self.m_meson, 2))**3 / (4*pi*ALPHA)
 
     def simulate(self):
         for m in self.meson_flux:
