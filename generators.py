@@ -132,7 +132,7 @@ class DarkPrimakoffGenerator:
     """
     Takes in an AxionFlux at the detector (N/s) and gives scattering rates (# events)
     """
-    def __init__(self, flux: AxionFlux, detector: Material, mediator="S", n_samples=1):
+    def __init__(self, flux: AxionFlux, detector: Material, mediator="S", n_samples=1, incoherent=False):
         self.flux = flux
         self.mx = flux.ma
         self.det = detector
@@ -142,15 +142,16 @@ class DarkPrimakoffGenerator:
         self.energy_threshold = None  # TODO: add threshold as member var
         self.n_samples = n_samples
         self.mediator_type = mediator
-        if mediator == "Pi0":
+        self.incoherent = incoherent
+        if (mediator == "Pi0") or incoherent:
             self.target_masses = detector.m.shape[0] * [M_P]
         else:
             self.target_masses = detector.m
 
-    def get_weights(self, lam, gphi, mphi, n_e=3.2e26, eff=Efficiency(), incoherent=False):
+    def get_weights(self, lam, gphi, mphi, n_e=3.2e26, eff=Efficiency()):
         # Simulate using the MatrixElement method
         if self.mediator_type == "S":
-            if incoherent:
+            if self.incoherent:
                 m2_dp = [M2VectorScalarPrimakoffIncoherent(mphi, self.mx, self.det.n[i] + self.det.z[i]) \
                     for i in range(len(self.det.frac))]
             else:
@@ -158,7 +159,7 @@ class DarkPrimakoffGenerator:
                     for i in range(len(self.det.frac))]
 
         if self.mediator_type == "P":
-            if incoherent:
+            if self.incoherent:
                 m2_dp = [M2VectorPseudoscalarPrimakoffIncoherent(mphi, self.mx, self.det.n[i] + self.det.z[i]) \
                     for i in range(len(self.det.frac))]
             else:
@@ -166,7 +167,7 @@ class DarkPrimakoffGenerator:
                     for i in range(len(self.det.frac))]
 
         if self.mediator_type == "V":
-            if incoherent:
+            if self.incoherent:
                 m2_dp = [M2DarkPrimakoffIncoherent(self.mx, mphi, self.det.n[i] + self.det.z[i]) \
                     for i in range(len(self.det.frac))]
             else:
