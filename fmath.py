@@ -22,3 +22,7 @@ def fastMC2D(func, a, b, c, d, n_samples):
     pass
 
 
+
+
+def kallen_alplib(x, y, z):
+    return x*x + y*y + z*z - 2*x*y - 2*y*z - 2*z*x
