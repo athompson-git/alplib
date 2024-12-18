@@ -102,14 +102,15 @@ def binary_search(test_function, stop_value, lower_edge, upper_edge, tolerance=0
 
 
 
-def cleanLimitData(masses, lower_limits, upper_limits):
+def cleanLimitData(masses, lower_limits, upper_limits, apply_smoothing=False):
         diff_upper_lower = upper_limits - lower_limits
         upper_limits = np.delete(upper_limits, np.where(diff_upper_lower < 0))
         lower_limits = np.delete(lower_limits, np.where(diff_upper_lower < 0))
         masses = np.delete(masses, np.where(diff_upper_lower < 0))
 
         # Apply a savgol filter
-        lower_limits = savgol_filter(lower_limits, 3, 0)
+        if apply_smoothing:
+            lower_limits = savgol_filter(lower_limits, 3, 0)
 
         joined_limits = np.append(lower_limits, upper_limits[::-1])
         joined_masses = np.append(masses, masses[::-1])
