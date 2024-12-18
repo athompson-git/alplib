@@ -239,6 +239,11 @@ class Scatter2to2MC:
         t0 = power(self.m1**2 - self.m3**2 - self.m2**2 + self.m4**2, 2)/(4*s) - power(p1_cm - p3_cm, 2)
         t1 = power(self.m1**2 - self.m3**2 - self.m2**2 + self.m4**2, 2)/(4*s) - power(p1_cm + p3_cm, 2)
 
+        #e1_cm = np.sqrt(p1_cm**2 + self.m1**2)
+        #e3_cm = np.sqrt(p3_cm**2 + self.m3**2)
+        #t0 = self.m1**2 + self.m3**2 + 2*(p1_cm*p3_cm - e1_cm*e3_cm)
+        #t1 = self.m1**2 + self.m3**2 + 2*(-p1_cm*p3_cm - e1_cm*e3_cm)
+
         def integrand(t):
             return self.dsigma_dt(s, t)
 
@@ -246,9 +251,11 @@ class Scatter2to2MC:
 
     def get_cosine_lab_weights(self):
         lab_cosines = np.array([self.p3_lab_4vectors[i].cosine() for i in range(self.n_samples)])
-        cosine_weights = abs(np.array([power(self.p3_lab_3vectors[i].mag()/self.p3_cm_3vectors[i].mag(), 2) * \
-                        (self.p3_cm_3vectors[i]*self.p3_lab_3vectors[i])/(self.p3_cm_3vectors[i].mag()*self.p3_lab_3vectors[i].mag()) \
-                         * self.dsigma_dcos_cm_wgts[i] for i in range(self.n_samples)]))
+        #cosine_weights = abs(np.array([power(self.p3_lab_3vectors[i].mag()/self.p3_cm_3vectors[i].mag(), 2) * \
+        #                (self.p3_cm_3vectors[i]*self.p3_lab_3vectors[i])/(self.p3_cm_3vectors[i].mag()*self.p3_lab_3vectors[i].mag()) \
+        #                 * self.dsigma_dcos_cm_wgts[i] for i in range(self.n_samples)]))
+        # TODO(AT): check jacobian is needed?
+        cosine_weights = self.dsigma_dcos_cm_wgts
 
         return lab_cosines, cosine_weights
     
@@ -558,11 +565,77 @@ class Decay2Body:
 
 
 class Decay3Body:
+    """
+    Performs a weighted MC sampling of the differential 3-body decay width
+    by choosing a final-state particle of interest (particle #3 by convention)
+    and drawing random variates in the rest-frame of the parent; particle 3
+    has a random angle on the 2-sphere and a random energy between some E_max and E_min.
+    The weight is given by dGamma / dE_3 dOmega
+    Finally, we boost to the lab frame with the appropriate Jacobian factor.
+    """
     def __init__(self, mtrx2: MatrixElementDecay3, p: LorentzVector, n_samples=1000):
-        pass
+        self.m2 = mtrx2
+        self.n_samples = n_samples
 
-    def decay(self):
-        pass
+        self.parent_p4 = p
+
+        self.m_parent = mtrx2.m_parent
+        self.m1 = mtrx2.m1
+        self.m2 = mtrx2.m2
+        self.m3 = mtrx2.m3
+
+        self.p3_cm_4vectors = []
+        self.p3_lab_4vectors = []
+        self.weights = np.array([])
+
+    def dGammadE3(self, E3):
+        # TODO(AT): replace masses with generic masses
+        m212 = self.m_parent**2 + self.m3**2 - 2*self.m_parent*E3
+        e2star = (m212 - self.m1**2 + self.m2**2)/(2*sqrt(m212))
+        e3star = (self.m_parent**2 - m212 - self.m3**2)/(2*sqrt(m212))
+
+        if self.ma > e3star:
+            return 0.0
+
+        m223Max = (e2star + e3star)**2 - (sqrt(e2star**2 - self.m2**2) - sqrt(e3star**2 - self.m3**2))**2
+        m223Min = (e2star + e3star)**2 - (sqrt(e2star**2 - self.m2**2) + sqrt(e3star**2 - self.m3**2))**2
+
+        def MatrixElement2(m223):
+            return self.m2(m212, m223)
+
+        return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2, m223Min, m223Max)[0]
+
+    def total_br(self):
+        ea_max_mu = (self.mm**2 + self.ma**2 - M_MU**2)/(2*self.mm)
+        ea_max_e = (self.mm**2 + self.ma**2 - M_E**2)/(2*self.mm)
+        return (quad(self.dGammadEa, self.ma, ea_max_e, args=(M_E,))[0] \
+            + quad(self.dGammadEa, self.ma, ea_max_mu, args=(M_MU,))[0]) / self.total_width
+
+    def simulate_decay(self):
+        ea_min = self.m3
+        ea_max = (self.m_parent**2 + self.m3**2 - self.m2**2 - self.m1**2)/(2*self.m_parent)
+
+        # Boost to lab frame
+        beta = self.parent_p4.momentum() / self.parent_p4.energy()
+        boost = power(1-beta**2, -0.5)
+        beta_parent = -self.parent_p4.get_3velocity()
+
+        # Draw random variate energies and angles in the parent rest frame
+        e3_rnd = np.random.uniform(ea_min, ea_max, self.n_samples)
+        p3_rnd = sqrt(e3_rnd**2 - self.m3**2)
+        theta3_rnd = arccos(1 - 2*np.random.ranf(self.n_samples))
+        phi3_rnd = np.random.uniform(0, 2*pi, self.n_samples)
+        p3_z = p3_rnd*np.cos(theta3_rnd)
+
+        self.p3_cm_4vectors = [LorentzVector(e3_rnd[i],
+                            -p3_rnd[i]*cos(phi3_rnd[i])*sin(theta3_rnd[i]),
+                            -p3_rnd[i]*sin(phi3_rnd[i])*sin(theta3_rnd[i]),
+                            -p3_rnd[i]*cos(theta3_rnd[i])) for i in range(self.n_samples)]
+        self.p3_lab_4vectors = [lorentz_boost(p1, beta_parent) for p1 in self.p1_cm_4vectors]
+
+        # Draw weights from the PDF: (Jacobian) * dGamma/dE_CM * MC volume
+        self.weights = np.array([(boost*beta*self.p3_lab_4vectors[i].momentum())*self.dGammadEa(e3_rnd[i])/self.total_width/self.n_samples \
+                                    for i in range(self.n_samples)])
 
 
 
