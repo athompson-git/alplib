@@ -573,8 +573,8 @@ class Decay3Body:
     The weight is given by dGamma / dE_3 dOmega
     Finally, we boost to the lab frame with the appropriate Jacobian factor.
     """
-    def __init__(self, mtrx2: MatrixElementDecay3, p: LorentzVector, n_samples=1000):
-        self.m2 = mtrx2
+    def __init__(self, mtrx2: MatrixElementDecay3, p: LorentzVector, n_samples=1000, total_width=None):
+        self.mtrx2 = mtrx2
         self.n_samples = n_samples
 
         self.parent_p4 = p
@@ -588,30 +588,34 @@ class Decay3Body:
         self.p3_lab_4vectors = []
         self.weights = np.array([])
 
+        if total_width is None:
+            self.total_width = self.partial_width()
+        else:
+            self.total_width = total_width
+
     def dGammadE3(self, E3):
-        # TODO(AT): replace masses with generic masses
         m212 = self.m_parent**2 + self.m3**2 - 2*self.m_parent*E3
         e2star = (m212 - self.m1**2 + self.m2**2)/(2*sqrt(m212))
         e3star = (self.m_parent**2 - m212 - self.m3**2)/(2*sqrt(m212))
 
-        if self.ma > e3star:
+        if self.m3 > e3star:
             return 0.0
 
         m223Max = (e2star + e3star)**2 - (sqrt(e2star**2 - self.m2**2) - sqrt(e3star**2 - self.m3**2))**2
         m223Min = (e2star + e3star)**2 - (sqrt(e2star**2 - self.m2**2) + sqrt(e3star**2 - self.m3**2))**2
 
         def MatrixElement2(m223):
-            return self.m2(m212, m223)
+            return self.mtrx2(m212, m223)
 
-        return (2*self.mm)/(32*power(2*pi*self.mm, 3))*quad(MatrixElement2, m223Min, m223Max)[0]
+        return (2*self.m_parent)/(32*power(2*pi*self.m_parent, 3))*quad(MatrixElement2, m223Min, m223Max)[0]
 
-    def total_br(self):
-        ea_max_mu = (self.mm**2 + self.ma**2 - M_MU**2)/(2*self.mm)
-        ea_max_e = (self.mm**2 + self.ma**2 - M_E**2)/(2*self.mm)
-        return (quad(self.dGammadEa, self.ma, ea_max_e, args=(M_E,))[0] \
-            + quad(self.dGammadEa, self.ma, ea_max_mu, args=(M_MU,))[0]) / self.total_width
+    def partial_width(self):
+        ea_max = (self.m_parent**2 + self.m3**2 - self.m2**2 - self.m1**2)/(2*self.m_parent)
+        return quad(self.dGammadE3, self.m3, ea_max)[0]
 
     def simulate_decay(self):
+        # Simulates the weighted-MC 3-body decay, outputting the 4-vectors of particle #3
+        # TODO(AT): add calculations for particles 1,2
         ea_min = self.m3
         ea_max = (self.m_parent**2 + self.m3**2 - self.m2**2 - self.m1**2)/(2*self.m_parent)
 
@@ -625,16 +629,16 @@ class Decay3Body:
         p3_rnd = sqrt(e3_rnd**2 - self.m3**2)
         theta3_rnd = arccos(1 - 2*np.random.ranf(self.n_samples))
         phi3_rnd = np.random.uniform(0, 2*pi, self.n_samples)
-        p3_z = p3_rnd*np.cos(theta3_rnd)
 
         self.p3_cm_4vectors = [LorentzVector(e3_rnd[i],
                             -p3_rnd[i]*cos(phi3_rnd[i])*sin(theta3_rnd[i]),
                             -p3_rnd[i]*sin(phi3_rnd[i])*sin(theta3_rnd[i]),
                             -p3_rnd[i]*cos(theta3_rnd[i])) for i in range(self.n_samples)]
-        self.p3_lab_4vectors = [lorentz_boost(p1, beta_parent) for p1 in self.p1_cm_4vectors]
+        self.p3_lab_4vectors = [lorentz_boost(p1, beta_parent) for p1 in self.p3_cm_4vectors]
 
         # Draw weights from the PDF: (Jacobian) * dGamma/dE_CM * MC volume
-        self.weights = np.array([(boost*beta*self.p3_lab_4vectors[i].momentum())*self.dGammadEa(e3_rnd[i])/self.total_width/self.n_samples \
+        mc_factor = (ea_max - ea_min)/self.total_width/self.n_samples 
+        self.weights = np.array([mc_factor*(self.p3_lab_4vectors[i].momentum()/self.p3_cm_4vectors[i].momentum())*self.dGammadE3(e3_rnd[i]) \
                                     for i in range(self.n_samples)])
 
 
