@@ -1009,7 +1009,7 @@ class FluxNeutralMeson2BodyDecay(AxionFlux):
         self.off_axis_angle = off_axis_angle
         self.phi_range = 2*pi
         if off_axis_angle > 0.0:
-            self.phi_range = self.det_sa()
+            self.phi_range = 2*self.det_sa()
 
     def br(self):
         if self.ma > self.m_meson:
