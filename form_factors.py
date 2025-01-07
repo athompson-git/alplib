@@ -110,10 +110,16 @@ class AtomicPlusNuclearFF:
         self.s = 0.9 * (10 ** -15) / METER_BY_MEV
         self.r1 = sqrt((1.23*power(n+z, 1/3) - 0.6)**2 - 5*0.9**2 + 7*power(pi*0.52, 2)/3) * (10 ** -15) / METER_BY_MEV
 
-    def __call__(self, q):
+    def __call__(self, q, simple_dipole=False):
         t = q**2
         a = 184.15*np.power(2.718, -1/2)*np.power(self.z, -1/3) / M_E
-        ff_a = abs(self.z*(t*a**2) / (1 + t*a**2))
+        dA = 0.164e6 * np.power(self.n + self.z, -2/3)
+        ff_a = self.z * abs((t*a**2) / (1 + t*a**2))
+        
+        if simple_dipole:
+            ff_ad = self.z * abs((t*a**2) / (1 + t*a**2) / (1 + t/dA))
+            return np.power(ff_ad, 2)
+    
         ff_helm = abs(self.z * 3*spherical_jn(1, q*self.r1) / (q*self.r1) * exp((-(q*self.s)**2)/2))
         return np.heaviside(q - 1e-9, 0.0) * np.power(ff_a - self.z + ff_helm, 2)
 
