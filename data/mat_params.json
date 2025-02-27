@@ -1,4 +1,17 @@
 {
+  "H":
+    {
+      "iso": 1,
+      "z": [1],
+      "n": [0],
+      "frac": [1],
+      "lattice_const": [],
+      "cell_volume": 10.0,
+      "atomic_radius": [],
+      "m": [0.9389e3],
+      "density": 1.0,
+      "rad_length": 53.44
+    },
   "Al":
     {
       "iso": 1,
