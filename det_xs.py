@@ -90,12 +90,12 @@ def icompton_sigma(ea, ma, g, z=1):
     # Inverse Compton total cross section (a + e- -> \gamma + e-)
     # Borexino 2008, eq. 14
     y = 2 * M_E * ea + ma**2
-    pa = sqrt((ea**2 - ma**2))
+    pa = sqrt(np.clip(ea**2 - ma**2, a_min=0.0, a_max=np.inf))
     prefactor = heaviside(ea - ma, 0.0) * heaviside(ea - ma*sqrt(2*M_E**2 + ma**2)/(2*M_E), 0.0) * z * ALPHA * power(g/M_E, 2) / (8 * pa)
 
-    return prefactor * ((2 * M_E**2 * (M_E + ea) * y)/power(M_E**2 + y, 2) \
+    return np.nan_to_num(prefactor * ((2 * M_E**2 * (M_E + ea) * y)/power(M_E**2 + y, 2) \
         + (4*M_E*(ma**4 + 2*power(ma*M_E, 2) - power(2*M_E*ea, 2)))/(y*(M_E**2 + y)) \
-        + log((M_E + ea + pa)/(M_E + ea - pa))*(power(2*M_E*pa, 2) + ma**4)/(pa*y)) #, a_min=0.0, a_max=None)
+        + log((M_E + ea + pa)/(M_E + ea - pa))*(power(2*M_E*pa, 2) + ma**4)/(pa*y)))
 
 
 
