@@ -14,6 +14,7 @@ from .cross_section_mc import *
 
 import multiprocessing as multi
 
+from collections.abc import Iterable
 
 
 class AxionFlux:
@@ -260,6 +261,13 @@ def track_length_prob(Ei, Ef, t):
 
 
 
+def track_length_integrated_prob(Ei, Ef, T_max=5.0):
+    # The track length probability integrated over t
+    return (3/4) * heaviside(Ei-Ef, 1.0) * nu_integral(log(Ei/Ef), -1, 4*T_max/3) / Ei
+
+
+
+
 class FluxBremIsotropic(AxionFlux):
     """
     Generator for axion-bremsstrahlung flux
@@ -298,12 +306,14 @@ class FluxBremIsotropic(AxionFlux):
     def positron_flux_dN_dE(self, energy):
         return np.interp(energy, self.positron_flux[:,0], self.positron_flux[:,1], left=0.0, right=0.0)
 
-    def electron_positron_flux_attenuated(self, t, E0, E1):
+    def electron_positron_flux_attenuated(self, E0, E1):
         if self.is_monoenergetic:
-            el_flux_att = np.array([self.electron_flux[i,1] * track_length_prob(self.electron_flux[i,0], E1, t) \
+            el_flux_att = np.array([self.electron_flux[i,1] \
+                                    * track_length_integrated_prob(self.electron_flux[i,0], E1, self.max_t) \
                             for i in range(self.electron_flux.shape[0])])
             return el_flux_att
-        return (self.electron_flux_dN_dE(E0) + self.positron_flux_dN_dE(E0)) * track_length_prob(E0, E1, t)
+        return (self.electron_flux_dN_dE(E0) + self.positron_flux_dN_dE(E0)) \
+            * track_length_integrated_prob(E0, E1, self.max_t)
 
     def simulate_single(self, electron):
         el_energy = electron[0]
@@ -337,12 +347,9 @@ class FluxBremIsotropic(AxionFlux):
             for i, el in enumerate(self.electron_flux):
                 if el[0] < ep_min:
                     continue
-                t_depth = 10**np.random.uniform(-3, np.log10(self.max_t), 5)
-                new_energy = np.random.uniform(ep_min, el[0], 5)
-                for i in range(5):
-                    flux_weight = self.electron_positron_flux_attenuated(t_depth[i], el[0], new_energy[i]) \
-                        * np.log(10) * t_depth[i] * (np.log10(self.max_t*3)) * (el[0] - ep_min) / 5
-                    self.simulate_single([new_energy[i], flux_weight])
+                new_energy = np.random.uniform(ep_min, el[0])
+                flux_weight = (el[0] - ep_min) * self.electron_positron_flux_attenuated(el[0], new_energy) 
+                self.simulate_single([new_energy[i], flux_weight])
             
         else:
             for i, el in enumerate(self.electron_flux):
