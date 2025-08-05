@@ -6,7 +6,7 @@ from alplib.constants import *
 from alplib.fmath import *
 from alplib.matrix_element import *
 
-#import vegas
+import vegas
 
 
 
@@ -37,10 +37,15 @@ class Vector3:
         return Vector3(-self.v1, -self.v2, -self.v3)
     
     def __mul__(self, other):
-        return np.dot(self.vec, other.vec)
+        if isinstance(other, (int, float)):  # Scalar multiplication
+            return Vector3(self.v1 * other, self.v2 * other, self.v3 * other)
+        elif isinstance(other, Vector3):  # Dot product
+            return np.dot(self.vec, other.vec)
+        else:
+            raise TypeError("Unsupported operand type for *: 'Vector' and '{}'".format(type(other)))
     
     def __rmul__(self, other):
-        return np.dot(self.vec, other.vec)
+        return self.__mul__(other)  # Reuse __mul__
     
     def unit_vec(self):
         v = self.mag()

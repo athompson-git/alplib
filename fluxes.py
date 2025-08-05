@@ -1140,3 +1140,97 @@ class FluxPairAnnihilationGamma(AxionFlux):
             geom_accept = self.det_area / (4*pi*self.det_dist**2)
             self.decay_axion_weight *= geom_accept
             self.scatter_axion_weight *= geom_accept
+
+
+
+
+# Pion production using gluon coupling
+class FluxAxionMesonMixing(AxionFlux):
+    """
+    Axion flux to simulate pion and eta mixing ALP production
+    Kelly, Kumar, Liu 2011.05995 inspired
+    axion_coupling is f_a in MeV
+    """
+    def __init__(self, meson_flux=None, meson_mass=M_PI0, target=Material("C"),
+                 det_dist=574.0, det_length=5.0, det_area=21.0,
+                 axion_mass=0.1, f_a=1000.0, meson_type="Pi0", total_pot=1e21,
+                 n_samples=1, mesons_per_pot=2.89, c1=1.0, c2=1.0, c3=1.0):
+        # set the coupling (photon coupling)
+        self.c1 = c1
+        self.c2 = c2
+        self.c3 = c3
+        self.f_a = f_a
+
+        super().__init__(axion_mass, target, det_dist, det_length, det_area)
+        self.axion_coupling = self.photon_coupling(f_a)
+
+        self.meson_flux = meson_flux
+        self.n_samples = n_samples
+        self.support = np.ones(n_samples)
+        self.meson_mass = meson_mass
+        self.mesons_per_pot = mesons_per_pot
+        self.total_pot = total_pot
+        self.meson_norm_wgt = 1.0/meson_flux.shape[0]
+        self.meson_type = meson_type
+    
+    def photon_coupling(self, f_a):
+        if self.ma > 150.0:
+            c_gamma = self.c2 + (5/3)*self.c1
+            return c_gamma * ALPHA / (2 * pi * f_a)  # in MeV^-1
+        
+        # ma < QCD scale
+        c_gamma = self.c2 + (5/3)*self.c1 + self.c3 * (
+            -1.92
+            + (1/3) * (self.ma**2 / (self.ma**2 - M_PI0**2))
+            + (8/9) * ((self.ma**2 - (4/9)*M_PI0**2) / (self.ma**2 - M_ETA**2))
+            + (7/9) * ((self.ma**2 - (16/9)*M_PI0**2) / (self.ma**2 - M_ETA_PRIME**2))
+        )
+
+        return c_gamma * ALPHA / (2 * pi * f_a)  # in MeV^-1
+
+    def set_new_coupling(self, f_a):
+        self.f_a = f_a
+        self.axion_coupling = self.photon_coupling(f_a)
+
+    def mixing(self):
+        if self.meson_type == "Pi0":
+            return (1/6) * (F_PI/self.f_a) * (self.ma**2 / (self.ma**2 - M_PI0**2))
+        elif self.meson_type == "Eta":
+            return (1/sqrt(6)) * (F_PI/self.f_a) * ((self.ma**2 - 4*M_PI0**2 / 9) / (self.ma**2 - M_ETA**2))
+
+    def phase_space_factor(self):
+        if self.ma <= self.meson_mass:
+            return 1.0
+        return np.power(self.ma / self.meson_mass, -1.6)
+
+    def simulate(self):
+        self.axion_energy = []
+        self.axion_angle = []
+        self.axion_flux = []
+        self.scatter_axion_weight = []
+        self.decay_axion_weight = []
+
+        for m in self.meson_flux:
+            if m[0] < self.ma:
+                continue
+
+            meson_angle = np.arccos(m[3]/sqrt(m[1]**2 + m[2]**2 + m[3]**2))
+
+            if meson_angle > self.det_sa():
+                continue
+
+            self.axion_energy.append(m[0])
+            self.axion_angle.append(meson_angle)
+
+            rate = self.total_pot * self.mesons_per_pot * self.meson_norm_wgt \
+                * self.phase_space_factor() * (self.mixing())**2
+                        
+            self.axion_flux.append(rate)
+
+    def propagate(self, new_fa=None):
+        if new_fa is not None:
+            rescale=power(self.f_a/new_fa, 2)
+            super().propagate(W_gg(self.photon_coupling(new_fa), self.ma), rescale)
+        else:
+            super().propagate(W_gg(self.axion_coupling, self.ma))
+
