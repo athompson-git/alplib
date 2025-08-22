@@ -35,6 +35,8 @@ M_TAU = 1.77699e3 * MeV  # tau
 M_U = 2.2 * MeV  # up quark
 M_D = 4.7 * MeV  # down quark
 M_C = 1.280e3 * MeV  # charm quark
+M_BOTTOM = 4.183 * GeV
+M_TOP = 172.56 * GeV
 M_PI = 139.57 * MeV  # pi+ / pi-
 M_PI0 = 134.98 * MeV  # pi0
 M_ETA = 547.862 * MeV  # eta
@@ -108,6 +110,7 @@ PI0_LIFETIME = 8.5e-17 * sec
 PION_WIDTH = 2.524e-14 * MeV
 PI0_WIDTH = 1.0
 KAON_WIDTH = 5.317e-14 * MeV
+KLONG_WIDTH = 1.28655e-14 * MeV
 
 
 # Crystal constants
