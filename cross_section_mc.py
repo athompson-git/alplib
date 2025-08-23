@@ -47,8 +47,10 @@ class Vector3:
     def __rmul__(self, other):
         return self.__mul__(other)  # Reuse __mul__
     
-    def unit_vec(self):
+    def unit_vec(self, eps=1e-40):
         v = self.mag()
+        if v < eps:
+            return Vector3(0.0, 0.0, 0.0)
         return Vector3(self.v1/v, self.v2/v, self.v3/v)
     
     def mag2(self):
@@ -600,11 +602,8 @@ class Decay3Body:
 
     def dGammadE3(self, E3):
         m212 = self.m_parent**2 + self.m3**2 - 2*self.m_parent*E3
-        e2star = (m212 - self.m1**2 + self.m2**2)/(2*sqrt(m212))
-        e3star = (self.m_parent**2 - m212 - self.m3**2)/(2*sqrt(m212))
-
-        if self.m3 > e3star:
-            return 0.0
+        e2star = np.clip((m212 - self.m1**2 + self.m2**2)/(2*sqrt(m212)), a_min=self.m2, a_max=np.inf)
+        e3star = np.clip((self.m_parent**2 - m212 - self.m3**2)/(2*sqrt(m212)), a_min=self.m3, a_max=np.inf)
 
         m223Max = (e2star + e3star)**2 - (sqrt(e2star**2 - self.m2**2) - sqrt(e3star**2 - self.m3**2))**2
         m223Min = (e2star + e3star)**2 - (sqrt(e2star**2 - self.m2**2) + sqrt(e3star**2 - self.m3**2))**2
@@ -615,7 +614,7 @@ class Decay3Body:
         return (2*self.m_parent)/(32*power(2*pi*self.m_parent, 3))*quad(MatrixElement2, m223Min, m223Max)[0]
 
     def partial_width(self):
-        ea_max = (self.m_parent**2 + self.m3**2 - self.m2**2 - self.m1**2)/(2*self.m_parent)
+        ea_max = (self.m_parent**2 + self.m3**2 - (self.m2 + self.m1)**2)/(2*self.m_parent)
         return quad(self.dGammadE3, self.m3, ea_max)[0]
 
     def simulate_decay(self):
@@ -642,8 +641,11 @@ class Decay3Body:
         self.p3_lab_4vectors = [lorentz_boost(p1, beta_parent) for p1 in self.p3_cm_4vectors]
 
         # Draw weights from the PDF: (Jacobian) * dGamma/dE_CM * MC volume
-        mc_factor = (ea_max - ea_min)/self.total_width/self.n_samples 
-        self.weights = np.array([mc_factor*(self.p3_lab_4vectors[i].momentum()/self.p3_cm_4vectors[i].momentum())*self.dGammadE3(e3_rnd[i]) \
+        mc_factor = (ea_max - ea_min)/self.total_width/self.n_samples
+        jacobian = np.array([self.p3_lab_4vectors[i].momentum()/self.p3_cm_4vectors[i].momentum()
+                             for i in range(self.n_samples)])
+
+        self.weights = np.array([mc_factor*(jacobian[i])*self.dGammadE3(e3_rnd[i]) \
                                     for i in range(self.n_samples)])
 
 
