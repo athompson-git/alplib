@@ -23,8 +23,16 @@ Contact: a.thompson@northwestern.edu
 # Classes and Methods
 
 ## Constants and Conventions
-* Global constants (SM parameters, unit conversions, etc.) are stored in `constants.py` and have the naming convention `GLOBAL_CONSTANT_NAME`
-* All units in alplib are in MeV, cm, kg, and s by default unless specifically stated, for example densities given in g/cm^2.
+
+Global constants (SM parameters, unit conversions, etc.) are stored in `constants.py` and have the naming convention `GLOBAL_CONSTANT_NAME`
+
+Unit conventions: All units in alplib are by default in
+* MeV
+* cm
+* kg
+* s
+
+unless specifically stated. Exceptions are for common unit convenions, for example densities given in g/cm^2 as we will see in the Materials class.
 
 ## The Material class
 The `Material` class is a container for the physical constants and parameters pertaining to the materials used in experimental beam targets and detectors.
