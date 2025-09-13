@@ -12,12 +12,15 @@ Contact: a.thompson@northwestern.edu
 
 
 # Required tools
-* python >3.7
-    * numpy
-    * scipy
-    * mpmath
-    * multiprocessing
+* python 3.7 or higher
+* matplotlib==3.10.6
+* numpy==2.3.3
+* scipy==1.16.2
+* setuptools==75.8.2
+* vegas==6.2.1
+* mpmath==1.3.0
 
+See also requirements.txt; you can use it via ```pip install -r requirements.txt```.
 
 
 # Classes and Methods
@@ -27,10 +30,10 @@ Contact: a.thompson@northwestern.edu
 Global constants (SM parameters, unit conversions, etc.) are stored in `constants.py` and have the naming convention `GLOBAL_CONSTANT_NAME`
 
 Unit conventions: All units in alplib are by default in
-* MeV
-* cm
-* kg
-* s
+* MeV (mega-electronvolts)
+* cm (centimeters)
+* kg (kilograms)
+* s (seconds)
 
 unless specifically stated. Exceptions are for common unit convenions, for example densities given in g/cm^2 as we will see in the Materials class.
 
