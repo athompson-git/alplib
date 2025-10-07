@@ -1,0 +1,43 @@
+# .gitattributes
+
+# Enforce Unix-style (LF) line endings for all text files
+* text eol=lf
+
+# Common source code files
+*.py     text eol=lf
+*.cpp    text eol=lf
+*.h      text eol=lf
+*.hpp    text eol=lf
+*.c      text eol=lf
+*.cc     text eol=lf
+
+# Configuration and documentation
+*.txt    text eol=lf
+*.md     text eol=lf
+*.tex    text eol=lf
+*.yaml   text eol=lf
+*.yml    text eol=lf
+*.json   text eol=lf
+*.ini    text eol=lf
+*.cfg    text eol=lf
+*.csv    text eol=lf
+*.toml   text eol=lf
+
+# Scripts
+*.sh     text eol=lf
+*.bash   text eol=lf
+
+# Requirements and environments
+requirements*.txt  text eol=lf
+environment.yml    text eol=lf
+
+# Binary files (don’t modify line endings)
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.pdf    binary
+*.zip    binary
+*.exe    binary
+*.dll    binary
+*.so     binary
+*.pkl    binary
