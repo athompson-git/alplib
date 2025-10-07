@@ -599,6 +599,21 @@ class Decay3Body:
             self.total_width = self.partial_width()
         else:
             self.total_width = total_width
+    
+    def set_masses(self, m1=None, m2=None, m3=None, m_parent=None):
+        if m1 is not None:
+            self.m1 = m1
+            self.mtrx2.m1 = m1
+        if m2 is not None:
+            self.m2 = m2
+            self.mtrx2.m2 = m2
+        if m3 is not None:
+            self.m3 = m3
+            self.mtrx2.m3 = m3
+        if m_parent is not None:
+            self.m_parent = m_parent
+            self.mtrx2.m_parent = m_parent
+        self.total_width = self.partial_width()
 
     def dGammadE3(self, E3):
         m212 = self.m_parent**2 + self.m3**2 - 2*self.m_parent*E3
