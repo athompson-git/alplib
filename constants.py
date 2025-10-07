@@ -12,6 +12,7 @@ sec = 1.0
 
 # Dimensionless constants
 ALPHA = 1/137
+ALPHA_STRONG = 0.3068
 E_QED = 0.30282212087
 kPI = 3.14159
 
