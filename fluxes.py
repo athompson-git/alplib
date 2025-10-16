@@ -349,7 +349,7 @@ class FluxBremIsotropic(AxionFlux):
                     continue
                 new_energy = np.random.uniform(ep_min, el[0])
                 flux_weight = (el[0] - ep_min) * self.electron_positron_flux_attenuated(el[0], new_energy) 
-                self.simulate_single([new_energy[i], flux_weight])
+                self.simulate_single([new_energy, flux_weight])
             
         else:
             for i, el in enumerate(self.electron_flux):
