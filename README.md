@@ -142,8 +142,15 @@ The super class `MatrixElement2` and its inheritors offers a way to embed any 2-
 
 As an example, in `generators.py` we call the class `Scatter2to2MC` from `cross_section_mc.py`. Generating samples should look like this;
 ```
-mc.lv_p1 = LorentzVector(Ea0, 0.0, 0.0, np.sqrt(Ea0**2 - self.mx**2))
-mc.lv_p2 = LorentzVector(self.det_m, 0.0, 0.0, 0.0)
+test_ma = 0.1  # ALP mass in MeV
+matAr = Material("Ar")  # Material class for Argon
+test_Ea = 100.0  # test ALP energy in MeV
+
+m2_invPrim = M2InversePrimakoff(ma=test_ma, mN=matAr.m[0], z=matAr.z[0])
+mc = Scatter2to2MC(mtrx2=m2_invPrim,
+                   p1=LorentzVector(test_Ea, 0.0, 0.0, np.sqrt(test_Ea**2 - test_ma**2)),
+                   p2=LorentzVector(matAr.m[0], 0.0, 0.0, 0.0))
+
 mc.scatter_sim()
 
 cosines, dsdcos = mc.get_cosine_lab_weights()
