@@ -1174,10 +1174,6 @@ class FluxAxionMesonMixing(AxionFlux):
         self.meson_type = meson_type
     
     def photon_coupling(self, f_a):
-        if self.ma > 150.0:
-            c_gamma = self.c2 + (5/3)*self.c1
-            return c_gamma * ALPHA / (2 * pi * f_a)  # in MeV^-1
-        
         # ma < QCD scale
         c_gamma = self.c2 + (5/3)*self.c1 + self.c3 * (
             -1.92
