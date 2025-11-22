@@ -1225,8 +1225,12 @@ class FluxAxionMesonMixing(AxionFlux):
 
     def propagate(self, new_fa=None):
         if new_fa is not None:
+            total_width = W_gg(self.photon_coupling(new_fa), self.ma) \
+                        + W_agg_hadronic(new_fa, self.ma)
             rescale=power(self.f_a/new_fa, 2)
-            super().propagate(W_gg(self.photon_coupling(new_fa), self.ma), rescale)
+            super().propagate(total_width, rescale)
         else:
+            total_width = W_gg(self.axion_coupling, self.ma) \
+                        + W_agg_hadronic(self.f_a, self.ma)
             super().propagate(W_gg(self.axion_coupling, self.ma))
 

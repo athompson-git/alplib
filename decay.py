@@ -5,6 +5,7 @@
 from .constants import *
 from .fmath import *
 
+import pkg_resources
 
 def W_gg(g_agamma, ma):
     # a -> gamma gamma
@@ -56,6 +57,19 @@ def W_gg_loop(g_af, ma, mf):
 def W_aprime_gamma_phi(g_gauge, m_aprime, m_phi):
     # Aprime -> gamma + phi (scalar)
     return power(g_gauge, 2) * power((m_aprime**2 - m_phi**2)/m_aprime, 3) / (128*pi)
+
+
+
+
+# Gluon dominance data for decay width [m_a (GeV), Gamma (eV)] for f_a = 1e6 GeV
+fpath_gludom_data = pkg_resources.resource_filename(__name__, 'data/gluon_dominance_widths_nogamma.txt')
+gludom_data = np.genfromtxt(fpath_gludom_data)
+def W_agg_hadronic(f_a, ma):
+    # a -> hadrons total decay width
+    eV_fact = 1e-9
+    Lambda_scale = (32 * pi**2 * f_a / 1e6)**2  # data is normalized to EFT scale of 1 TeV
+
+    return np.interp(ma*1e-3, gludom_data[:,0], gludom_data[:,1]) * eV_fact / Lambda_scale 
 
 
 
